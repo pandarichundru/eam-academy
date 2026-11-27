@@ -145,8 +145,24 @@ const businessFlows = [
 
 const ICON_COPY = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
 const ICON_CHECK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+const ICON_CHECK_CIRCLE = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="m9 12 2 2 4-4"></path></svg>';
+const ICON_BOOKMARK = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z"></path></svg>';
+const ICON_BOOKMARK_FILL = '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2Z"></path></svg>';
+const ICON_ARROW_LEFT = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>';
+const ICON_ARROW_RIGHT = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>';
+const ICON_FLOW_ARROW = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"></path><path d="m13 6 6 6-6 6"></path></svg>';
+const ICON_PLAY = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>';
+const ICON_DOWNLOAD = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>';
+const ICON_EXTERNAL = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"></path><path d="M8 7h9v9"></path></svg>';
+const ICON_ALERT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
 const ICON_MOON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>';
 const ICON_SUN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>';
+
+function progressRing(n, total) {
+  const pct = total ? Math.round((n / total) * 100) : 0;
+  const r = 19, c = 2 * Math.PI * r, off = c - (pct / 100) * c;
+  return `<div class="ring-stat" aria-label="${pct}% complete"><svg width="48" height="48" viewBox="0 0 48 48" aria-hidden="true"><circle class="ring-track" cx="24" cy="24" r="${r}"/><circle class="ring-fill" cx="24" cy="24" r="${r}" stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${off.toFixed(2)}"/></svg><span>${pct}%</span></div>`;
+}
 
 const SQL_KEYWORDS = new Set([
   'SELECT','FROM','WHERE','AND','OR','NOT','IN','IS','NULL','AS','ON','JOIN','LEFT','RIGHT','INNER','OUTER','FULL','CROSS',
@@ -209,11 +225,11 @@ function enhanceCodeBlocks(root) {
 
 const H = (tag, title, desc = '') => `<div class="eyebrow">${E(tag)}</div><h1>${E(title)}</h1>${desc ? `<p class="muted">${E(desc)}</p>` : ''}`;
 const A = (route, label, cls = '') => `<a ${cls ? `class="${cls}"` : ''} href="#${route}">${E(label)}</a>`;
-const ext = (url, label) => `<a href="${E(url)}" target="_blank" rel="noopener noreferrer">${E(label)} ↗</a>`;
+const ext = (url, label) => `<a class="ext-link" href="${E(url)}" target="_blank" rel="noopener noreferrer"><span>${E(label)}</span>${ICON_EXTERNAL}</a>`;
 const table = (headers, rows) => `<div class="scroll"><table><thead><tr>${headers.map(v => `<th scope="col">${E(v)}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(v => `<td>${E(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 const tiles = items => `<div class="grid">${items.map(([r, t, d]) => `<a class="tile" href="#${r}"><h3>${E(t)}</h3><p>${E(d)}</p></a>`).join('')}</div>`;
 const progress = (n, total) => `<div class="bar" role="progressbar" aria-label="Completion" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${n}"><i style="width:${total ? n / total * 100 : 0}%"></i></div>`;
-const lessonLink = l => A('lesson/' + l.id, `${done.includes(l.id) ? '✓ ' : ''}${l.title}`);
+const lessonLink = l => `<a class="lesson-link${done.includes(l.id) ? ' is-done' : ''}" href="#lesson/${E(l.id)}">${done.includes(l.id) ? ICON_CHECK : ''}<span>${E(l.title)}</span></a>`;
 const metric = (n, t) => `<div class="metric"><strong>${E(n)}</strong><span>${E(t)}</span></div>`;
 const sourceLink = (id, label) => A('doc/' + id, label);
 
@@ -349,7 +365,7 @@ function quizBlock(qList) {
   }
   return shuffled.map(q => {
     const saved = quizState[q.id];
-    const badge = saved === true ? '<span class="pill ok">✓ Answered correctly</span>' : saved === false ? '<span class="pill warn">Needs review</span>' : '';
+    const badge = saved === true ? `<span class="pill ok">${ICON_CHECK}<span>Answered correctly</span></span>` : saved === false ? `<span class="pill warn">${ICON_ALERT}<span>Needs review</span></span>` : '';
     return `<div class="quiz-box" data-qid="${E(q.id)}"><div class="row between"><strong>Quick check · ${E(q.id)}</strong>${badge}</div><p>${E(q.q)}</p>${q.options.map((opt, idx) => `<label class="quiz-opt"><input type="radio" name="quiz_${E(q.id)}" value="${idx}"><span>${E(opt)}</span></label>`).join('')}<div class="row"><button type="button" class="primary" data-check-quiz="${E(q.id)}">Check answer</button></div><div class="quiz-feedback" aria-live="polite" id="qf_${E(q.id)}"></div></div>`;
   }).join('');
 }
@@ -367,8 +383,8 @@ function lessonPage(id) {
   const related = sequence.filter(x => x.id !== id).slice(Math.max(0, i - 2), Math.max(0, i - 2) + 4);
   const lQuizzes = quizzes.filter(q => q.lesson.toLowerCase() === l.title.toLowerCase());
   return `<div class="lesson-layout"><article class="lesson-content">${H(l.module, l.title, `${l.id} · ${l.level} · ${l.type === 'technical' ? 'Technical SQL lesson' : l.type === 'consulting' ? 'Consultant guidance' : 'Written functional tutorial'}`)}`
-    + `<div class="row"><span class="pill">${l.type === 'intro' ? 'Academy introduction' : 'HxGN primary'}</span>${s.infor ? '<span class="pill">Infor supporting</span>' : ''}<button data-mark="${id}">${marks.includes(id) ? '★ Bookmarked' : '☆ Bookmark'}</button><button class="primary" data-done="${id}">${done.includes(id) ? '✓ Completed · undo' : 'Mark complete'}</button></div>`
-    + (workshops.some(w => w.module === l.module) ? '<p>' + A('workshop/' + U(l.module),'Open module workshop') + '</p>' : '')
+    + `<div class="row"><span class="pill">${l.type === 'intro' ? 'Academy introduction' : 'HxGN primary'}</span>${s.infor ? '<span class="pill">Infor supporting</span>' : ''}<button data-mark="${id}">${marks.includes(id) ? `${ICON_BOOKMARK_FILL}<span>Bookmarked</span>` : `${ICON_BOOKMARK}<span>Bookmark</span>`}</button><button class="primary" data-done="${id}">${done.includes(id) ? `${ICON_CHECK_CIRCLE}<span>Completed · undo</span>` : `${ICON_CHECK_CIRCLE}<span>Mark complete</span>`}</button></div>`
+    + (workshops.some(w => w.module === l.module) ? '<p class="mt-md">' + A('workshop/' + U(l.module),'Open module workshop') + '</p>' : '')
     + sqlStages.filter(stage => [stage.sql,stage.functional].includes(id)).map(stage => '<section><h2>' + E(stage.title) + '</h2>' + stageLinks(stage) + '</section>').join('')
     + (id === 'INTRO01' ? introReading() : '')
     + (inPath ? '<p class="muted">' + A('path/' + U(activePath),activePath) + ' · Lesson ' + (i+1) + ' of ' + sequence.length + '</p>' : '')
@@ -377,7 +393,7 @@ function lessonPage(id) {
     + (sqlReading[id] ? '<section class="section"><h2>How to read this query</h2><strong>' + E(sqlReading[id][0]) + '</strong><p>' + E(sqlReading[id][1]) + '</p><h3>Try a variation</h3><p>' + E(sqlReading[id][2]) + '</p></section>' : '')
     + `<section class="section"><h2>What you will learn</h2><p>${E(l.concept)}</p><p>By the end, you should be able to explain the business purpose, describe the steps for the scenario, and identify how to check the result.</p></section>`
     + `<section class="section"><h2>Business scenario</h2><div class="scenario">${E(l.scenario)}</div><p class="muted">Fictional PLANT01 example for learning; not a live EAM transaction.</p></section>`
-    + `${more.context && l.type === 'functional' ? `<section class="section"><h2>How it works</h2>${more.context.map(x => `<p>${E(x)}</p>`).join('')}${more.flow ? `<div class="diagram">${more.flow.map((v, idx) => `${idx ? '<b>→</b>' : ''}<span>${E(v)}</span>`).join('')}</div>` : ''}</section>` : ''}`
+    + `${more.context && l.type === 'functional' ? `<section class="section"><h2>How it works</h2>${more.context.map(x => `<p>${E(x)}</p>`).join('')}${more.flow ? `<div class="diagram">${more.flow.map((v, idx) => `${idx ? `<span class="diagram-arrow" aria-hidden="true">${ICON_FLOW_ARROW}</span>` : ''}<span>${E(v)}</span>`).join('')}</div>` : ''}</section>` : ''}`
     + `<section class="section"><h2>${l.type === 'technical' ? 'Technical walkthrough' : 'Prerequisites and written walkthrough'}</h2>${l.type === 'technical' ? `<p>Use the local synthetic dataset, not a production database. ${A('sql', 'Open SQL lab')}</p><pre>${E(l.sql)}</pre>${A('sql/' + id, 'Open this query in SQL lab', 'button primary')}` : `<p>${l.type === 'intro' ? 'Follow the example in order.' : l.type === 'consulting' ? 'Agree the business scope, owners and test environment before applying the guidance.' : 'Before starting, confirm the relevant organization, authorized role, and referenced master data. Use the documented screen for your release.'}</p><ol class="steps">${l.walkthrough.map(x => `<li>${E(x)}</li>`).join('')}</ol>`}</section>`
     + `${more.example && l.type === 'functional' ? `<section class="section"><h2>Worked example</h2>${table(['Record / field', 'Training value or decision', 'Explanation'], more.example)}</section>` : ''}`
     + `${l.type === 'functional' && ev.fields.length ? `<section class="section"><h2>Documented fields and options</h2><p class="muted">Selected field descriptions extracted from the supplied HxGN pages. Not an exhaustive field list; some descriptions continue in the original source.</p>${table(['Field / option', 'Source excerpt'], ev.fields.map(x => [x.name, x.meaning]))}</section>` : ''}`
@@ -385,7 +401,7 @@ function lessonPage(id) {
     + `${l.type === 'functional' ? `<section class="section"><h2>Documentation reading</h2><p class="muted">Selected local source text for verification. The extract is partial; use the linked full pages for exact field requirements, notes, and remaining steps.</p><details open><summary>HxGN source context · p. ${s.hex.page}</summary><p>${E(ev.intro)}</p>${ev.steps.length ? `<h3>Selected numbered instructions</h3><ul class="steps">${ev.steps.map(x => `<li>${E(x)}</li>`).join('')}</ul>` : '<p>No numbered instructions extracted at this heading. See full pages for nested procedures.</p>'}</details></section>` : ''}`
     + `<section class="section"><h2>Knowledge check</h2>${quizBlock(lQuizzes)}<p><strong>Written scenario prompt:</strong> Explain how you would address this scenario: ${E(l.scenario)} What evidence would demonstrate success?</p><details><summary>Review answer guidance</summary><p>${E(l.concept)}</p><p>${E(l.verify)}</p></details><label for="lessonNotes"><strong>Your revision notes</strong></label><textarea id="lessonNotes" data-note="${id}" placeholder="Record important terms and questions…">${E(notes[id] || '')}</textarea><small>Saved in this browser on change.</small></section>`
     + `<section class="section"><h2>Related lessons</h2>${related.map(x => `<div>${lessonLink(x)}</div>`).join('')}</section>`
-    + `<div class="row between lesson-nav">${i ? A('lesson/' + sequence[i - 1].id, '← Previous lesson', 'button') : ''}${i < sequence.length - 1 ? A('lesson/' + sequence[i + 1].id, 'Next lesson →', 'button primary') : ''}</div></article><aside class="rail" aria-label="Lesson references">${l.reference ? '<h2>Further reading</h2>' + lessonLink(lessons.find(item => item.id === l.reference)) : sourcePanel(l)}</aside></div>`;
+    + `<div class="row between lesson-nav">${i ? `<a class="button" href="#lesson/${E(sequence[i - 1].id)}">${ICON_ARROW_LEFT}<span>Previous lesson</span></a>` : '<span></span>'}${i < sequence.length - 1 ? `<a class="button primary" href="#lesson/${E(sequence[i + 1].id)}"><span>Next lesson</span>${ICON_ARROW_RIGHT}</a>` : ''}</div></article><aside class="rail" aria-label="Lesson references">${l.reference ? '<h2>Further reading</h2>' + lessonLink(lessons.find(item => item.id === l.reference)) : sourcePanel(l)}</aside></div>`;
 }
 
 function paths() {
@@ -412,7 +428,7 @@ function flowsPage() {
   return H('End-to-end workflows', 'EAM business process flows', 'Follow five core operational lifecycles from master data through transactions and closeout. Each stage links to the corresponding tutorial and R5 table evidence.')
     + businessFlows.map(f => `<section class="panel mb-md"><h2>${E(f.title)}</h2><p class="muted">${E(f.desc)}</p><div class="diagram">${f.steps.map((st, idx) => {
       const l = findLessonByTitle(st.lesson);
-      return `${idx ? '<b>→</b>' : ''}<div class="flow-node"><strong>${l ? A('lesson/' + l.id, st.label) : E(st.label)}</strong><small>${A('table/' + U(st.table), st.table)}</small></div>`;
+      return `${idx ? `<span class="diagram-arrow" aria-hidden="true">${ICON_FLOW_ARROW}</span>` : ''}<div class="flow-node"><span class="flow-step">${String(idx + 1).padStart(2, '0')}</span><strong>${l ? A('lesson/' + l.id, st.label) : E(st.label)}</strong><small>${A('table/' + U(st.table), st.table)}</small></div>`;
     }).join('')}</div></section>`).join('');
 }
 
@@ -560,7 +576,7 @@ async function runCodeSearch(kind, offset = 0) {
     const html = j.items.map(it => {
       const tblLinks = (it.tables || '').split(',').map(x => x.trim()).filter(Boolean).slice(0, 8)
         .map(t => A('table/' + U(t), t, 'taglink')).join('');
-      return `<div class="list-item"><div class="row between"><div>${A('code/' + it.id, it.name)} <span class="pill">${E(it.kind.toUpperCase())}</span> <small>Candidate ${E(it.candidate)} · ${it.line_count} lines</small></div>${A('code/' + it.id, 'View full SQL →', 'button')}</div>${tblLinks ? `<div class="mt-sm">${tblLinks}</div>` : ''}<pre class="code-excerpt">${HMark(it.excerpt)}</pre></div>`;
+      return `<div class="list-item"><div class="row between code-item-head"><div>${A('code/' + it.id, it.name)} <span class="pill">${E(it.kind.toUpperCase())}</span> <small class="tabular">Candidate ${E(it.candidate)} · ${it.line_count} lines</small></div><a class="button" href="#code/${E(it.id)}"><span>View full SQL</span>${ICON_ARROW_RIGHT}</a></div>${tblLinks ? `<div class="mt-sm">${tblLinks}</div>` : ''}<pre class="code-excerpt">${HMark(it.excerpt)}</pre></div>`;
     }).join('');
     $('codeResults').innerHTML = offset ? $('codeResults').innerHTML + html : (html || '<p>No matching code objects.</p>');
     $('codeMore').innerHTML = j.more ? `<button id="codeLoadMore">Load more (${j.total - offset - j.items.length} remaining)</button>` : '';
@@ -622,14 +638,14 @@ function renderCodesTab(tab) {
 async function codeItemPage(id) {
   const item = await api('/api/code/item?id=' + U(id));
   const backRoute = item.kind === 'trigger' ? 'triggers' : item.kind === 'procedure' ? 'procedures' : 'codes';
-  const backLabel = item.kind === 'trigger' ? '← All Triggers' : item.kind === 'procedure' ? '← All Stored Procedures' : '← All Codes';
+  const backLabel = item.kind === 'trigger' ? 'All Triggers' : item.kind === 'procedure' ? 'All Stored Procedures' : 'All Codes';
   const tblLinks = (item.tables || '').split(',').map(x => x.trim()).filter(Boolean).map(t => A('table/' + U(t), t, 'taglink')).join('');
   const sibs = (item.siblings || []).length > 1
     ? `<div class="row mt-md"><small>Candidates for ${E(item.norm_name)}:</small>${item.siblings.map(sb => A('code/' + sb.id, `Candidate ${sb.candidate} (${sb.line_count}L)`, sb.id === item.id ? 'button primary' : 'button')).join('')}</div>`
     : '';
   return H('Recovered SQL Source', item.name, `${item.kind.toUpperCase()} · Candidate ${item.candidate} · ${item.line_count} lines${item.offset ? ` · backup byte ${item.offset}` : ''}`)
     + `<div class="note warn">RECOVERY REFERENCE ONLY — NOT A VERIFIED OR DEPLOYABLE SCRIPT. Never run against production or training SQLite.</div>`
-    + `<div class="row">${A(backRoute, backLabel, 'button')}<button type="button" id="copySqlBtn" class="primary">${ICON_COPY}<span>Copy SQL</span></button><button type="button" id="dlSqlBtn">Download .sql</button></div>`
+    + `<div class="row"><a class="button" href="#${backRoute}">${ICON_ARROW_LEFT}<span>${backLabel}</span></a><button type="button" id="copySqlBtn" class="primary">${ICON_COPY}<span>Copy SQL</span></button><button type="button" id="dlSqlBtn">${ICON_DOWNLOAD}<span>Download .sql</span></button></div>`
     + sibs
     + (tblLinks ? `<div class="panel mt-md mb-md"><strong>Referenced R5 tables:</strong><div class="mt-sm">${tblLinks}</div></div>` : '')
     + `<pre class="code-view" id="rawSqlCode">${E(item.body)}</pre>`;
@@ -691,21 +707,27 @@ function buildErSvg(t) {
     children = [...cSet.entries()].slice(0, 12);
   }
   const rows = Math.max(parents.length, children.length, 1);
-  const h = Math.max(240, rows * 44 + 40);
+  const h = Math.max(260, rows * 46 + 44);
   const cy = h / 2;
-  let svg = `<svg viewBox="0 0 860 ${h}" width="100%" style="min-width:620px;max-height:560px" role="img" aria-label="Entity relationship diagram for ${E(t)}">`;
+  let edgesSvg = '', nodesSvg = '';
+  const drawEdge = (name, x1, y1, x2, y2, lbl, lx, ly) => {
+    const dx = Math.abs(x2 - x1) * 0.45;
+    const d = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
+    const lw = Math.min(116, Math.max(38, lbl.length * 6.4 + 12));
+    edgesSvg += `<g class="er-link-group" data-er-edge="${E(name)}"><path class="er-edge" d="${d}"/><circle class="er-port" cx="${x1}" cy="${y1}" r="2.5"/><circle class="er-port" cx="${x2}" cy="${y2}" r="2.5"/><rect class="er-lbl-bg" x="${lx - lw / 2}" y="${ly - 9}" width="${lw}" height="17" rx="4"/><text class="er-lbl" x="${lx}" y="${ly + 3}" text-anchor="middle">${E(lbl)}</text></g>`;
+  };
   parents.forEach(([name, lbl], i) => {
-    const y = 30 + i * ((h - 60) / Math.max(parents.length, 1));
-    svg += `<line class="er-edge" x1="210" y1="${y + 15}" x2="345" y2="${cy}"/><text class="er-lbl" x="220" y="${(y + 15 + cy) / 2 - 4}">${E(lbl)}</text>`;
-    svg += `<g class="er-node" data-er-node="${E(name)}"><rect x="16" y="${y}" width="194" height="30"/><text x="26" y="${y + 19}">${E(name)}</text></g>`;
+    const y = 26 + i * ((h - 68) / Math.max(parents.length, 1));
+    drawEdge(name, 204, y + 16, 344, cy, lbl, 268, y + 16);
+    nodesSvg += `<g class="er-node" data-er-node="${E(name)}"><rect x="14" y="${y}" width="190" height="32"/><text x="24" y="${y + 20}">${E(name)}</text></g>`;
   });
   children.forEach(([name, lbl], i) => {
-    const y = 30 + i * ((h - 60) / Math.max(children.length, 1));
-    svg += `<line class="er-edge" x1="515" y1="${cy}" x2="650" y2="${y + 15}"/><text class="er-lbl" x="530" y="${(y + 15 + cy) / 2 - 4}">${E(lbl)}</text>`;
-    svg += `<g class="er-node" data-er-node="${E(name)}"><rect x="650" y="${y}" width="194" height="30"/><text x="660" y="${y + 19}">${E(name)}</text></g>`;
+    const y = 26 + i * ((h - 68) / Math.max(children.length, 1));
+    drawEdge(name, 516, cy, 656, y + 16, lbl, 592, y + 16);
+    nodesSvg += `<g class="er-node" data-er-node="${E(name)}"><rect x="656" y="${y}" width="190" height="32"/><text x="666" y="${y + 20}">${E(name)}</text></g>`;
   });
-  svg += `<g class="er-node center" data-er-node="${E(t)}"><rect x="345" y="${cy - 20}" width="170" height="40"/><text x="430" y="${cy + 5}" text-anchor="middle">${E(t)}</text></g></svg>`;
-  return svg;
+  nodesSvg += `<g class="er-node center" data-er-node="${E(t)}"><rect x="344" y="${cy - 21}" width="172" height="42"/><text x="430" y="${cy + 4}" text-anchor="middle">${E(t)}</text></g>`;
+  return `<svg class="er-svg" viewBox="0 0 860 ${h}" width="100%" role="img" aria-label="Entity relationship diagram for ${E(t)}">${edgesSvg}${nodesSvg}</svg>`;
 }
 
 function erPage(t = 'R5EVENTS') {
@@ -740,8 +762,8 @@ function sqlPage(id) {
   const l = lessons.find(x => x.id === id && x.type === 'technical');
   return H('SQL practice · technical only', 'Read-only SQL lab', 'All records are fictional and the SQLite schema is not the production R5 schema. Click schema columns to insert them, or use Check my output on lesson challenges.')
     + `<div class="sql-workspace"><div class="panel"><label for="sqlExample">Choose a lesson query</label> <select id="sqlExample"><option value="">Custom query</option>${lessons.filter(x => x.type === 'technical').map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${E(x.title)}</option>`).join('')}</select>`
-    + `<p class="mt-md mb-sm"><label for="sqlText">SQL statement</label></p><textarea id="sqlText">${E(l?.sql || 'SELECT * FROM work_orders ORDER BY id;')}</textarea>`
-    + `<div class="row mt-sm"><button id="runSQL" class="primary">Run read-only query</button><button id="checkSQL" class="${l ? '' : 'is-hidden'}">Check my output</button><small>SELECT / CTE · max 200 displayed rows</small></div>`
+    + `<p class="mt-md mb-sm"><label for="sqlText">SQL statement</label></p><div class="editor-shell"><div class="editor-head"><span>SQLite · Read-only</span><span class="editor-hint"><kbd>⌘↵</kbd> Run</span></div><textarea id="sqlText" spellcheck="false">${E(l?.sql || 'SELECT * FROM work_orders ORDER BY id;')}</textarea></div>`
+    + `<div class="row mt-sm"><button id="runSQL" class="primary">${ICON_PLAY}<span>Run read-only query</span></button><button id="checkSQL" class="${l ? '' : 'is-hidden'}">${ICON_CHECK}<span>Check my output</span></button><small>SELECT / CTE · max 200 displayed rows</small></div>`
     + `<p id="sqlExpected" class="note">${E(l?.verify || 'Select a lesson for an expected result.')}</p><div id="sqlCheckMsg"></div><div id="sqlResult"></div></div>`
     + '<aside class="panel sql-browser"><h2>Training schema</h2><div id="sqlSchema">Loading schema…</div></aside></div>'
     + '<div id="queryHistory">' + historyMarkup() + '</div>'
@@ -753,9 +775,9 @@ function progressPage() {
   const qTot = Object.keys(quizState).length;
   const qOk = Object.values(quizState).filter(Boolean).length;
   return H('Personal learning', 'Your learning progress', 'Progress, quiz results, notes and bookmarks are stored locally in this browser.')
+    + `<div class="panel mb-md"><div class="dashboard-head"><div><strong>Overall curriculum progress</strong><p class="muted mb-sm">${valid.length} of ${lessons.length} lessons completed</p></div>${progressRing(valid.length, lessons.length)}</div>${progress(valid.length, lessons.length)}</div>`
     + `<div class="metrics">${metric(valid.length, 'Completed')}${metric(marks.length, 'Bookmarked')}${metric(Object.keys(notes).filter(k => notes[k]).length, 'Lessons with notes')}${metric(qTot ? `${qOk}/${qTot}` : '0', 'Quiz score')}</div>`
     + '<p>' + A('practice','SQL practice · ' + read('practiceSolved',[]).length + ' solved') + '</p>'
-    + progress(valid.length, lessons.length)
     + `<h2>Module progress</h2>`
     + Object.entries(groups).map(([m, ls]) => `<div class="list-item"><div class="row between">${A('module/' + U(m), m)}<small>${ls.filter(l => done.includes(l.id)).length}/${ls.length}</small></div>${progress(ls.filter(l => done.includes(l.id)).length, ls.length)}</div>`).join('')
     + `<h2>Bookmarks</h2>${lessons.filter(l => marks.includes(l.id)).map(l => `<div class="list-item">${lessonLink(l)}</div>`).join('') || '<p>No bookmarks yet.</p>'}`
@@ -892,13 +914,29 @@ async function route() {
           $('tableCodeRefs').innerHTML = `<p class="muted">${res.total} matching SQL objects (showing up to 40)</p><div class="panel">${res.items.map(it => `${A('code/' + it.id, `${it.name} (${it.kind})`, 'taglink')}`).join('')}</div>`;
         }).catch(() => {});
         break;
-      case 'er':
+      case 'er': {
         main.innerHTML = erPage(id || 'R5EVENTS');
         $('erPick').onchange = e => { location.hash = 'er/' + U(e.target.value); };
-        main.querySelectorAll('[data-er-node]').forEach(g => { g.setAttribute('role','link'); g.setAttribute('tabindex','0');
+        const erSvg = main.querySelector('.er-svg');
+        const setEdgeHover = name => {
+          if (!erSvg) return;
+          erSvg.classList.toggle('has-hover', Boolean(name));
+          erSvg.querySelectorAll('[data-er-edge]').forEach(g => g.classList.toggle('is-highlighted', g.dataset.erEdge === name));
+        };
+        main.querySelectorAll('[data-er-node]').forEach(g => {
+          g.setAttribute('role', 'link');
+          g.setAttribute('tabindex', '0');
           g.onclick = () => { location.hash = 'er/' + U(g.dataset.erNode); };
-          g.onkeydown = e => { if (e.key === 'Enter') g.onclick(); }; });
+          g.onkeydown = e => { if (e.key === 'Enter') g.onclick(); };
+          if (!g.classList.contains('center')) {
+            g.onmouseenter = () => setEdgeHover(g.dataset.erNode);
+            g.onmouseleave = () => setEdgeHover('');
+            g.onfocus = () => setEdgeHover(g.dataset.erNode);
+            g.onblur = () => setEdgeHover('');
+          }
+        });
         break;
+      }
       case 'sql': {
         main.innerHTML = sqlPage(id);
         const exercise = /^pump-([0-3])$/.exec(id);
@@ -920,6 +958,9 @@ async function route() {
         $('queryHistory').onclick = e => {
           const button = e.target.closest('[data-load-sql]');
           if (button) $('sqlText').value = sqlHist[Number(button.dataset.loadSql)];
+        };
+        $('sqlText').onkeydown = e => {
+          if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); $('runSQL').click(); }
         };
         $('runSQL').onclick = async () => {
           const b = $('runSQL'), q = $('sqlText').value;
@@ -949,8 +990,8 @@ async function route() {
             const norm = r => JSON.stringify(r.rows);
             const ok = !got.truncated && !exp.truncated && got.columns.length === exp.columns.length && norm(got) === norm(exp);
             msg.innerHTML = ok
-              ? `<div class="note ok">✓ Output matches expected result (${exp.rows.length} rows, ${exp.columns.length} columns).</div>`
-              : `<div class="note warn">Result differs: got ${got.rows.length} rows × ${got.columns.length} cols, expected ${exp.rows.length} rows × ${exp.columns.length} cols. Check joins, filters, or ORDER BY.</div>`;
+              ? `<div class="note ok">${ICON_CHECK} <span>Output matches expected result (${exp.rows.length} rows, ${exp.columns.length} columns).</span></div>`
+              : `<div class="note warn">${ICON_ALERT} <span>Result differs: got ${got.rows.length} rows × ${got.columns.length} cols, expected ${exp.rows.length} rows × ${exp.columns.length} cols. Check joins, filters, or ORDER BY.</span></div>`;
           } catch (e) { msg.innerHTML = `<div class="note warn">Check failed: ${E(e.message)}</div>`; }
         };
         api('/api/schema').then(v => {
@@ -984,6 +1025,8 @@ async function route() {
               const ta = $('sqlText'), val = el.dataset.ins, st = ta.selectionStart ?? ta.value.length, en = ta.selectionEnd ?? ta.value.length;
               ta.value = ta.value.slice(0, st) + val + ta.value.slice(en);
               ta.focus(); ta.setSelectionRange(st + val.length, st + val.length);
+              el.classList.add('is-inserted');
+              setTimeout(() => { if (el.isConnected) el.classList.remove('is-inserted'); }, 900);
             };
           });
         }).catch(e => { if (current === generation) $('sqlSchema').textContent = e.message; });
@@ -1033,12 +1076,14 @@ async function route() {
     if (current === generation) {
       if (r === 'module' && workshops.some(w => w.module === id)) main.insertAdjacentHTML('afterbegin','<p class="workshop-link">' + A('workshop/' + U(id),'Open the module workshop') + '</p>');
       enhanceCodeBlocks(main);
+      main.classList.remove('view-enter');
+      void main.offsetWidth;
+      main.classList.add('view-enter');
       const ref = $('refSearch');
       if (ref) ref.onsubmit = e => { e.preventDefault(); location.hash = 'search/' + U($('refQ').value); };
       document.title = (main.querySelector('h1')?.textContent || 'Learning') + ' · EAM Academy';
       window.scrollTo(0, 0);
-      $('side').classList.remove('open');
-      $('menu').setAttribute('aria-expanded', 'false');
+      setDrawer(false);
     }
   } catch (e) {
     if (current === generation) main.innerHTML = `<p class="warning">${E(e.message)}</p>`;
@@ -1055,7 +1100,9 @@ $('main').addEventListener('click', e => {
     arr = has ? arr.filter(x => x !== id) : [...arr, id];
     if (k === 'marks') marks = arr; else done = arr;
     write(k, arr);
-    b.textContent = k === 'marks' ? (has ? '☆ Bookmark' : '★ Bookmarked') : (has ? 'Mark complete' : '✓ Completed · undo');
+    b.innerHTML = k === 'marks'
+      ? (has ? `${ICON_BOOKMARK}<span>Bookmark</span>` : `${ICON_BOOKMARK_FILL}<span>Bookmarked</span>`)
+      : (has ? `${ICON_CHECK_CIRCLE}<span>Mark complete</span>` : `${ICON_CHECK_CIRCLE}<span>Completed · undo</span>`);
     renderNav('lesson', id);
     return;
   }
@@ -1072,7 +1119,7 @@ $('main').addEventListener('click', e => {
     if ($('quizScore')) $('quizScore').textContent = quizReport(quizzes.filter(item => item.module === $('assessPick').value));
     const status = qb.closest('.quiz-box').querySelector('.pill');
     if (status) status.remove();
-    fb.innerHTML = `<div class="note ${ok ? 'ok' : 'warn'}"><strong>${ok ? '✓ Correct.' : 'Not quite.'}</strong> ${E(q.explain)}</div>`;
+    fb.innerHTML = `<div class="note ${ok ? 'ok' : 'warn'}">${ok ? ICON_CHECK : ICON_ALERT} <span><strong>${ok ? 'Correct.' : 'Not quite.'}</strong> ${E(q.explain)}</span></div>`;
   }
 });
 
@@ -1085,15 +1132,24 @@ $('quick').onsubmit = e => {
   if (location.hash === '#search/' + U(q)) doSearch(q); else location.hash = 'search/' + U(q);
 };
 document.querySelector('.skip').addEventListener('click', e => { e.preventDefault(); $('main').focus(); });
+function setDrawer(open) {
+  $('side').classList.toggle('open', open);
+  $('sideBackdrop')?.classList.toggle('open', open);
+  $('menu').setAttribute('aria-expanded', String(open));
+}
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault(); $('quickInput').focus(); $('quickInput').select(); return;
+  }
+  if (e.key === 'Escape' && $('side').classList.contains('open')) {
+    setDrawer(false); $('menu').focus(); return;
   }
   if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
     e.preventDefault(); $('quickInput')?.focus();
   }
 });
-$('menu').onclick = () => { $('side').classList.toggle('open'); $('menu').setAttribute('aria-expanded', $('side').classList.contains('open')); };
+$('menu').onclick = () => setDrawer(!$('side').classList.contains('open'));
+$('sideBackdrop')?.addEventListener('click', () => setDrawer(false));
 $('theme').onclick = () => { const v = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = v; write('theme', v); syncTheme(); };
 const systemTheme = matchMedia('(prefers-color-scheme: dark)');
 function syncTheme() {
