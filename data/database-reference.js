@@ -110,12 +110,55 @@ function results(){
  document.getElementById('rows').innerHTML=para(list.length+' matching entries')+list.slice(start,start+40).map(o=>'<div class="dbrow">'+link(o.key,o.name+(o.type==='Index'?' · '+o.parent.name:''))+'<small>'+esc(o.type)+'</small></div>').join('')+'<p><button id="prev" '+(page?'':'disabled')+'>Previous</button> <button id="next" '+(start+40<list.length?'':'disabled')+'>Next</button></p>';
  document.getElementById('prev').onclick=()=>{page--;results();};document.getElementById('next').onclick=()=>{page++;results();};
 }
+function saved(key,fallback){try{return JSON.parse(localStorage.getItem('eam3:'+key))??fallback;}catch{return fallback;}}
+function save(key,value){try{localStorage.setItem('eam3:'+key,JSON.stringify(value));}catch{}}
+function objectMap(o){
+ const d=o.data;
+ let question,steps;
+ if(o.type==='Table'){
+  question='How do I identify and connect a '+o.name+' record?';
+  steps=[['Record',d.title||d.name],['Recorded key',d.pk.join(' + ')||'No key recorded'],['Outbound links',d.out_fks.length+' recorded constraints']];
+ }else if(o.type==='Index'){
+  question='Which columns can I use to look up rows in '+o.parent.name+'?';
+  steps=d.cols.map((c,i)=>['Key position '+(i+1),c]);
+ }else if(o.key.startsWith('Code:')){
+  question='What does the recovered '+d.kind+' text show?';
+  const lines=(d.body||'').split(/\r?\n/);
+  const pick=r=>lines.find(l=>r.test(l))?.trim().slice(0,150)||'Inspect recovered source';
+  steps=[['Declaration',pick(/\b(create|alter)\b/i)],['Condition',pick(/^\s*(where|if|when|having)\b/i)],['Action or output',pick(/^\s*(select|return|update|insert|delete|exec)\b/i)]];
+ }else return '';
+ return '<section class="object-map"><h2>'+esc(question)+'</h2><ol>'+steps.map(([k,v])=>'<li><small>'+esc(k)+'</small><code>'+esc(v)+'</code></li>').join('')+'</ol></section>';
+}
+function joinLab(){
+ return '<section class="join-lab"><h2>Trace the matching rows</h2><label>Join condition <select id="joinMode"><option value="single">Activity alone</option><option value="pair">Work order + activity</option><option value="left">LEFT JOIN with an unbooked activity</option></select></label> <button id="stepJoin">Next activity</button><div id="joinRows" aria-live="polite"></div><p>'+connections(['Table:R5ACTIVITIES'])+' · '+academy('exercise/53','Try activity variance')+'</p></section>';
+}
+function wireJoin(){
+ const mode=document.getElementById('joinMode');if(!mode)return;
+ const bookings=[[101,10,2],[101,20,1],[102,10,5],[104,10,4]];let step=0;
+ function draw(){
+  const activities=bookings.map(([w,a])=>[w,a]);
+  if(mode.value==='left')activities.push([105,30]);
+  const matches=([w,a])=>bookings.filter(([bw,ba])=>a===ba&&(mode.value==='single'||w===bw));
+  const sum=rows=>rows.reduce((n,r)=>n+r[2],0);
+  const active=activities[step],rows=matches(active);
+  document.getElementById('joinRows').innerHTML='<p>Activity '+(step+1)+' of '+activities.length+' · Work order <b>'+active[0]+'</b> · Activity <b>'+active[1]+'</b></p><div class="match-grid">'+bookings.map(row=>'<div class="'+(rows.includes(row)?'matched':'')+'"><small>'+ (rows.includes(row)?'Matched':'No match')+'</small><code>'+row[0]+' / '+row[1]+'</code><b>'+row[2]+' h</b></div>').join('')+'</div>'+para(rows.length?'This activity receives '+rows.map(r=>r[2]).join(' + ')+' = '+sum(rows)+' booked hours.':'The added training activity has no booking. LEFT JOIN preserves it with NULL booking fields. COALESCE converts its missing total to zero hours.')+'<strong>Report total · '+activities.reduce((n,a)=>n+sum(matches(a)),0)+' hours</strong>';
+  document.getElementById('stepJoin').onclick=()=>{step=(step+1)%activities.length;draw();};
+ }
+ mode.onchange=()=>{step=mode.value==='left'?4:0;draw();};draw();
+}
+function bookmarkList(){
+ const keys=saved('dbBookmarks',[]).filter(k=>objects.has(k));
+ return keys.length?section('Your bookmarks',keys.map(k=>'<div>'+link(k,objects.get(k).name)+'</div>').join('')):'';
+}
+
 function render(){
  let k;try{k=decodeURIComponent(location.hash.slice(1));}catch{k='?';}
  const o=objects.get(k);
- if(o){reader.innerHTML='<p>'+esc(o.type)+'</p><article><h1>'+esc(o.name)+'</h1>'+(o.type==='Study'?study(o.name):o.type==='Table'?tablePage(o.data):o.type==='Index'?indexPage(o.data,o.parent):o.key.startsWith('Code:')?codePage(o.data):configPage(o))+'</article>';document.title=o.name+' · Database Reference';window.scrollTo(0,0);return;}
+ if(o){save('dbLast',{key:o.key,name:o.name});reader.innerHTML='<p>'+esc(o.type)+'</p><article><h1>'+esc(o.name)+'</h1><button id="bookmarkEntry"></button>'+objectMap(o)+(o.name==='Work-order labor'?joinLab():'')+(o.type==='Study'?study(o.name):o.type==='Table'?tablePage(o.data):o.type==='Index'?indexPage(o.data,o.parent):o.key.startsWith('Code:')?codePage(o.data):configPage(o))+'</article>';document.title=o.name+' · Database Reference';const bookmark=document.getElementById('bookmarkEntry');
+ function showBookmark(){const on=saved('dbBookmarks',[]).includes(o.key);bookmark.textContent=on?'Bookmarked':'Bookmark entry';bookmark.setAttribute('aria-pressed',String(on));}
+ bookmark.onclick=()=>{const list=saved('dbBookmarks',[]);save('dbBookmarks',list.includes(o.key)?list.filter(k=>k!==o.key):[...list,o.key]);showBookmark();};showBookmark();wireJoin();window.scrollTo(0,0);return;}
  document.title='Database Reference · EAM Academy';
- reader.innerHTML=(k?para('The requested entry was not found.'):'')+'<h1>Database Reference</h1>'+para('Follow a worked example, then use the catalog to investigate a related object.')+section('Guided investigations',Object.keys(guides).map(s=>'<div>'+link('Study:'+s,s)+'</div>').join(''))+section('Search the database catalog','<div class="controls"><label>Object name or description<input id="term" type="search"></label><label>Object type<select id="type"><option value="">All types</option>'+[...new Set(arr().map(o=>o.type))].sort().map(t=>'<option>'+esc(t)+'</option>').join('')+'</select></label></div><div id="rows"></div>')+panel('Source and coverage',para('The table and index descriptions use the Academy schema export. Of 5,296 recovered SQL candidates, '+evidence.matched.toLocaleString()+' had a matching text prefix at a recorded byte offset in 116_van.bak. Seven did not match. A prefix match does not verify a complete definition, runtime behavior or the current installation. Classes, categories and parameter excerpts come from the supplied Academy catalogs.')+para('Backup SHA-256 '+evidence.sha256));
+ reader.innerHTML=(k?para('The requested entry was not found.'):'')+'<h1>Database Reference</h1>'+para('Follow a worked example, then use the catalog to investigate a related object.')+bookmarkList()+section('Guided investigations',Object.keys(guides).map(s=>'<div>'+link('Study:'+s,s)+'</div>').join(''))+section('Search the database catalog','<div class="controls"><label>Object name or description<input id="term" type="search"></label><label>Object type<select id="type"><option value="">All types</option>'+[...new Set(arr().map(o=>o.type))].sort().map(t=>'<option>'+esc(t)+'</option>').join('')+'</select></label></div><div id="rows"></div>')+panel('Source and coverage',para('The table and index descriptions use the Academy schema export. Of 5,296 recovered SQL candidates, '+evidence.matched.toLocaleString()+' had a matching text prefix at a recorded byte offset in 116_van.bak. Seven did not match. A prefix match does not verify a complete definition, runtime behavior or the current installation. Classes, categories and parameter excerpts come from the supplied Academy catalogs.')+para('Backup SHA-256 '+evidence.sha256));
  const input=document.getElementById('term'),type=document.getElementById('type');input.value=term;type.value=selected;input.oninput=()=>{term=input.value.toLowerCase();page=0;results();};type.onchange=()=>{selected=type.value;page=0;results();};results();
 }
 async function start(){

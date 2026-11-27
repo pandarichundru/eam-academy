@@ -1323,7 +1323,7 @@ async function route() {
           if (!confirm('Clear all local completion, bookmarks, notes, quiz scores, and SQL practice history?')) return;
           done = []; marks = []; notes = {}; quizState = {}; sqlHist = [];
           write('sqlhist', []); write('activity', []);
-          write('practiceSolved',[]); write('practiceDrafts',{}); write('activePath',''); write('lastLesson','');
+          write('practiceSolved',[]); write('practiceDrafts',{}); write('lastExercise',0); write('dbBookmarks',[]); write('dbLast',null); write('activePath',''); write('lastLesson','');
           write('done', done); write('marks', marks); write('notes', notes); write('quiz', quizState);
           route();
         };

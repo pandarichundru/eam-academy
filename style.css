@@ -3060,3 +3060,33 @@ footer {
   font-weight: 600;
   color: var(--text-muted, #64748b);
 }
+
+:root{
+  --bg:#fffdf8;--bg-sidebar:#f4f5ef;--bg-secondary:#edf2ef;
+  --text:#182e40;--text-secondary:#405867;--border:#d7e0db;
+  --btn-primary-bg:#096661;--btn-primary-hover:#064d49;--link:#076762;--link-hover:#084d4a;--focus:#137d78
+}
+header.site-header{background:#142e42;color:#fff}
+header.site-header .brand,header.site-header .brand b,header.site-header .brand small,header.site-header nav:not(.is-open) a{color:#f4f9f7}
+header.site-header nav:not(.is-open) a:hover,header.site-header nav:not(.is-open) a[aria-current=page]{background:#29495b}
+.challenge-reader{max-width:100%}
+.lab-panels{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:1.25rem;margin:1rem 0}
+.lab-question,.lab-work{min-width:0}
+.lab-editor,.lab-results,.lab-question{padding:clamp(.85rem,2vw,1.35rem);border:1px solid var(--border);border-radius:12px;background:var(--bg-elevated)}
+.lab-editor textarea{background:#122c40;color:#ecf8f4;caret-color:white}
+.lab-results{margin-top:.75rem;overflow:auto}
+.lab-switch{display:none}
+.object-map ol,.match-grid{display:flex;gap:.65rem;flex-wrap:wrap;padding:0}
+.object-map li,.match-grid>div{flex:1 1 8rem;min-width:0;display:grid;align-content:start;gap:.25rem;border:1px solid #c6d6d3;border-radius:8px;padding:.8rem;background:#f5f8f5}
+.object-map li small,.match-grid small{color:#426069}
+.match-grid .matched{background:#d9eee5;border:2px solid #17746b}
+.join-lab{background:#edf6f2;padding:1rem;border-radius:12px;margin:1rem 0}
+.dbshell nav,.dbshell nav a{color:#124c50}
+.dbshell button,.dbshell select{padding:.5rem .75rem;min-height:40px}
+@media(max-width:760px){
+.lab-panels{display:block}.lab-switch{display:flex;gap:.4rem;margin-bottom:.6rem}
+.lab-switch [aria-pressed=true]{background:var(--btn-primary-bg);color:white}
+.lab-panels:not([data-panel=question]) .lab-question,.lab-panels:not([data-panel=editor]) .lab-editor,.lab-panels:not([data-panel=results]) .lab-results{display:none}
+.lab-results{margin:0}
+}
+@media(prefers-reduced-motion:no-preference){#practiceOutput:not(:empty),.match-grid .matched,.challenge-aid[open]>p{animation:labReveal .24s ease-out}@keyframes labReveal{from{opacity:.5;transform:translateY(3px)}to{opacity:1;transform:none}}}

@@ -8,7 +8,7 @@ function workshopPage(moduleName) {
     const l = lessons.find(x => x.id === id);
     return '<section class="decision"><small>Decision ' + (i+1) + '</small><h2>' + E(title) + '</h2><p>' + E(body) + '</p><div class="row">' + lessonLink(l) + sourceLink(l.source.hex.id,'HxGN · p. ' + l.source.hex.page) + '</div></section>';
   }).join('') + '<section class="section"><h2>Test your reasoning</h2><p>' + E(w.check) + '</p><details><summary>Compare your answer</summary><p>' + E(w.answer) + '</p></details></section>'
-    + '<div class="row">' + (w.sql ? A('lesson/' + w.sql,'Study the related SQL lesson','button primary') : '') + A('workshops','Browse workshops','button') + '</div></div>';
+    + '<div class="row">' + (w.sql ? A('lesson/' + w.sql,'Study the related SQL lesson','button primary') : '') + A('workshops','Browse workshops','button') + A('practice','SQL Practice · 110','button')+'<a class="button" href="data/database-reference.html">Database Reference</a>'+ A('practice/Hard~Joins','Hard join exercises')+'</div></div>';
 }
 function activityDay(date = new Date()) {
   return [date.getFullYear(), String(date.getMonth()+1).padStart(2,'0'), String(date.getDate()).padStart(2,'0')].join('-');
@@ -42,6 +42,7 @@ function learningDashboard() {
 }
 function fieldHome() {
   const last = lessons.find(l => l.id === read('lastLesson',''));
+  const dbLast=read("dbLast",null),lastExercise=read("lastExercise",0);
   const entryTiles = [
     ['learn', 'Functional curriculum', `${lessons.length} lessons`, ICON_BOOK, `${lessons.length} lessons across ${Object.keys(groups).length} modules, with scenarios and source evidence.`],
     ['practice', 'SQL Exercises', '110 challenges', ICON_TERMINAL, 'Write and check your own queries across four difficulty levels, from SELECT to historical reporting.'],
@@ -60,6 +61,7 @@ function fieldHome() {
     + '</svg>'
     + '<div class="asset-flow"><span>Asset <b>PUMP-001</b></span><span>Schedule <b>PUMP30</b></span><span>Interval <b>30 days</b></span></div><strong>Explore the case study</strong></a></div>'
     + (last ? '<div class="resume-band"><span>Continue where you left off</span>' + A('lesson/' + last.id,last.title) + '</div>' : '<div class="resume-band"><span>Start with the fundamentals</span>' + lessonLink(lessons[0]) + '</div>')
+    + ((lastExercise||dbLast)?'<div class="resume-band">'+(lastExercise?A('exercise/'+Number(lastExercise),'Continue exercise '+Number(lastExercise)):'')+(dbLast?'<a href="data/database-reference.html#'+encodeURIComponent(dbLast.key)+'">Last database entry · '+E(dbLast.name)+'</a>':'')+'</div>':'')
     + learningDashboard()
     + '<h2>Choose your starting point</h2><div class="grid home-tiles">'
     + entryTiles.map(([r, t, meta, icon, d]) => `<a class="tile entry-tile" href="#${r}"><div class="entry-head"><span class="entry-icon" aria-hidden="true">${icon}</span><span class="pill tabular">${E(meta)}</span></div><h3>${E(t)}</h3><p>${E(d)}</p></a>`).join('')

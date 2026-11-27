@@ -146,12 +146,12 @@ def html_shell(title, description, canonical_path, og_image, body_html,
     </a>
     <nav id="topnav" aria-label="Primary">
       <a href="/eam-academy/"{"aria-current='page'" if nav_active=='home' else ''}>Home</a>
+      <a href="/eam-academy/#practice">SQL Practice · 110</a>
       <a href="/eam-academy/#learn"{"aria-current='page'" if nav_active=='learn' else ''}>Curriculum</a>
       <a href="/eam-academy/#workshops">Workshops</a>
       <a href="/eam-academy/#sql-course">SQL Lab</a>
       <a href="/eam-academy/#technical">Technical Library</a>
       <a href="/eam-academy/data/database-reference.html">Database Reference</a>
-      <a href="/eam-academy/#practice">SQL Exercises</a>
       <a href="/eam-academy/#reference">Reference</a>
       <a href="/eam-academy/#progress">My Learning</a>
     </nav>
@@ -223,6 +223,8 @@ def build_home(lessons, groups):
         <div class="row footer-links">
           <a class="button primary" href="/eam-academy/#lesson/INTRO01">Start here · What is EAM?</a>
           <a class="button" href="/eam-academy/#sql">Try the SQL Lab</a>
+          <a class="button" href="/eam-academy/#practice/Hard~Joins">Hard join exercises</a>
+          <a class="button" href="/eam-academy/data/database-reference.html">Database Reference</a>
         </div>
       </div>
     </div>
@@ -277,20 +279,11 @@ def build_home(lessons, groups):
     </section>
     '''
 
-    description = (
-        f'Free independent training for HxGN EAM and Infor EAM: '
-        f'{n_lessons} lessons, SQL exercises, technical library, quizzes and offline SQL lab. '
-        f'Not affiliated with Hexagon or Infor.'
-    )
-
-    html = html_shell(
-        title='EAM Academy – Free HxGN & Infor EAM Training, SQL Lab & Reference',
-        description=description,
-        canonical_path='/',
-        og_image='social-preview.png',
-        body_html=body,
-        nav_active='home',
-    )
+    # Keep the interactive shell and its event targets around the pre-rendered homepage.
+    shell = (ROOT / 'index.html').read_text(encoding='utf-8')
+    start = shell.index('>', shell.index('<main id="main"')) + 1
+    end = shell.index('</main>', start)
+    html = shell[:start] + body + shell[end:]
     write(DIST / 'index.html', html)
     print('Built: dist/index.html')
 
