@@ -358,6 +358,11 @@ async function doSearch(q, offset = 0) {
     $('lessonResults').innerHTML = (q || mod)
       ? (hits.length ? hits.slice(0, 30).map(l => `<div class="list-item">${lessonLink(l)}<p class="muted">${E(l.module)} · ${E(l.concept)}</p></div>`).join('') : '<p>No matching authored lesson. Try fewer terms or use the source results.</p>')
       : '<p>Enter a term or select a module to filter tutorials.</p>';
+    if (terms.length) {
+      const fields = lessons.filter(l => (!mod || l.module === mod) && l.source.evidence?.fields?.some(f =>
+        terms.every(t => (f.name + ' ' + f.meaning).toLowerCase().includes(t))));
+      if (fields.length) $('lessonResults').innerHTML += '<h2>Field guide</h2>' + fields.slice(0,20).map(l => '<p>' + lessonLink(l) + '</p>').join('');
+    }
     if (workshopHits.length) $('lessonResults').innerHTML += '<h2>Matching workshops</h2>' + workshopCards(workshopHits);
     if (names.length && !mod) $('lessonResults').innerHTML += '<h2>Database dictionary</h2>' + names.map(([name]) => A('table/' + U(name),name,'taglink')).join(' ');
     if (!mod && terms.length && terms.every(t => ('pump asset preventive maintenance schedule open work orders').includes(t))) {
@@ -940,6 +945,9 @@ $('quick').onsubmit = e => {
 };
 document.querySelector('.skip').addEventListener('click', e => { e.preventDefault(); $('main').focus(); });
 document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault(); $('quickInput').focus(); $('quickInput').select(); return;
+  }
   if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
     e.preventDefault(); $('quickInput')?.focus();
   }
@@ -962,3 +970,5 @@ Promise.all(['curriculum.json', 'catalog.json', 'extended.json', 'enrichment.jso
     route();
   })
   .catch(e => { $('main').textContent = 'Unable to load academy. Start the local Python server. ' + e.message; });
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
