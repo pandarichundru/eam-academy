@@ -1,0 +1,925 @@
+'use strict';
+const $ = id => document.getElementById(id);
+const E = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const U = encodeURIComponent;
+const HMark = v => E(v).replace(/\[\[H\]\]/g, '<mark>').replace(/\[\[\/H\]\]/g, '</mark>');
+const read = (k, d) => { try { return JSON.parse(localStorage.getItem('eam3:' + k)) ?? d; } catch { return d; } };
+const write = (k, v) => { try { localStorage.setItem('eam3:' + k, JSON.stringify(v)); } catch {} };
+
+let lessons = [], catalog = {}, extended = {}, enrichment = {}, codeMeta = {}, quizzes = [], groups = {};
+let done = read('done', []), marks = read('marks', []), notes = read('notes', {}), quizState = read('quiz', {}), sqlHist = read('sqlhist', []);
+let generation = 0;
+
+const nav = [
+  ['home','Home'], ['learn','Curriculum'], ['practice','100 SQL Exercises'], ['workshops','Workshops'], ['sql-course','SQL lab'],
+  ['reference','Reference'], ['progress','My learning']
+];
+
+const roles = {
+  'Beginner': ['Fundamentals', 'Equipment management', 'Work management'],
+  'Maintenance technician': ['Fundamentals', 'Equipment management', 'Work management', 'Inspection, safety and calibration'],
+  'Maintenance planner': ['Equipment management', 'Work management', 'Preventive maintenance', 'Materials and inventory'],
+  'Inventory specialist': ['Fundamentals', 'Materials and inventory', 'Purchasing management'],
+  'Purchasing specialist': ['Materials and inventory', 'Purchasing management'],
+  'Functional consultant': ['Fundamentals', 'Equipment management', 'Work management', 'Preventive maintenance', 'Materials and inventory', 'Purchasing management', 'Administration', 'Implementation and troubleshooting'],
+  'Technical consultant': ['Database and SQL', 'Customization and integration', 'Administration', 'Implementation and troubleshooting'],
+  'System administrator': ['Administration', 'Customization and integration', 'Fundamentals'],
+  'Implementation specialist': ['Implementation and troubleshooting', 'Administration', 'Equipment management', 'Materials and inventory', 'Work management'],
+  'Interview preparation': ['Fundamentals', 'Work management', 'Preventive maintenance', 'Database and SQL', 'Implementation and troubleshooting'],
+};
+
+const glossary = {
+  'Asset': 'A physical equipment identity; see Creating assets.',
+  'Position': 'The maintained function that an installed asset may occupy.',
+  'System': 'A group of equipment working together.',
+  'Location': 'A physical place; distinguish it from a functional position.',
+  'MOS': 'Multi-organization security; record scope and permissions depend on configuration.',
+  'Dataspy': 'A reusable list-view filter.',
+  'PM': 'Preventive maintenance: scheduled recurring work.',
+  'UDF': 'User-defined field on a supported screen.',
+  'Work order': 'A maintenance work record containing header and related execution details.',
+  'Activity': 'A work order task identified within its parent work order.',
+  'Trade': 'A labor skill category used for work planning.',
+  'Part': 'An inventory item definition, distinct from an equipment asset.',
+  'Store': 'A stock-holding location.',
+  'Bin': 'A storage subdivision of a store.',
+  'Reservation': 'Planned material demand, not a posted issue.',
+  'Requisition': 'A request for materials or services.',
+  'Purchase order': 'A purchasing commitment with a header and line details.',
+  'Core-tracked part': 'A repairable part with tracking for repair and return.',
+  'Status authorization': 'Permission for a particular status change, distinct from screen access.',
+  'Meter': 'A device or accumulated usage measure; see the physical and logical meter lesson.',
+  'Primary key': 'One or more columns uniquely identifying a row.',
+  'Foreign key': 'Columns referencing a parent key; confirm actual composite constraints.',
+  'UAT': 'User acceptance testing against agreed business requirements.',
+};
+
+const crosswalk = [
+  ['organizations', 'R5ORGANIZATION', 'Owning organization codes & currency context'],
+  ['departments', 'R5MRCS', 'Maintenance departments / MRCs'],
+  ['locations', 'R5OBJECTS', 'Location-typed equipment records (OBJ_OBTYPE = L)'],
+  ['equipment', 'R5OBJECTS', 'Assets, positions, systems, and locations'],
+  ['equipment_links', 'R5STRUCTURES', 'Parent-child equipment hierarchy links'],
+  ['work_orders', 'R5EVENTS', 'Work orders, PM events, and service requests'],
+  ['activities', 'R5ACTIVITIES', 'Tasks scoped by composite key (ACT_EVENT, ACT_ACT)'],
+  ['trades', 'R5TRADES', 'Craft / labor trade master definitions'],
+  ['employees', 'R5PERSONNEL', 'Employee / technician master records'],
+  ['labor_entries', 'R5BOOKEDHOURS', 'Actual booked labor hours against work activities'],
+  ['parts', 'R5PARTS', 'Inventory part catalog master'],
+  ['stores', 'R5STORES', 'Stock-holding warehouse stores'],
+  ['bins', 'R5BINS', 'Storage bins inside a store'],
+  ['stock', 'R5STOCK', 'Part-store stock levels, reorder & min/max'],
+  ['reservations', 'R5TRANSLINES', 'Planned material reservations / demand'],
+  ['material_issues', 'R5TRANSACTIONS', 'Posted issue/return inventory transactions'],
+  ['suppliers', 'R5COMPANIES', 'Suppliers & manufacturers'],
+  ['requisitions', 'R5REQUISITIONS', 'Purchase requisition headers'],
+  ['requisition_lines', 'R5REQUISLINES', 'Purchase requisition line items'],
+  ['purchase_orders', 'R5ORDERS', 'Purchase order headers'],
+  ['purchase_lines', 'R5ORDERLINES', 'Purchase order line items'],
+  ['receipts', 'R5DOCKRECEIPTS', 'PO receiving headers & quantities'],
+  ['meters', 'R5METERS', 'Physical/logical meter definitions'],
+  ['meter_readings', 'R5READINGS', 'Recorded meter readings'],
+  ['pm_schedules', 'R5PPM', 'Preventive maintenance schedule definitions'],
+  ['inspections', 'R5ASPECTPOINTS', 'Inspection aspects & recorded results'],
+  ['projects', 'R5PROJECTS', 'Capital / shutdown project headers'],
+  ['work_projects', 'R5EVENTS', 'Project association on work orders (EVT_PROJECT)'],
+];
+
+const businessFlows = [
+  {
+    title: 'Asset Onboarding & Hierarchy',
+    desc: 'Establish organizational ownership, locations, systems, functional positions, and physical serialized assets.',
+    steps: [
+      { label: 'Organization & MOS', lesson: 'Organizations and multi-org security', table: 'R5ORGANIZATION' },
+      { label: 'Locations & Systems', lesson: 'Creating locations', table: 'R5OBJECTS' },
+      { label: 'Functional Positions', lesson: 'Creating positions', table: 'R5OBJECTS' },
+      { label: 'Physical Assets', lesson: 'Creating assets', table: 'R5OBJECTS' },
+      { label: 'Hierarchy Links', lesson: 'Equipment hierarchies', table: 'R5STRUCTURES' },
+      { label: 'Meters & Warranties', lesson: 'Physical and logical meters', table: 'R5METERS' },
+    ],
+  },
+  {
+    title: 'Request-to-Close Work Order',
+    desc: 'Capture maintenance demand, approve, plan activities and materials, record actuals, and close cleanly.',
+    steps: [
+      { label: 'Work Request & Approval', lesson: 'Work request approval', table: 'R5EVENTS' },
+      { label: 'Work Order Header', lesson: 'Regular work order lifecycle', table: 'R5EVENTS' },
+      { label: 'Activities & Plans', lesson: 'Work order activities', table: 'R5ACTIVITIES' },
+      { label: 'Material Planning', lesson: 'Work order material planning', table: 'R5MATLPARTS' },
+      { label: 'Labor & Issues', lesson: 'Booking actual labor', table: 'R5BOOKEDHOURS' },
+      { label: 'Closeout & Costs', lesson: 'Closing completed work orders', table: 'R5EVENTS' },
+    ],
+  },
+  {
+    title: 'Preventive Maintenance Cycle',
+    desc: 'Translate recurring engineering requirements into scheduled work orders via meters, calendars, and batch previews.',
+    steps: [
+      { label: 'Meter History', lesson: 'Meter history', table: 'R5READINGS' },
+      { label: 'PM Schedule', lesson: 'Creating PM schedules', table: 'R5PPM' },
+      { label: 'PM Activities & Parts', lesson: 'PM work order activities', table: 'R5PPMACTS' },
+      { label: 'Equipment Association', lesson: 'Equipment association with PM schedules', table: 'R5PPMS' },
+      { label: 'Batch Generation', lesson: 'Generating work orders in batches', table: 'R5EVENTS' },
+      { label: 'Review Generated WO', lesson: 'Reviewing generated PM work orders', table: 'R5EVENTS' },
+    ],
+  },
+  {
+    title: 'Procure-to-Pay Lifecycle',
+    desc: 'Convert operational material or service demand into approved purchase orders, receipts, and three-way matched invoices.',
+    steps: [
+      { label: 'Requisition Header', lesson: 'Purchase requisition headers', table: 'R5REQUISITIONS' },
+      { label: 'Part & Service Lines', lesson: 'Requisition part lines', table: 'R5REQUISLINES' },
+      { label: 'Convert to PO', lesson: 'Converting requisitions into POs', table: 'R5ORDERS' },
+      { label: 'PO Lines & Approval', lesson: 'Purchase order part lines', table: 'R5ORDERLINES' },
+      { label: 'PO Receiving', lesson: 'Purchase order receipts', table: 'R5DOCKRECEIPTS' },
+      { label: 'Invoice Voucher', lesson: 'Invoice vouchers', table: 'R5INVOICES' },
+    ],
+  },
+  {
+    title: 'Issue-to-Return Inventory',
+    desc: 'Control stock across stores and bins, reserve spares for planned jobs, issue consumption, and reconcile counts.',
+    steps: [
+      { label: 'Stores & Bins', lesson: 'Stores', table: 'R5STORES' },
+      { label: 'Part-Store Rules', lesson: 'Part-store association and replenishment', table: 'R5STOCK' },
+      { label: 'Part Reservations', lesson: 'Part reservations', table: 'R5TRANSLINES' },
+      { label: 'Issue to Work Order', lesson: 'Issue parts to work orders', table: 'R5TRANSACTIONS' },
+      { label: 'Return Unused', lesson: 'Return unused materials', table: 'R5TRANSLINES' },
+      { label: 'Physical Inventory', lesson: 'Physical inventory', table: 'R5BINSTOCK' },
+    ],
+  },
+];
+
+const H = (tag, title, desc = '') => `<div class="eyebrow">${E(tag)}</div><h1>${E(title)}</h1>${desc ? `<p class="muted">${E(desc)}</p>` : ''}`;
+const A = (route, label, cls = '') => `<a ${cls ? `class="${cls}"` : ''} href="#${route}">${E(label)}</a>`;
+const ext = (url, label) => `<a href="${E(url)}" target="_blank" rel="noopener noreferrer">${E(label)} ↗</a>`;
+const table = (headers, rows) => `<div class="scroll"><table><thead><tr>${headers.map(v => `<th scope="col">${E(v)}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(v => `<td>${E(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+const tiles = items => `<div class="grid">${items.map(([r, t, d]) => `<a class="tile" href="#${r}"><h3>${E(t)}</h3><p>${E(d)}</p></a>`).join('')}</div>`;
+const progress = (n, total) => `<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${n}"><i style="width:${total ? n / total * 100 : 0}%"></i></div>`;
+const lessonLink = l => A('lesson/' + l.id, `${done.includes(l.id) ? '✓ ' : ''}${l.title}`);
+const metric = (n, t) => `<div class="metric"><strong>${E(n)}</strong><span>${E(t)}</span></div>`;
+const sourceLink = (id, label) => A('doc/' + id, label);
+
+function findLessonByTitle(t) {
+  return lessons.find(l => l.title.toLowerCase() === t.toLowerCase()) || lessons.find(l => l.title.toLowerCase().includes(t.toLowerCase()));
+}
+
+function renderNav(route, id) {
+  const active = route === 'lesson' || route === 'module' ? 'learn'
+    : route === 'doc' || route === 'search' || route === 'glossary' || route === 'fields' || route === 'topics' ? 'reference'
+      : route === 'sql' || route === 'tables' || route === 'table' || route === 'er' || route === 'triggers' || route === 'procedures' || route === 'codes' || route === 'code' ? 'technical'
+        : route === 'path' ? 'paths' : route;
+  $('topnav').innerHTML = nav.map(([r, t]) => A(r, t, (r === active || (r === 'workshops' && ['workshop','pump','flows'].includes(route)) || (r === 'sql-course' && route === 'sql') || (r === 'practice' && route === 'exercise') || (r === 'reference' && active === 'technical') || (r === 'learn' && ['paths','path','assess','coverage'].includes(route))) ? 'active' : '')).join('');
+  const selected = lessons.find(l => l.id === id);
+  const c = codeMeta.counts || {};
+  $('side').innerHTML = '<div class="eyebrow">Course curriculum</div>'
+    + Object.entries(groups).map(([m, ls]) => `<details class="module" ${selected?.module === m || (route === 'module' && id === m) ? 'open' : ''}><summary>${E(m)} <span>${ls.filter(l => done.includes(l.id)).length}/${ls.length}</span></summary>${A('module/' + U(m), 'Module overview')}${ls.map(l => A('lesson/' + l.id, (done.includes(l.id) ? '✓ ' : '') + l.title, l.id === id ? 'active' : '')).join('')}</details>`).join('')
+    + `<hr><div class="eyebrow">Code &amp; Schema</div>`
+    + A('triggers', `Triggers — Full (${c.trigger ?? 2405})`, route === 'triggers' ? 'active' : '')
+    + A('procedures', `Stored Procedures — Full (${c.procedure ?? 1629})`, route === 'procedures' ? 'active' : '')
+    + A('codes', 'All Codes (DDL & Params)', route === 'codes' ? 'active' : '')
+    + A('tables', 'Database Dictionary (1,681)', route === 'tables' || route === 'table' ? 'active' : '')
+    + A('er/R5EVENTS', 'Visual ER Explorer', route === 'er' ? 'active' : '')
+    + A('sql', 'SQL Lab (28 tables)', route === 'sql' ? 'active' : '');
+}
+
+const pumpSteps = [
+  ['L012', 'Identify the physical pump', 'The planner has a cooling-water pump in Utilities. Find its asset record before creating one. Record the identifier and check its organization, department, and operational status. The training database calls this pump PUMP-001.'],
+  ['L082', 'Define the recurring work', 'The example calls for inspection every 30 days. Define PUMP30 on a time basis and review the interval and generation window. A 30-hour meter interval would describe a different maintenance policy.'],
+  ['L084', 'Connect the schedule to the asset', 'Select the pump on the schedule’s Equipment tab. Check the organization and first due information. A correct interval alone cannot identify which pump is due.'],
+  ['L085', 'Review the resulting work order', 'From the schedule, inspect its associated work orders. Compare equipment, due date and status with the planned inspection. If a record is missing, check the association, due criteria and existing orders before attempting generation again.']
+];
+
+const pumpQueries = [
+  { title: 'Check the schedule', sql: "SELECT equipment, code, interval_value, basis\nFROM pm_schedules\nWHERE equipment = 'PUMP-001';", result: 'PUMP-001 · PUMP30 · 30 · Days. This confirms the configured interval. The training schema does not store a PM-to-work-order link, so this result cannot establish which order the schedule generated.' },
+  { title: 'Inspect the open orders', sql: "SELECT equipment_code, id\nFROM work_orders\nWHERE status = 'Open'\nORDER BY equipment_code, id;", result: 'COMP-001 has order 103. PUMP-001 has order 101. At this stage each row represents one open work order.' },
+  { title: 'Find assets with multiple open orders', sql: "SELECT equipment_code, COUNT(*) AS open_orders\nFROM work_orders\nWHERE status = 'Open'\nGROUP BY equipment_code\nHAVING COUNT(*) > 1;", result: 'Zero rows is the correct answer. WHERE removes closed orders before grouping. HAVING keeps only groups with two or more orders. Change > 1 to >= 1 to see both assets with a count of one.' },
+  { title: 'Diagnose an inflated count', sql: "SELECT w.equipment_code, COUNT(*) AS joined_rows,\n       COUNT(DISTINCT w.id) AS open_orders\nFROM work_orders w\nLEFT JOIN activities a ON a.wo = w.id\nWHERE w.status = 'Open'\nGROUP BY w.equipment_code\nORDER BY w.equipment_code;", result: 'PUMP-001 shows two joined rows but one order because order 101 has two activities. COMP-001 shows one row and one order because the left join preserves order 103 even without an activity. For a pure order count, use the simpler orders-only query.' }
+];
+
+const sqlReading = {
+  L127: ['One row per open order', 'WHERE evaluates each order before sorting. Selecting the ID makes the result traceable to an individual record.', 'Switch the status to Closed. Predict which IDs disappear and check the result.'],
+  L128: ['One row per matched work order', 'The equipment primary key can match at most one equipment record per order. Joining on description instead would rely on names being unique.', 'Filter to PUMP-001 and verify that two different order IDs share its description.'],
+  L129: ['One row per equipment code', 'COUNT counts orders and SUM adds their costs within the same equipment group. Adding status to GROUP BY changes what a row represents.', 'Split the pump total by status. Confirm that both subtotals add back to the original total.'],
+  L130: ['One row per work-order activity', 'An activity number is unique only within its work order. Both key columns are needed when attaching labor. LEFT JOIN retains activities without a time entry.', 'Check why activity 10 on orders 101 and 102 must remain separate.'],
+  L131: ['One row per part and store below threshold', 'The same part can be stocked at several stores. Compare quantity to the reorder level on that exact row before subtracting.', 'Look up SEAL in both stores. Explain why only MAIN appears.'],
+  L132: ['One row per stock record', 'The CTE totals reservations per part and store before the join. COALESCE supplies zero when a stock row has no reservation.', 'Compare SEAL in MAIN and REMOTE. Verify that the MAIN reservation does not reduce REMOTE availability.'],
+  L133: ['One row per purchase order line', 'Receipts aggregate on purchase order and line. The outer join keeps an unreceived line visible and COALESCE lets the outstanding quantity be calculated.', 'Check the first purchase line. Five ordered minus three received leaves two outstanding.'],
+  L134: ['One row per meter reading', 'LAG reads the preceding value within the same meter. The date and ID establish a deterministic sequence for readings taken on the same date.', 'Explain the first NULL delta. It means the dataset has no previous reading for that meter.'],
+  L135: ['One row per approved requisition in PLANT01', 'The organization join adds its name. Both conditions in WHERE have to hold for a requisition to appear.', 'Remove the status condition and inspect the draft requisition that enters the result.'],
+  L136: ['One schema definition for activities', 'SQLite stores the table definition in sqlite_master. Inspect the primary and foreign keys before deciding how to join records.', 'Find the two columns in the primary key. Use the activity lesson to see what happens when labor is attached at that grain.']
+};
+
+function pumpPage() {
+  return H('Maintenance planning', 'From pump to preventive work order', 'Follow PUMP-001 from its asset record to a 30-day maintenance schedule. Use each linked lesson for the full procedure.')
+    + pumpSteps.map(([id,title,body],i) => {
+      const l = lessons.find(x => x.id === id);
+      return '<section class="section"><small>Step ' + (i+1) + ' of 4</small><h2>' + E(title) + '</h2><p>' + E(body) + '</p><div class="row">' + lessonLink(l) + sourceLink(l.source.hex.id,'HxGN guide · p. ' + l.source.hex.page) + '</div></section>';
+    }).join('') + '<h2>Verify with SQL</h2><p>Use the fictional SQLite training records below. Predict each result before opening the explanation.</p>'
+    + pumpQueries.map((q,i) => '<section class="section"><h3>' + E(q.title) + '</h3><pre>' + E(q.sql) + '</pre>' + A('sql/pump-' + i,'Open in SQL lab','button') + '<details><summary>Explain the result</summary><p>' + E(q.result) + '</p></details></section>').join('');
+}
+
+function sqlCourse() {
+  return H('SQL learning', 'Read, explain and test a query', 'Each lesson uses the same local SQLite training database. Work in sequence or choose a business question.')
+    + '<div class="row footer-links">' + A('practice','Open 100 SQL Exercises','button primary') + A('sql','Open SQL editor','button') + A('technical','Technical library','button') + A('workshop/' + U('Database and SQL'),'Join troubleshooting workshop','button') + '</div>'
+    + lessons.filter(l => l.type === 'technical').map(l => '<section class="list-item"><h3>' + lessonLink(l) + '</h3><p>' + E(sqlReading[l.id]?.[0] || l.concept) + '</p>' + A('sql/' + l.id,'Run the lesson query') + '</section>').join('');
+}
+
+function coveragePage(moduleName) {
+  const visible = moduleName ? lessons.filter(l => l.module === moduleName) : lessons;
+  return H('Curriculum', 'Curriculum coverage', 'Inspect the teaching material available for each topic. An excerpt count measures availability, not accuracy or instructional quality.')
+    + '<label for="coverageModule">Choose a module</label> <select id="coverageModule"><option value="">All modules</option>' + Object.keys(groups).map(m => '<option ' + (m === moduleName ? 'selected' : '') + '>' + E(m) + '</option>').join('') + '</select>'
+    + '<div class="scroll"><table><thead><tr><th>Lesson</th><th>HxGN page</th><th>Infor 11.6</th><th>Source excerpts</th><th>Teaching material</th></tr></thead><tbody>' + visible.map(l => {
+      const s = l.source, ev = s.evidence, more = enrichment[String(s.hex.page)];
+      const materials = [l.scenario && 'Scenario', l.verify && 'verification', more?.example?.length && 'worked example', l.sql && 'SQL exercise', quizzes.some(q => q.lesson.toLowerCase() === l.title.toLowerCase()) && 'quiz'].filter(Boolean);
+      return '<tr><td>' + lessonLink(l) + '</td><td>' + sourceLink(s.hex.id,String(s.hex.page)) + '</td><td>' + (s.infor ? sourceLink(s.infor.id,String(s.infor.page)) : 'No mapped page') + '</td><td>' + ev.steps.length + ' steps · ' + ev.fields.length + ' fields</td><td>' + E(materials.join(', ')) + '</td></tr>';
+    }).join('') + '</tbody></table></div>';
+}
+
+function modulePage(m) {
+  const ls = groups[m];
+  if (!ls) return H('Not found', 'Module not found');
+  return H('Curriculum', m, `${ls.length} lessons · written walkthroughs and source references`)
+    + `<div class="panel"><div class="row between"><strong>${ls.filter(l => done.includes(l.id)).length} of ${ls.length} completed</strong>${A('lesson/' + (ls.find(l => !done.includes(l.id)) || ls[0]).id, 'Continue', 'button primary')}</div>${progress(ls.filter(l => done.includes(l.id)).length, ls.length)}${ls.map(l => `<div class="list-item">${lessonLink(l)} <small> · ${E(l.level)}</small><p class="muted">${E(l.concept)}</p></div>`).join('')}</div>`;
+}
+
+function sourcePanel(l) {
+  const s = l.source;
+  return `<h3>Primary · HxGN</h3><p>${E(s.hex.title)}</p><p class="muted">Supplied Help export · release unconfirmed</p>${s.hex.pages.map(p => sourceLink(p.id, 'Offline export p. ' + p.page)).join(' ')}<p>${ext(s.online.url, `${s.online.scope} · ${s.online.version}`)}</p><hr><h3>Supporting · Infor 11.6</h3>${s.infor ? `<p>${E(s.infor.title)}</p>${sourceLink(s.infor.id, 'User Guide p. ' + s.infor.page)}<small>${E(s.infor.kind)}</small>` : '<p class="muted">No matching legacy topic identified in supplied User Guide. Do not infer a version difference from this gap.</p>'}<hr><h3>Source interpretation</h3><p class="muted">Offline extracts may span page breaks. The written lesson is original training guidance, not a verbatim vendor procedure. Confirm release, configuration and access before using a real system.</p>`;
+}
+
+function quizBlock(qList) {
+  if (!qList.length) return '';
+  return qList.map(q => {
+    const saved = quizState[q.id];
+    const badge = saved === true ? '<span class="pill ok">✓ Answered correctly</span>' : saved === false ? '<span class="pill warn">Needs review</span>' : '';
+    return `<div class="quiz-box" data-qid="${E(q.id)}"><div class="row between"><strong>Quick check · ${E(q.id)}</strong>${badge}</div><p>${E(q.q)}</p>${q.options.map((opt, idx) => `<label class="quiz-opt"><input type="radio" name="quiz_${E(q.id)}" value="${idx}"><span>${E(opt)}</span></label>`).join('')}<div class="row"><button type="button" class="primary" data-check-quiz="${E(q.id)}">Check answer</button></div><div class="quiz-feedback" id="qf_${E(q.id)}"></div></div>`;
+  }).join('');
+}
+
+function lessonPage(id) {
+  const l = lessons.find(v => v.id === id);
+  if (!l) return H('Not found', 'Lesson not found');
+  write('lastLesson', l.id);
+  const activePath = read('activePath','');
+  const pathModules = roles[activePath];
+  const inPath = Array.isArray(pathModules) && pathModules.includes(l.module);
+  const sequence = inPath ? pathModules.flatMap(m => groups[m]) : groups[l.module];
+  const i = sequence.indexOf(l), s = l.source, ev = s.evidence;
+  const more = enrichment[String(s.hex.page)] || {};
+  const related = sequence.filter(x => x.id !== id).slice(Math.max(0, i - 2), Math.max(0, i - 2) + 4);
+  const lQuizzes = quizzes.filter(q => q.lesson.toLowerCase() === l.title.toLowerCase());
+  return `<div class="lesson-layout"><article class="lesson-content">${H(l.module, l.title, `${l.id} · ${l.level} · ${l.type === 'technical' ? 'Technical SQL lesson' : l.type === 'consulting' ? 'Consultant guidance' : 'Written functional tutorial'}`)}`
+    + `<div class="row"><span class="pill">HxGN primary</span>${s.infor ? '<span class="pill">Infor supporting</span>' : ''}<button data-mark="${id}">${marks.includes(id) ? '★ Bookmarked' : '☆ Bookmark'}</button><button class="primary" data-done="${id}">${done.includes(id) ? '✓ Completed · undo' : 'Mark complete'}</button></div>`
+    + '<p class="workshop-link">' + A('workshop/' + U(l.module), 'Module workshop · ' + (workshops.find(w => w.module === l.module)?.title || l.module)) + '</p>'
+    + (inPath ? '<p class="muted">' + A('path/' + U(activePath),activePath) + ' · Lesson ' + (i+1) + ' of ' + sequence.length + '</p>' : '')
+    + (pumpSteps.some(([step]) => step === id) ? '<p class="note">' + A('pump','Case study · From pump to preventive work order') + '</p>' : '')
+    + (sqlResults[id] ? '<details class="sql-output"><summary>Inspect the expected training output</summary>' + table(sqlResults[id].columns,sqlResults[id].rows.map(row => row.map(v => v === null ? 'NULL' : v))) + '</details>' : '')
+    + (sqlReading[id] ? '<section class="section"><h2>How to read this query</h2><strong>' + E(sqlReading[id][0]) + '</strong><p>' + E(sqlReading[id][1]) + '</p><h3>Try a variation</h3><p>' + E(sqlReading[id][2]) + '</p></section>' : '')
+    + `<section class="section"><h2>What you will learn</h2><p>${E(l.concept)}</p><p>By the end, you should be able to explain the business purpose, describe the steps for the scenario, and identify how to check the result.</p></section>`
+    + `<section class="section"><h2>Business scenario</h2><div class="scenario">${E(l.scenario)}</div><p class="muted">Fictional PLANT01 example for learning; not a live EAM transaction.</p></section>`
+    + `${more.context && l.type === 'functional' ? `<section class="section"><h2>How it works</h2>${more.context.map(x => `<p>${E(x)}</p>`).join('')}${more.flow ? `<div class="diagram">${more.flow.map((v, idx) => `${idx ? '<b>→</b>' : ''}<span>${E(v)}</span>`).join('')}</div>` : ''}</section>` : ''}`
+    + `<section class="section"><h2>${l.type === 'technical' ? 'Technical walkthrough' : 'Prerequisites and written walkthrough'}</h2>${l.type === 'technical' ? `<p>Use the local synthetic dataset, not a production database. ${A('sql', 'Open SQL lab')}</p><pre>${E(l.sql)}</pre>${A('sql/' + id, 'Open this query in SQL lab', 'button primary')}` : `<p>${l.type === 'consulting' ? 'Agree the business scope, owners and test environment before applying the guidance.' : 'Before starting, confirm the relevant organization, authorized role, and referenced master data. Use the documented screen for your release.'}</p><ol class="steps">${l.walkthrough.map(x => `<li>${E(x)}</li>`).join('')}</ol>`}</section>`
+    + `${more.example && l.type === 'functional' ? `<section class="section"><h2>Worked example</h2>${table(['Record / field', 'Training value or decision', 'Explanation'], more.example)}</section>` : ''}`
+    + `${l.type === 'functional' && ev.fields.length ? `<section class="section"><h2>Documented fields and options</h2><p class="muted">Selected field descriptions extracted from the supplied HxGN pages. Not an exhaustive field list; some descriptions continue in the original source.</p>${table(['Field / option', 'Source excerpt'], ev.fields.map(x => [x.name, x.meaning]))}</section>` : ''}`
+    + `<section class="section"><h2>Expected result &amp; troubleshooting</h2><div class="panel"><p>${E(l.verify)}</p>${more.check && l.type === 'functional' ? `<p>${E(more.check)}</p>` : ''}</div></section>`
+    + `${l.type === 'functional' ? `<section class="section"><h2>Documentation reading</h2><p class="muted">Selected local source text for verification. The extract is partial; use the linked full pages for exact field requirements, notes, and remaining steps.</p><details open><summary>HxGN source context · p. ${s.hex.page}</summary><p>${E(ev.intro)}</p>${ev.steps.length ? `<h3>Selected numbered instructions</h3><ul class="steps">${ev.steps.map(x => `<li>${E(x)}</li>`).join('')}</ul>` : '<p>No numbered instructions extracted at this heading. See full pages for nested procedures.</p>'}</details></section>` : ''}`
+    + `<section class="section"><h2>Knowledge check</h2>${quizBlock(lQuizzes)}<p><strong>Written scenario prompt:</strong> Explain how you would address this scenario: ${E(l.scenario)} What evidence would demonstrate success?</p><details><summary>Review answer guidance</summary><p>${E(l.concept)}</p><p>${E(l.verify)}</p></details><label for="lessonNotes"><strong>Your revision notes</strong></label><textarea id="lessonNotes" data-note="${id}" placeholder="Record important terms and questions…">${E(notes[id] || '')}</textarea><small>Saved in this browser on change.</small></section>`
+    + `<section class="section"><h2>Related lessons</h2>${related.map(x => `<div>${lessonLink(x)}</div>`).join('')}</section>`
+    + `<div class="row between lesson-nav">${i ? A('lesson/' + sequence[i - 1].id, '← Previous lesson', 'button') : ''}${i < sequence.length - 1 ? A('lesson/' + sequence[i + 1].id, 'Next lesson →', 'button primary') : ''}</div></article><aside class="rail" aria-label="Lesson references">${sourcePanel(l)}</aside></div>`;
+}
+
+function paths() {
+  return H('Learning paths', 'Choose a role', 'One shared curriculum, arranged for different job responsibilities.')
+    + tiles(Object.entries(roles).map(([r, ms]) => {
+      const total = ms.reduce((a, m) => a + groups[m].length, 0);
+      const comp = ms.reduce((a, m) => a + groups[m].filter(l => done.includes(l.id)).length, 0);
+      return ['path/' + U(r), r, `${total} lessons across ${ms.length} modules · ${comp} completed`];
+    }));
+}
+
+function path(r) {
+  const ms = roles[r];
+  if (!ms) return H('Not found', 'Path not found');
+  const allPathLessons = ms.flatMap(m => groups[m]);
+  const comp = allPathLessons.filter(l => done.includes(l.id)).length;
+  const next = allPathLessons.find(l => !done.includes(l.id)) || allPathLessons[0];
+  return H('Learning path', r, 'Work through these modules in the suggested sequence.')
+    + `<div class="panel"><div class="row between"><strong>Overall path progress: ${comp} / ${allPathLessons.length} (${allPathLessons.length ? Math.round(comp / allPathLessons.length * 100) : 0}%)</strong><a class="button primary" href="#lesson/${E(next.id)}" data-start-path="${E(r)}">${comp ? 'Continue next lesson' : 'Start path'}</a></div>${progress(comp, allPathLessons.length)}</div>`
+    + ms.map((m, i) => `<div class="panel list-item"><h3>${i + 1}. ${A('module/' + U(m), m)}</h3>${progress(groups[m].filter(l => done.includes(l.id)).length, groups[m].length)}<small>${groups[m].filter(l => done.includes(l.id)).length}/${groups[m].length} complete</small></div>`).join('');
+}
+
+function flowsPage() {
+  return H('End-to-end workflows', 'EAM business process flows', 'Follow five core operational lifecycles from master data through transactions and closeout. Each stage links to the corresponding tutorial and R5 table evidence.')
+    + businessFlows.map(f => `<section class="panel" style="margin-bottom:16px"><h2>${E(f.title)}</h2><p class="muted">${E(f.desc)}</p><div class="diagram">${f.steps.map((st, idx) => {
+      const l = findLessonByTitle(st.lesson);
+      return `${idx ? '<b>→</b>' : ''}<div class="node" style="display:inline-flex;flex-direction:column;gap:4px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--soft)"><strong>${l ? A('lesson/' + l.id, st.label) : E(st.label)}</strong><small>${A('table/' + U(st.table), st.table)}</small></div>`;
+    }).join('')}</div></section>`).join('');
+}
+
+function reference() {
+  return H('Reference', 'Documentation and terminology', 'Source search is lexical with highlighted matches. Exact offline page IDs and verified public links are clearly distinguished.')
+    + `<form id="refSearch" class="panel"><label for="refQ">Search HxGN and Infor documentation</label><div class="row"><input id="refQ" placeholder="e.g. preventive maintenance" type="search" required><button class="primary">Search sources</button></div></form>`
+    + `<h2>Reference tools</h2>`
+    + tiles([
+      ['search/' + U(''), 'Knowledge assistant', 'Search tutorials and documentation together with highlighted snippets.'],
+      ['codes', 'All Codes & Install Parameters', 'Install parameters (97), Equipment classes (46), Asset categories (81), and SQL objects.'],
+      ['topics', 'Infor guided topic index', '844 legacy topic links; not additional authored lessons.'],
+      ['glossary', 'Glossary', 'Definitions of frequently used EAM terms.'],
+      ['fields', 'Field dictionary', 'Search source-derived field descriptions.'],
+      ['tables', 'Database dictionary', '1,681 indexed R5 tables and 47 structured key-table exports.'],
+    ])
+    + `<h2>Official web references</h2><div class="panel"><p>${ext('https://docs.hexagonppm.com/r/en-US/HxGN-EAM-Help/1306526', 'HxGN EAM Help 12.0.1')}</p><p>${ext('https://docs.hexagonppm.com/r/en-US/EAM-System-Overview/1352149', 'HxGN EAM System Overview 12.0.1')}</p><p>${ext('https://docs.hexagonppm.com/r/en-US/HxGN-EAM-Release-Notes-for-12.2.1/12.2.1/1283632', 'Documentation updates and restricted technical references 12.2.1')}</p><p>${ext('https://docs.hexagonppm.com/r/en-US/HxGN-EAM-Configuration-Guide-for-Infor-ION/1275260', 'HxGN EAM Configuration Guide for Infor ION 12.0')}</p><p>Legacy: Infor EAM 11.6 User Guide (supplied local archive), not a claim of current product functionality.</p></div>`
+    + `<h2>Evidence coverage</h2><div class="metrics">${metric(1149, 'HxGN archived pages')}${metric(974, 'Infor archived pages')}${metric(lessons.filter(l => l.source.infor).length, 'Legacy topic links')}${metric(lessons.filter(l => l.source.evidence.fields.length).length, 'Lessons with field extracts')}</div>`;
+}
+
+const api = academyAPI;
+
+function searchPage(q) {
+  return H('Knowledge assistant', 'Search tutorials and sources', 'Find written lessons, then verify against the supplied primary and legacy source pages.')
+    + `<div class="panel"><form id="searchForm"><div class="row"><input type="search" id="searchQ" value="${E(q)}" placeholder="Search lessons and sources"><select id="moduleFilter" aria-label="Module filter"><option value="">All modules</option>${Object.keys(groups).map(m => `<option>${E(m)}</option>`).join('')}</select><select id="sourceFilter" aria-label="Source filter"><option value="">Both EAM guides</option><option>Hexagon EAM Help</option><option>Infor EAM 11.6</option></select><button class="primary">Search</button></div></form></div>`
+    + `<h2>Matching tutorials</h2><div id="lessonResults"></div><h2>Documentation results</h2><div id="sourceResults">Searching…</div><div id="moreResults"></div>`;
+}
+
+let searchToken = 0;
+async function doSearch(q, offset = 0) {
+  const token = ++searchToken;
+  const source = $('sourceFilter')?.value || '';
+  const mod = $('moduleFilter')?.value || '';
+  if (!offset) {
+    const terms = q.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    const names = q.trim() ? catalog.tables.filter(([name]) => name.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 20) : [];
+    const workshopHits = terms.length ? workshops.filter(w => (!mod || w.module === mod) && terms.every(t => [w.title,w.situation,w.module,w.role].join(' ').toLowerCase().includes(t))) : [];
+    const hits = lessons.filter(l => (!mod || l.module === mod) && (!terms.length || terms.every(t => [l.title, l.module, l.concept, l.scenario, l.source.hex.title].join(' ').toLowerCase().includes(t))));
+    $('lessonResults').innerHTML = (q || mod)
+      ? (hits.length ? hits.slice(0, 30).map(l => `<div class="list-item">${lessonLink(l)}<p class="muted">${E(l.module)} · ${E(l.concept)}</p></div>`).join('') : '<p>No matching authored lesson. Try fewer terms or use the source results.</p>')
+      : '<p>Enter a term or select a module to filter tutorials.</p>';
+    if (workshopHits.length) $('lessonResults').innerHTML += '<h2>Matching workshops</h2>' + workshopCards(workshopHits);
+    if (names.length && !mod) $('lessonResults').innerHTML += '<h2>Database dictionary</h2>' + names.map(([name]) => A('table/' + U(name),name,'taglink')).join(' ');
+    if (!mod && terms.length && terms.every(t => ('pump asset preventive maintenance schedule open work orders').includes(t))) {
+      $('lessonResults').innerHTML += '<h2>Guided case study</h2>' + A('pump','From pump to preventive work order');
+    }
+    $('sourceResults').innerHTML = 'Searching…';
+  }
+  try {
+    const j = await api(`/api/search?q=${U(q)}&source=${U(source)}&offset=${offset}`);
+    if (token !== searchToken || !$('sourceResults')) return;
+    const h = j.items.map(d => `<div class="list-item">${sourceLink(d.id, d.title)}<small> · ${E(d.source)} · p. ${E(d.page)}</small><p class="muted">${HMark(d.excerpt)}</p></div>`).join('');
+    $('sourceResults').innerHTML = offset ? $('sourceResults').innerHTML + h : h || '<p>No matching source pages.</p>';
+    $('moreResults').innerHTML = j.more ? `<button id="loadMore">Load more results</button>` : '';
+    if (j.more) $('loadMore').onclick = () => doSearch(q, offset + 30);
+  } catch (e) {
+    if ($('sourceResults') && token === searchToken) $('sourceResults').textContent = 'Search failed: ' + e.message;
+  }
+}
+
+function cleanDocText(body) {
+  return body.split('\n').filter(line => {
+    const s = line.trim();
+    return !s.startsWith('01/05/2026') && !s.startsWith('https://hexagonppm.fluidtopics.net/internal/') && !/^\d+\/1149$/.test(s);
+  }).join('\n');
+}
+
+function topics() {
+  return H('Legacy reference', 'Infor guided topic index', 'Search the 844 supplied table-of-contents entries. Each links to its original page, not a separate lesson.')
+    + `<input id="topicFilter" type="search" placeholder="Filter topic titles"><div id="topicList"></div>`;
+}
+function renderTopics(q = '') {
+  const hits = extended.topics.filter(t => t.title.toLowerCase().includes(q.toLowerCase()));
+  $('topicList').innerHTML = `<p class="muted">${hits.length} matches · displaying up to 150</p>` + hits.slice(0, 150).map(t => `<div class="list-item">${A('doc/' + (t.page + 9), t.title)} <small>· p. ${t.page}</small></div>`).join('');
+}
+
+function fields() {
+  return H('Field reference', 'Field dictionary', 'Extracted HxGN field descriptions with lesson and page references. Identical labels can have different meanings by screen.')
+    + `<input id="fieldFilter" type="search" placeholder="Filter field or lesson title"><div id="fieldList"></div>`;
+}
+function renderFields(q = '') {
+  const hits = lessons.filter(l => l.type === 'functional').flatMap(l => l.source.evidence.fields.map(f => ({ l, f }))).filter(({ l, f }) => [f.name, l.title, f.meaning].join(' ').toLowerCase().includes(q.toLowerCase()));
+  $('fieldList').innerHTML = `<p class="muted">${hits.length} matches · first 100 shown</p>` + hits.slice(0, 100).map(({ l, f }) => `<div class="list-item"><strong>${E(f.name)}</strong> · ${lessonLink(l)}<p>${E(f.meaning)}</p><small>${sourceLink(l.source.hex.id, 'HxGN p. ' + l.source.hex.page)} · excerpt; see full pages</small></div>`).join('');
+}
+
+function glossaryPage() {
+  return H('Reference', 'EAM glossary', 'Independent explanations; use linked tutorials to verify product-specific details.')
+    + `<div class="field-grid">${Object.entries(glossary).map(([k, v]) => `<div class="panel"><h3>${E(k)}</h3><p>${E(v)}</p>${A('search/' + U(k), 'Find related lessons')}</div>`).join('')}</div>`;
+}
+
+function technical() {
+  const c = codeMeta.counts || {};
+  return H('Technical academy', 'Database, SQL, Triggers & Procedures', 'Separate supplied schema evidence and read-only recovered SQL Server reference code from the synthetic SQLite practice lab. Never run recovered or training SQL against production.')
+    + tiles([
+      ['triggers', `Triggers — Full (${c.trigger ?? 2405})`, 'All 2,405 recovered SQL Server trigger blocks, searchable by name, keyword, or R5 table.'],
+      ['procedures', `Stored Procedures — Full (${c.procedure ?? 1629})`, 'All 1,629 recovered SQL Server stored procedures plus procedure directory.'],
+      ['codes', 'All Codes Hub', 'Views (304), Functions (947), Tables/Indexes (11), Flex SQL (8), Install Parameters (97), Classes & Categories.'],
+      ['tables', 'Database dictionary', '1,681 indexed R5 tables; 47 structured key-table exports; 196 observed column token tables.'],
+      ['er/R5EVENTS', 'Visual ER relationship explorer', 'Interactive SVG parent/child diagram around any R5 key table.'],
+      ['sql', 'SQL lab & Self-Check', 'Read-only synthetic training database, 28 tables, click-to-insert schema, R5 crosswalk.'],
+      ['module/' + U('Database and SQL'), 'SQL tutorials', 'Ten executable SQLite lessons with expected outputs.'],
+      ['module/' + U('Customization and integration'), 'Customization and integration', 'Alerts, imports, grids, web service prompts, GIS, and OAuth 2.0.'],
+    ]);
+}
+
+function codeExplorerPage(mode, initialFilter = '') {
+  const isTrg = mode === 'trigger';
+  const c = codeMeta.counts || {};
+  const title = isTrg ? 'Triggers — Full Explorer' : 'Stored Procedures — Full Explorer';
+  const count = isTrg ? (c.trigger ?? 2405) : (c.procedure ?? 1629);
+  const sub = isTrg
+    ? `All ${count} recovered SQL Server trigger blocks from All_Triggers.sql, indexed with R5 table references.`
+    : `All ${count} recovered SQL Server stored procedure definitions (covering procedures.md).`;
+  const chips = isTrg
+    ? ['R5EVENTS', 'R5OBJECTS', 'R5ACTIVITIES', 'R5TRANSACTIONS', 'R5ORDERS', 'R5REQUISITIONS', 'R5BOOKEDHOURS', 'R5STOCK']
+    : ['O7', 'AUDITSQL', 'BAIM', 'POSINS', 'XML', 'R5EVENTS', 'R5OBJECTS', 'R5TRANSACTIONS'];
+  return H('Recovered SQL Reference', title, sub)
+    + `<div class="note warn">Read-only archive carved from Infor EAM 11.6 SQL Server backup. Multiple candidate blocks may exist per object. Never execute recovered SQL against production.</div>`
+    + `<div class="panel"><form id="codeSearchForm"><div class="row"><input type="search" id="codeQ" placeholder="Search ${isTrg ? 'trigger name, SQL, or keyword' : 'procedure name, parameter, or SQL'}" value="${E(initialFilter.startsWith('R5') ? '' : initialFilter)}"><input id="codeTable" placeholder="Filter by R5 table (e.g. R5EVENTS)" value="${E(initialFilter.startsWith('R5') ? initialFilter : '')}" style="max-width:250px"><button class="primary">Search</button></div></form><div class="row" style="margin-top:10px"><small>Quick filter:</small>${chips.map(ch => `<button type="button" class="chip" data-code-chip="${E(ch)}">${E(ch)}</button>`).join('')}<button type="button" class="chip" data-code-chip="">Reset</button></div></div>`
+    + `<div id="codeMetaStats" class="muted" style="margin:10px 0">Loading…</div><div id="codeResults"></div><div id="codeMore" style="margin-top:12px"></div>`;
+}
+
+let codeToken = 0;
+async function runCodeSearch(kind, offset = 0) {
+  const token = ++codeToken;
+  const q = $('codeQ')?.value || '';
+  const tbl = $('codeTable')?.value || '';
+  if (!offset && $('codeResults')) $('codeResults').innerHTML = '<p>Loading code objects…</p>';
+  try {
+    const j = await api(`/api/code/search?kind=${U(kind)}&q=${U(q)}&table=${U(tbl)}&offset=${offset}`);
+    if (token !== codeToken || !$('codeResults')) return;
+    $('codeMetaStats').textContent = `${j.total} matching objects`;
+    const html = j.items.map(it => {
+      const tblLinks = (it.tables || '').split(',').map(x => x.trim()).filter(Boolean).slice(0, 8)
+        .map(t => A('table/' + U(t), t, 'taglink')).join('');
+      return `<div class="list-item"><div class="row between"><div>${A('code/' + it.id, it.name)} <span class="pill">${E(it.kind.toUpperCase())}</span> <small>Candidate ${E(it.candidate)} · ${it.line_count} lines</small></div>${A('code/' + it.id, 'View full SQL →', 'button')}</div>${tblLinks ? `<div style="margin:6px 0">${tblLinks}</div>` : ''}<pre style="margin:6px 0;padding:10px">${HMark(it.excerpt)}</pre></div>`;
+    }).join('');
+    $('codeResults').innerHTML = offset ? $('codeResults').innerHTML + html : (html || '<p>No matching code objects.</p>');
+    $('codeMore').innerHTML = j.more ? `<button id="codeLoadMore">Load more (${j.total - offset - j.items.length} remaining)</button>` : '';
+    if (j.more) $('codeLoadMore').onclick = () => runCodeSearch(kind, offset + 40);
+  } catch (e) {
+    if ($('codeResults') && token === codeToken) $('codeResults').innerHTML = `<p class="warning">${E(e.message)}</p>`;
+  }
+}
+
+function codesHubPage() {
+  const c = codeMeta.counts || {};
+  return H('Reference & Code Hub', 'All Codes', 'Browse all recovered SQL views, functions, table/index DDL, Flex SQL candidates, plus EAM install parameters, equipment classes, and asset categories.')
+    + `<div class="tabs"><button type="button" class="active" data-codetab="sql">SQL Views, Functions &amp; DDL (${(c.view ?? 304) + (c.function ?? 947) + (c.table_ddl ?? 10) + (c.index ?? 1)})</button><button type="button" data-codetab="params">Install Parameters (${(codeMeta.install_params || []).length})</button><button type="button" data-codetab="classes">Equipment Classes (${(codeMeta.equipment_classes || []).length})</button><button type="button" data-codetab="categories">Asset Categories (${(codeMeta.asset_categories || []).length})</button><button type="button" data-codetab="flex">Flex SQL (${(codeMeta.flex_sql || []).length})</button></div><div id="codesBody"></div>`;
+}
+
+function renderCodesTab(tab) {
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('active', b.dataset.codetab === tab));
+  const body = $('codesBody');
+  if (!body) return;
+  if (tab === 'sql') {
+    const c = codeMeta.counts || {};
+    body.innerHTML = `<div class="note warn">Recovered SQL Server views, functions, table DDL, and index candidates. Read-only reference only.</div>`
+      + `<div class="panel"><form id="codeSearchForm"><div class="row"><select id="ddlKind"><option value="view,function,table_ddl,index">All SQL DDL (${(c.view ?? 304) + (c.function ?? 947) + (c.table_ddl ?? 10) + (c.index ?? 1)})</option><option value="view">Views (${c.view ?? 304})</option><option value="function">Functions (${c.function ?? 947})</option><option value="table_ddl">Tables (${c.table_ddl ?? 10})</option><option value="index">Unique Indexes (${c.index ?? 1})</option></select><input type="search" id="codeQ" placeholder="Search view/function name or SQL"><input id="codeTable" placeholder="Filter R5 table" style="max-width:200px"><button class="primary">Search</button></div></form></div>`
+      + `<div id="codeMetaStats" class="muted" style="margin:10px 0">Loading…</div><div id="codeResults"></div><div id="codeMore"></div>`;
+    $('codeSearchForm').onsubmit = e => { e.preventDefault(); runCodeSearch($('ddlKind').value, 0); };
+    $('ddlKind').onchange = () => runCodeSearch($('ddlKind').value, 0);
+    runCodeSearch($('ddlKind').value, 0);
+  } else if (tab === 'params') {
+    body.innerHTML = `<p class="muted">Installation and system parameters extracted directly from Hexagon EAM Help with page citations.</p><input id="paramFilter" type="search" placeholder="Filter parameter code or description (e.g. ASSETASS, AUTOANUM, POCURR)"><div id="paramList" style="margin-top:12px"></div>`;
+    const draw = (q = '') => {
+      const hits = (codeMeta.install_params || []).filter(p => (p.code + ' ' + p.refs.map(r => r.context).join(' ')).toLowerCase().includes(q.toLowerCase()));
+      $('paramList').innerHTML = `<p class="muted">${hits.length} parameters</p>` + hits.map(p => `<div class="panel" style="margin-bottom:10px"><div class="row between"><strong>${E(p.code)}</strong><span class="pill">${p.mentions} Help mention(s)</span></div>${p.refs.map(r => `<p style="margin:6px 0">${sourceLink(r.doc_id, 'HxGN Help p. ' + r.page)} — <span class="muted">${E(r.context)}</span></p>`).join('')}</div>`).join('');
+    };
+    $('paramFilter').oninput = e => draw(e.target.value);
+    draw();
+  } else if (tab === 'classes') {
+    body.innerHTML = `<p class="muted">Equipment classes from supplied archive reference sheet.</p><input id="clsFilter" type="search" placeholder="Filter class code or description"><div id="clsList" style="margin-top:12px"></div>`;
+    const draw = (q = '') => {
+      const hits = (codeMeta.equipment_classes || []).filter(x => (x.code + ' ' + x.desc).toLowerCase().includes(q.toLowerCase()));
+      $('clsList').innerHTML = table(['Class code', 'Description'], hits.map(x => [x.code, x.desc]));
+    };
+    $('clsFilter').oninput = e => draw(e.target.value);
+    draw();
+  } else if (tab === 'categories') {
+    body.innerHTML = `<p class="muted">Asset categories exported from the reference database.</p><input id="catFilter" type="search" placeholder="Filter category code or description"><div id="catList" style="margin-top:12px"></div>`;
+    const draw = (q = '') => {
+      const hits = (codeMeta.asset_categories || []).filter(x => (x.code + ' ' + x.desc).toLowerCase().includes(q.toLowerCase()));
+      $('catList').innerHTML = table(['Category code', 'Description'], hits.map(x => [x.code, x.desc]));
+    };
+    $('catFilter').oninput = e => draw(e.target.value);
+    draw();
+  } else if (tab === 'flex') {
+    const fx = codeMeta.flex_sql || [];
+    body.innerHTML = `<p class="muted">Flex SQL related module candidates identified in recovered triggers and stored procedures (R5FLEXSQL / R5FLEXTABLES).</p>`
+      + fx.map(x => `<div class="panel" style="margin-bottom:10px"><div class="row between"><strong>${E(x.name)}</strong><span class="pill">${E(x.source)}</span></div><div style="margin:8px 0">${x.tables.map(t => A('table/' + U(t), t, 'taglink')).join(' ')}</div>${A(x.source.includes('Trigger') ? 'triggers' : 'procedures', 'Open in explorer →', 'button')}</div>`).join('');
+  }
+}
+
+async function codeItemPage(id) {
+  const item = await api('/api/code/item?id=' + U(id));
+  const backRoute = item.kind === 'trigger' ? 'triggers' : item.kind === 'procedure' ? 'procedures' : 'codes';
+  const backLabel = item.kind === 'trigger' ? '← All Triggers' : item.kind === 'procedure' ? '← All Stored Procedures' : '← All Codes';
+  const tblLinks = (item.tables || '').split(',').map(x => x.trim()).filter(Boolean).map(t => A('table/' + U(t), t, 'taglink')).join('');
+  const sibs = (item.siblings || []).length > 1
+    ? `<div class="row" style="margin:10px 0"><small>Candidates for ${E(item.norm_name)}:</small>${item.siblings.map(sb => A('code/' + sb.id, `Candidate ${sb.candidate} (${sb.line_count}L)`, sb.id === item.id ? 'button primary' : 'button')).join('')}</div>`
+    : '';
+  return H('Recovered SQL Source', item.name, `${item.kind.toUpperCase()} · Candidate ${item.candidate} · ${item.line_count} lines${item.offset ? ` · backup byte ${item.offset}` : ''}`)
+    + `<div class="note warn">RECOVERY REFERENCE ONLY — NOT A VERIFIED OR DEPLOYABLE SCRIPT. Never run against production or training SQLite.</div>`
+    + `<div class="row">${A(backRoute, backLabel, 'button')}<button type="button" id="copySqlBtn" class="primary">Copy SQL</button><button type="button" id="dlSqlBtn">Download .sql</button></div>`
+    + sibs
+    + (tblLinks ? `<div class="panel" style="margin:12px 0"><strong>Referenced R5 tables:</strong><div style="margin-top:6px">${tblLinks}</div></div>` : '')
+    + `<pre class="code-view" id="rawSqlCode">${E(item.body)}</pre>`;
+}
+
+function tablesPage() {
+  return H('Technical reference', 'Database table dictionary', 'The supplied schema index is evidence, not a verified schema for every release.')
+    + `<input id="tableFilter" type="search" placeholder="Search R5 table name (e.g. R5EVENTS, R5OBJECTS)"><div id="tableList" style="margin-top:12px"></div>`;
+}
+function renderTables(q = '') {
+  const hits = catalog.tables.filter(t => t[0].toLowerCase().includes(q.toLowerCase()));
+  $('tableList').innerHTML = `<p class="muted">${hits.length} matches · first 150 shown</p><div class="scroll"><table><thead><tr><th>Table</th><th>Indexed primary key</th><th>Evidence</th></tr></thead><tbody>${hits.slice(0, 150).map(t => `<tr><td>${A('table/' + U(t[0]), t[0])}</td><td>${E(t[1] || 'Not listed')}</td><td>${catalog.keys[t[0]] ? '<span class="pill ok">Key table export</span>' : 'Index only'}</td></tr>`).join('')}</tbody></table></div>`;
+}
+
+function tablePage(t) {
+  const row = catalog.tables.find(x => x[0] === t);
+  const kt = (codeMeta.key_tables || {})[t];
+  const d = catalog.keys[t];
+  if (!row && !d && !kt) return H('Not found', 'Table not found');
+  const edges = extended.relations.filter(x => x.some(y => y.split('.')[0] === t));
+  const tokens = (codeMeta.col_tokens || {})[t] || [];
+
+  const structured = kt ? `<div class="grid" style="margin:14px 0">
+    <div class="panel"><h3>Primary key &amp; area</h3><p><span class="pill">${E(kt.area)}</span></p><p><strong>PK:</strong> <code>${E(kt.pk || 'Not listed')}</code></p><p><strong>Outbound FKs:</strong> ${kt.out_fks.length} · <strong>Inbound refs:</strong> ${kt.in_fks.length} · <strong>Triggers:</strong> ${kt.triggers.length}</p></div>
+    <div class="panel"><h3>Outbound foreign keys (${kt.out_fks.length})</h3>${kt.out_fks.length ? kt.out_fks.map(fk => { const target = fk.to.split('.')[0]; return `<div><code>${E(fk.from)}</code> → ${A('table/' + U(target), fk.to)}</div>`; }).join('') : '<p class="muted">None listed</p>'}</div>
+  </div>
+  <div class="grid" style="margin:14px 0">
+    <div class="panel"><h3>Referenced by (${kt.in_fks.length})</h3><div style="max-height:260px;overflow:auto">${kt.in_fks.length ? kt.in_fks.map(fk => { const src = fk.from.split('.')[0]; return `<div>${A('table/' + U(src), fk.from)} → <code>${E(fk.to)}</code>${fk.star ? ' ★' : ''}</div>`; }).join('') : '<p class="muted">None listed</p>'}</div></div>
+    <div class="panel"><h3>Key-table triggers (${kt.triggers.length})</h3><div style="max-height:260px;overflow:auto">${kt.triggers.length ? kt.triggers.map(tr => A('triggers/' + U(tr.split(' ')[0]), tr, 'taglink')).join('') : '<p class="muted">None listed</p>'}</div></div>
+  </div>` : `<div class="panel"><p><strong>Indexed primary key:</strong> ${E(row?.[1] || 'Not listed')}</p>${d ? `<pre>${E(d)}</pre>` : '<p class="muted">No detailed key-table export supplied for this table.</p>'}</div>`;
+
+  return H('Schema evidence', t, kt ? `${kt.area} · Detailed key-table export` : 'Index only · no detailed export')
+    + `<div class="row" style="margin-bottom:12px">${A('er/' + U(t), 'Open Visual ER Diagram', 'button primary')}${A('triggers/' + U(t), 'Search Triggers for ' + t, 'button')}${A('procedures/' + U(t), 'Search Procedures for ' + t, 'button')}</div>`
+    + structured
+    + `<h2>Recovered SQL objects referencing ${E(t)}</h2><div id="tableCodeRefs"><p class="muted">Checking triggers, procedures &amp; views…</p></div>`
+    + (tokens.length ? `<h2>Observed column tokens (Unverified lexical reference)</h2><div class="note">Extracted from carved SQL DDL tokens only; column types and completeness are unverified.</div><div class="panel">${tokens.map(c => `<span class="taglink">${E(c)}</span>`).join('')}</div>` : '')
+    + `<h2>Column-level relationships</h2>${edges.length ? table(['Child column', 'Parent column'], edges) : '<p>No indexed column links found.</p>'}`;
+}
+
+function buildErSvg(t) {
+  const kt = (codeMeta.key_tables || {})[t];
+  const mmd = codeMeta.er_edges || [];
+  let parents = [], children = [];
+  if (kt) {
+    const pMap = new Map(), cMap = new Map();
+    kt.out_fks.forEach(fk => { const pt = fk.to.split('.')[0]; if (pt !== t && !pMap.has(pt)) pMap.set(pt, fk.from.split('.')[1] || fk.from); });
+    kt.in_fks.forEach(fk => { const ct = fk.from.split('.')[0]; if (ct !== t && !cMap.has(ct)) cMap.set(ct, fk.from.split('.')[1] || fk.from); });
+    parents = [...pMap.entries()].slice(0, 10);
+    children = [...cMap.entries()].slice(0, 12);
+  }
+  if (!parents.length && !children.length) {
+    const pSet = new Map(), cSet = new Map();
+    mmd.forEach(e => {
+      if (e.child === t && e.parent !== t && !pSet.has(e.parent)) pSet.set(e.parent, e.col);
+      if (e.parent === t && e.child !== t && !cSet.has(e.child)) cSet.set(e.child, e.col);
+    });
+    parents = [...pSet.entries()].slice(0, 10);
+    children = [...cSet.entries()].slice(0, 12);
+  }
+  const rows = Math.max(parents.length, children.length, 1);
+  const h = Math.max(240, rows * 44 + 40);
+  const cy = h / 2;
+  let svg = `<svg viewBox="0 0 860 ${h}" width="100%" style="min-width:620px;max-height:560px" role="img" aria-label="Entity relationship diagram for ${E(t)}">`;
+  parents.forEach(([name, lbl], i) => {
+    const y = 30 + i * ((h - 60) / Math.max(parents.length, 1));
+    svg += `<line class="er-edge" x1="210" y1="${y + 15}" x2="345" y2="${cy}"/><text class="er-lbl" x="220" y="${(y + 15 + cy) / 2 - 4}">${E(lbl)}</text>`;
+    svg += `<g class="er-node" data-er-node="${E(name)}"><rect x="16" y="${y}" width="194" height="30"/><text x="26" y="${y + 19}">${E(name)}</text></g>`;
+  });
+  children.forEach(([name, lbl], i) => {
+    const y = 30 + i * ((h - 60) / Math.max(children.length, 1));
+    svg += `<line class="er-edge" x1="515" y1="${cy}" x2="650" y2="${y + 15}"/><text class="er-lbl" x="530" y="${(y + 15 + cy) / 2 - 4}">${E(lbl)}</text>`;
+    svg += `<g class="er-node" data-er-node="${E(name)}"><rect x="650" y="${y}" width="194" height="30"/><text x="660" y="${y + 19}">${E(name)}</text></g>`;
+  });
+  svg += `<g class="er-node center" data-er-node="${E(t)}"><rect x="345" y="${cy - 20}" width="170" height="40"/><text x="430" y="${cy + 5}" text-anchor="middle">${E(t)}</text></g></svg>`;
+  return svg;
+}
+
+function erPage(t = 'R5EVENTS') {
+  const edges = extended.relations.filter(x => x.some(y => y.split('.')[0] === t));
+  const names = [...new Set([...extended.relations.flatMap(x => x.map(y => y.split('.')[0])), ...Object.keys(codeMeta.key_tables || {})])].sort();
+  const presets = ['R5OBJECTS', 'R5EVENTS', 'R5ACTIVITIES', 'R5PARTS', 'R5STOCK', 'R5ORDERS', 'R5REQUISITIONS', 'R5PPM', 'R5ORGANIZATION'];
+  return H('Technical reference', 'Visual ER relationship explorer', 'Click any parent (left) or child (right) table node in the diagram to re-center the ER view. This is derived from key-table exports, not a full database ERD.')
+    + `<div class="row"><label for="erPick">Focus table</label><select id="erPick">${names.map(n => `<option ${n === t ? 'selected' : ''}>${E(n)}</option>`).join('')}</select>${A('table/' + U(t), 'Table details', 'button')}${A('triggers/' + U(t), 'Table triggers', 'button')}</div>`
+    + `<div class="row" style="margin-top:10px"><small>Core domains:</small>${presets.map(p => A('er/' + U(p), p, p === t ? 'chip active button' : 'chip button')).join('')}</div>`
+    + `<div class="er-wrap">${buildErSvg(t)}</div>`
+    + `<h2>${E(t)} · ${edges.length} indexed column links</h2>`
+    + table(['Child column', 'Parent column'], edges)
+    + `<p class="note">Multiple links may belong to one composite key. Verify actual constraints before writing production joins.</p>`;
+}
+
+function sqlPage(id) {
+  const l = lessons.find(x => x.id === id && x.type === 'technical');
+  return H('SQL practice · technical only', 'Read-only SQL lab', 'All records are fictional and the SQLite schema is not the production R5 schema. Click schema columns to insert them, or use Check my output on lesson challenges.')
+    + `<div class="panel"><label for="sqlExample">Choose a lesson query</label> <select id="sqlExample"><option value="">Custom query</option>${lessons.filter(x => x.type === 'technical').map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${E(x.title)}</option>`).join('')}</select>`
+    + `<p style="margin-top:10px"><label for="sqlText">SQL statement</label></p><textarea id="sqlText">${E(l?.sql || 'SELECT * FROM work_orders ORDER BY id;')}</textarea>`
+    + `<div class="row" style="margin-top:8px"><button id="runSQL" class="primary">Run read-only query</button><button id="checkSQL" ${l ? '' : 'style="display:none"'}>Check my output</button><small>SELECT / CTE · max 200 displayed rows</small></div>`
+    + `<p id="sqlExpected" class="note">${E(l?.verify || 'Select a lesson for an expected result.')}</p><div id="sqlCheckMsg"></div><div id="sqlResult"></div></div>`
+    + (sqlHist.length ? `<details><summary>Recent query history (${sqlHist.length})</summary>${sqlHist.map((q, idx) => `<div class="list-item"><button type="button" data-load-sql="${idx}">Load</button> <code style="margin-left:8px">${E(q.slice(0, 120))}</code></div>`).join('')}</details>` : '')
+    + `<details><summary>Training table → Production R5 crosswalk (28 tables)</summary>${table(['Training table', 'Approximate R5 table', 'Purpose'], crosswalk)}</details>`
+    + `<h2>Training schema (click any column to insert)</h2><div id="sqlSchema">Loading schema…</div>`;
+}
+
+function progressPage() {
+  const valid = lessons.filter(l => done.includes(l.id));
+  const qTot = Object.keys(quizState).length;
+  const qOk = Object.values(quizState).filter(Boolean).length;
+  return H('Personal learning', 'Your learning progress', 'Progress, quiz results, notes and bookmarks are stored locally in this browser.')
+    + `<div class="metrics">${metric(valid.length, 'Completed')}${metric(marks.length, 'Bookmarked')}${metric(Object.keys(notes).filter(k => notes[k]).length, 'Lessons with notes')}${metric(qTot ? `${qOk}/${qTot}` : '0', 'Quiz score')}</div>`
+    + '<p>' + A('practice','SQL practice · ' + read('practiceSolved',[]).length + ' of 100 solved') + '</p>'
+    + progress(valid.length, lessons.length)
+    + `<h2>Module progress</h2>`
+    + Object.entries(groups).map(([m, ls]) => `<div class="list-item"><div class="row between">${A('module/' + U(m), m)}<small>${ls.filter(l => done.includes(l.id)).length}/${ls.length}</small></div>${progress(ls.filter(l => done.includes(l.id)).length, ls.length)}</div>`).join('')
+    + `<h2>Bookmarks</h2>${lessons.filter(l => marks.includes(l.id)).map(l => `<div class="list-item">${lessonLink(l)}</div>`).join('') || '<p>No bookmarks yet.</p>'}`
+    + `<h2>Revision notes</h2>${lessons.filter(l => notes[l.id]).map(l => `<div class="list-item">${lessonLink(l)}<p>${E(notes[l.id])}</p></div>`).join('') || '<p>No notes yet.</p>'}`
+    + `<div class="row" style="margin-top:18px"><button id="exportProgress" class="primary">Export progress JSON</button><label class="button" for="importFile">Import progress JSON</label><input id="importFile" type="file" accept=".json,application/json" style="display:none"><button id="resetProgress">Reset local progress</button></div><div id="importMsg" style="margin-top:8px"></div>`;
+}
+
+function assess() {
+  return H('Assessments & Quizzes', 'Interactive quizzes & scenario checks', 'Test your understanding with module multiple-choice quizzes, then review written scenario explanations.')
+    + `<div class="row"><label for="assessPick">Module</label><select id="assessPick">${Object.keys(groups).map(m => `<option>${E(m)}</option>`).join('')}</select></div><div id="assessList"></div>`;
+}
+function renderAssess(m) {
+  const mQuizzes = quizzes.filter(q => q.module === m);
+  const scored = mQuizzes.filter(q => q.id in quizState);
+  const ok = scored.filter(q => quizState[q.id]).length;
+  $('assessList').innerHTML = `<h2>Interactive module quiz (${ok}/${mQuizzes.length} answered correctly)</h2>`
+    + (mQuizzes.length ? quizBlock(mQuizzes) : '<p class="muted">No multiple-choice questions for this module.</p>')
+    + `<h2>Written scenario checks</h2>`
+    + groups[m].map((l, i) => `<details><summary>${i + 1}. ${E(l.title)} — ${E(l.scenario)}</summary><p><strong>Question:</strong> Explain the business purpose, the required sequence, and how you would verify the outcome.</p><p><strong>Answer guidance:</strong> ${E(l.concept)}</p>${l.walkthrough.length ? `<ol>${l.walkthrough.map(x => `<li>${E(x)}</li>`).join('')}</ol>` : `<pre>${E(l.sql)}</pre>`}<p><strong>Validation:</strong> ${E(l.verify)}</p>${lessonLink(l)}</details>`).join('');
+}
+
+async function route() {
+  const current = ++generation;
+  const hash = location.hash.slice(1) || 'home';
+  const pos = hash.indexOf('/');
+  const r = pos < 0 ? hash : hash.slice(0, pos);
+  let id = '';
+  try { id = pos < 0 ? '' : decodeURIComponent(hash.slice(pos + 1)); } catch {}
+  document.body.dataset.view = r;
+  renderNav(r, id);
+  const main = $('main');
+  try {
+    switch (r) {
+      case 'home': main.innerHTML = fieldHome(); break;
+      case 'workshops': case 'workshop': main.innerHTML = workshopPage(id); break;
+      case 'pump': main.innerHTML = pumpPage(); break;
+      case 'practice': case 'exercise': await showPractice(r,id,current); break;
+      case 'sql-course': main.innerHTML = sqlCourse(); break;
+      case 'coverage':
+        main.innerHTML = coveragePage(id);
+        $('coverageModule').onchange = e => { location.hash = 'coverage/' + U(e.target.value); };
+        break;
+      case 'learn':
+        main.innerHTML = H('Curriculum', 'Tutorials', `${lessons.length} written lessons across ${Object.keys(groups).length} modules.`) + '<div class="row footer-links">' + A('paths','Learning paths','button') + A('assess','Assessments','button') + A('coverage','Lesson coverage','button') + '</div>' + tiles(Object.entries(groups).map(([m, ls]) => ['module/' + U(m), m, `${ls.length} lessons`]));
+        break;
+      case 'module': main.innerHTML = modulePage(id); break;
+      case 'lesson': main.innerHTML = lessonPage(id); attachLessonContents(); break;
+      case 'paths': main.innerHTML = paths(); break;
+      case 'path': main.innerHTML = path(id); break;
+      case 'flows': main.innerHTML = flowsPage(); break;
+      case 'reference': main.innerHTML = reference(); break;
+      case 'search':
+        main.innerHTML = searchPage(id);
+        $('searchForm').onsubmit = e => { e.preventDefault(); doSearch($('searchQ').value); };
+        $('sourceFilter').onchange = () => doSearch($('searchQ').value);
+        $('moduleFilter').onchange = () => doSearch($('searchQ').value);
+        doSearch(id);
+        break;
+      case 'doc': {
+        main.innerHTML = '<p>Loading source page…</p>';
+        const d = await api('/api/doc?id=' + U(id));
+        if (current !== generation) return;
+        const refs = lessons.filter(l => l.source.hex.id === d.id || l.source.hex.pages.some(p => p.id === d.id) || l.source.infor?.id === d.id);
+        main.innerHTML = H(d.source, d.title, `Offline page ${d.page ?? 'not numbered'}`)
+          + `<p class="note">Supplied source text. Repeated export header/footer lines are hidden by default for readability.</p>`
+          + `<div class="row">${A('reference', '← Reference', 'button')}${d.page > 1 ? A('doc/' + (Number(d.id) - 1), 'Previous page', 'button') : ''}${d.page < (d.source === 'Hexagon EAM Help' ? 1149 : 974) ? A('doc/' + (Number(d.id) + 1), 'Next page', 'button') : ''}<button type="button" id="toggleRawDoc">Show raw extract</button></div>`
+          + (refs.length ? `<div class="panel" style="margin:12px 0"><strong>Referenced by lessons:</strong> ${refs.map(l => lessonLink(l)).join(' · ')}</div>` : '')
+          + `<div class="panel source-text" id="docBody">${E(cleanDocText(d.body))}</div>`;
+        let raw = false;
+        $('toggleRawDoc').onclick = () => { raw = !raw; $('docBody').textContent = raw ? d.body : cleanDocText(d.body); $('toggleRawDoc').textContent = raw ? 'Clean headers' : 'Show raw extract'; };
+        break;
+      }
+      case 'topics': main.innerHTML = topics(); $('topicFilter').oninput = e => renderTopics(e.target.value); renderTopics(); break;
+      case 'fields': main.innerHTML = fields(); $('fieldFilter').oninput = e => renderFields(e.target.value); renderFields(); break;
+      case 'glossary': main.innerHTML = glossaryPage(); break;
+      case 'technical': main.innerHTML = technical(); break;
+      case 'triggers':
+      case 'procedures': {
+        const kind = r === 'triggers' ? 'trigger' : 'procedure';
+        main.innerHTML = codeExplorerPage(kind, id);
+        $('codeSearchForm').onsubmit = e => { e.preventDefault(); runCodeSearch(kind, 0); };
+        main.querySelectorAll('[data-code-chip]').forEach(btn => {
+          btn.onclick = () => {
+            const v = btn.dataset.codeChip;
+            if (!v) { $('codeQ').value = ''; $('codeTable').value = ''; }
+            else if (v.startsWith('R5')) { $('codeTable').value = v; $('codeQ').value = ''; }
+            else { $('codeQ').value = v; $('codeTable').value = ''; }
+            runCodeSearch(kind, 0);
+          };
+        });
+        runCodeSearch(kind, 0);
+        break;
+      }
+      case 'codes':
+        main.innerHTML = codesHubPage();
+        main.querySelectorAll('.tabs button').forEach(b => { b.onclick = () => renderCodesTab(b.dataset.codetab); });
+        renderCodesTab(id || 'sql');
+        break;
+      case 'code': {
+        main.innerHTML = '<p>Loading SQL object…</p>';
+        const html = await codeItemPage(id);
+        if (current !== generation) return;
+        main.innerHTML = html;
+        $('copySqlBtn').onclick = async () => {
+          const txt = $('rawSqlCode').textContent;
+          try { await navigator.clipboard.writeText(txt); $('copySqlBtn').textContent = '✓ Copied'; setTimeout(() => { if ($('copySqlBtn')) $('copySqlBtn').textContent = 'Copy SQL'; }, 1500); } catch {}
+        };
+        $('dlSqlBtn').onclick = () => {
+          const txt = $('rawSqlCode').textContent;
+          const a = document.createElement('a'), url = URL.createObjectURL(new Blob([txt], { type: 'text/sql' }));
+          a.href = url; a.download = 'recovered_eam_object.sql'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+        };
+        break;
+      }
+      case 'tables': main.innerHTML = tablesPage(); $('tableFilter').oninput = e => renderTables(e.target.value); renderTables(); break;
+      case 'table':
+        main.innerHTML = tablePage(id);
+        api('/api/code/search?table=' + U(id)).then(res => {
+          if (current !== generation || !$('tableCodeRefs')) return;
+          if (!res.items.length) { $('tableCodeRefs').innerHTML = '<p class="muted">No recovered SQL objects matched this table name.</p>'; return; }
+          $('tableCodeRefs').innerHTML = `<p class="muted">${res.total} matching SQL objects (showing up to 40)</p><div class="panel">${res.items.map(it => `${A('code/' + it.id, `${it.name} (${it.kind})`, 'taglink')}`).join('')}</div>`;
+        }).catch(() => {});
+        break;
+      case 'er':
+        main.innerHTML = erPage(id || 'R5EVENTS');
+        $('erPick').onchange = e => { location.hash = 'er/' + U(e.target.value); };
+        main.querySelectorAll('[data-er-node]').forEach(g => { g.onclick = () => { location.hash = 'er/' + U(g.dataset.erNode); }; });
+        break;
+      case 'sql': {
+        main.innerHTML = sqlPage(id);
+        const exercise = /^pump-([0-3])$/.exec(id);
+        if (exercise) {
+          const q = pumpQueries[Number(exercise[1])];
+          $('sqlText').value = q.sql;
+          $('sqlExpected').textContent = q.result;
+          $('sqlResult').after(document.createRange().createContextualFragment(A('pump', 'Return to the pump case study')));
+        }
+        const wireSql = () => {
+          const curLesson = lessons.find(x => x.id === $('sqlExample').value);
+          if ($('checkSQL')) $('checkSQL').style.display = curLesson ? 'inline-block' : 'none';
+        };
+        $('sqlExample').onchange = e => {
+          const l = lessons.find(x => x.id === e.target.value);
+          if (l) { $('sqlText').value = l.sql; $('sqlExpected').textContent = l.verify; $('sqlCheckMsg').innerHTML = ''; }
+          wireSql();
+        };
+        main.querySelectorAll('[data-load-sql]').forEach(b => {
+          b.onclick = () => { $('sqlText').value = sqlHist[Number(b.dataset.loadSql)]; };
+        });
+        $('runSQL').onclick = async () => {
+          const b = $('runSQL'), q = $('sqlText').value;
+          b.disabled = true; $('sqlResult').textContent = 'Running…'; $('sqlCheckMsg').innerHTML = '';
+          try {
+            const v = await api('/api/sql', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sql: q }) });
+            if (current !== generation) return;
+            sqlHist = [q, ...sqlHist.filter(x => x !== q)].slice(0, 10);
+            write('sqlhist', sqlHist);
+            $('sqlResult').innerHTML = `<p>${v.rows.length} rows${v.truncated ? ' (truncated)' : ''}</p>` + table(v.columns, v.rows.map(row => row.map(x => x === null ? 'NULL' : x)));
+          } catch (e) {
+            if (current === generation) $('sqlResult').textContent = 'Query rejected or failed: ' + e.message;
+          } finally { b.disabled = false; }
+        };
+        if ($('checkSQL')) $('checkSQL').onclick = async () => {
+          const l = lessons.find(x => x.id === $('sqlExample').value);
+          if (!l) return;
+          const msg = $('sqlCheckMsg');
+          msg.innerHTML = '<p class="muted">Comparing output against expected lesson query…</p>';
+          try {
+            const [got, exp] = await Promise.all([
+              api('/api/sql', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sql: $('sqlText').value }) }),
+              api('/api/sql', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sql: l.sql }) }),
+            ]);
+            const norm = r => JSON.stringify(r.rows);
+            const ok = got.columns.length === exp.columns.length && norm(got) === norm(exp);
+            msg.innerHTML = ok
+              ? `<div class="note ok">✓ Output matches expected result (${exp.rows.length} rows, ${exp.columns.length} columns).</div>`
+              : `<div class="note warn">Result differs: got ${got.rows.length} rows × ${got.columns.length} cols, expected ${exp.rows.length} rows × ${exp.columns.length} cols. Check joins, filters, or ORDER BY.</div>`;
+          } catch (e) { msg.innerHTML = `<div class="note warn">Check failed: ${E(e.message)}</div>`; }
+        };
+        api('/api/schema').then(v => {
+          if (current !== generation) return;
+          $('sqlSchema').innerHTML = v.tables.map(t => `<details><summary><span class="schema-col" data-ins="${E(t.name)}">${E(t.name)}</span> (${t.columns.length} columns)</summary><div style="margin-top:8px">${t.columns.map(c => `<span class="schema-col" title="Click to insert column" data-ins="${E(c.name)}">${E(c.name)} <small>${E(c.type)}${c.pk ? ' PK' : ''}</small></span>`).join('')}</div></details>`).join('');
+          $('sqlSchema').querySelectorAll('[data-ins]').forEach(el => {
+            el.onclick = ev => {
+              ev.preventDefault(); ev.stopPropagation();
+              const ta = $('sqlText'), val = el.dataset.ins, st = ta.selectionStart ?? ta.value.length, en = ta.selectionEnd ?? ta.value.length;
+              ta.value = ta.value.slice(0, st) + val + ta.value.slice(en);
+              ta.focus(); ta.setSelectionRange(st + val.length, st + val.length);
+            };
+          });
+        }).catch(e => { if (current === generation) $('sqlSchema').textContent = e.message; });
+        break;
+      }
+      case 'assess':
+        main.innerHTML = assess();
+        $('assessPick').onchange = e => renderAssess(e.target.value);
+        renderAssess($('assessPick').value);
+        break;
+      case 'progress':
+        main.innerHTML = progressPage();
+        $('exportProgress').onclick = () => {
+          const a = document.createElement('a'), url = URL.createObjectURL(new Blob([JSON.stringify({ done, marks, notes, quiz: quizState, practiceSolved: read('practiceSolved',[]), practiceDrafts:read('practiceDrafts',{}) }, null, 2)], { type: 'application/json' }));
+          a.href = url; a.download = 'eam-learning-progress.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+        };
+        $('importFile').onchange = async e => {
+          const f = e.target.files?.[0];
+          if (!f) return;
+          try {
+            const d = JSON.parse(await f.text());
+            if (Array.isArray(d.practiceSolved)) write('practiceSolved',[...new Set(d.practiceSolved.filter(id=>Number.isInteger(id) && id>=1 && id<=100))]);
+            if (d.practiceDrafts && typeof d.practiceDrafts==='object') write('practiceDrafts',Object.fromEntries(Object.entries(d.practiceDrafts).filter(([id,sql])=>Number.isInteger(+id) && +id>=1 && +id<=100 && typeof sql==='string' && sql.length<=20000)));
+            if (Array.isArray(d.done)) { done = d.done; write('done', done); }
+            if (Array.isArray(d.marks)) { marks = d.marks; write('marks', marks); }
+            if (d.notes && typeof d.notes === 'object') { notes = d.notes; write('notes', notes); }
+            if (d.quiz && typeof d.quiz === 'object') { quizState = d.quiz; write('quiz', quizState); }
+            route();
+          } catch (err) { $('importMsg').innerHTML = `<p class="warning">Invalid JSON: ${E(err.message)}</p>`; }
+        };
+        $('resetProgress').onclick = () => {
+          if (!confirm('Clear all local completion, bookmarks, notes, quiz scores, and SQL practice history?')) return;
+          done = []; marks = []; notes = {}; quizState = {};
+          write('practiceSolved',[]); write('practiceDrafts',{}); write('activePath',''); write('lastLesson','');
+          write('done', done); write('marks', marks); write('notes', notes); write('quiz', quizState);
+          route();
+        };
+        break;
+      default:
+        main.innerHTML = H('Not found', 'This page is no longer available', 'Functional simulator and old competition sections were removed.') + A('home', 'Return home', 'button');
+    }
+    if (current === generation) {
+      if (r === 'module') main.insertAdjacentHTML('afterbegin','<p class="workshop-link">' + A('workshop/' + U(id),'Open the module workshop') + '</p>');
+      const ref = $('refSearch');
+      if (ref) ref.onsubmit = e => { e.preventDefault(); location.hash = 'search/' + U($('refQ').value); };
+      document.title = (main.querySelector('h1')?.textContent || 'Learning') + ' · EAM Academy';
+      window.scrollTo(0, 0);
+      $('side').classList.remove('open');
+      $('menu').setAttribute('aria-expanded', 'false');
+    }
+  } catch (e) {
+    if (current === generation) main.innerHTML = `<p class="warning">${E(e.message)}</p>`;
+  }
+}
+
+$('main').addEventListener('click', e => {
+  const pathStart = e.target.closest('[data-start-path]');
+  if (pathStart) write('activePath',pathStart.dataset.startPath);
+  const b = e.target.closest('button[data-mark],button[data-done]');
+  if (b) {
+    const k = b.dataset.mark ? 'marks' : 'done', id = b.dataset.mark || b.dataset.done;
+    let arr = k === 'marks' ? marks : done, has = arr.includes(id);
+    arr = has ? arr.filter(x => x !== id) : [...arr, id];
+    if (k === 'marks') marks = arr; else done = arr;
+    write(k, arr);
+    b.textContent = k === 'marks' ? (has ? '☆ Bookmark' : '★ Bookmarked') : (has ? 'Mark complete' : '✓ Completed · undo');
+    renderNav('lesson', id);
+    return;
+  }
+  const qb = e.target.closest('button[data-check-quiz]');
+  if (qb) {
+    const qid = qb.dataset.checkQuiz, q = quizzes.find(x => x.id === qid);
+    if (!q) return;
+    const sel = document.querySelector(`input[name="quiz_${qid}"]:checked`);
+    const fb = $('qf_' + qid);
+    if (!sel) { fb.innerHTML = '<p class="warning">Select an option first.</p>'; return; }
+    const ok = Number(sel.value) === q.answer;
+    quizState[qid] = ok;
+    write('quiz', quizState);
+    fb.innerHTML = `<div class="note ${ok ? 'ok' : 'warn'}"><strong>${ok ? '✓ Correct.' : 'Not quite.'}</strong> ${E(q.explain)}</div>`;
+  }
+});
+
+$('main').addEventListener('change', e => {
+  if (e.target.dataset.note) { notes[e.target.dataset.note] = e.target.value; write('notes', notes); }
+});
+$('quick').onsubmit = e => {
+  e.preventDefault();
+  const q = $('quickInput').value;
+  if (location.hash === '#search/' + U(q)) doSearch(q); else location.hash = 'search/' + U(q);
+};
+document.querySelector('.skip').addEventListener('click', e => { e.preventDefault(); $('main').focus(); });
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
+    e.preventDefault(); $('quickInput')?.focus();
+  }
+});
+$('menu').onclick = () => { $('side').classList.toggle('open'); $('menu').setAttribute('aria-expanded', $('side').classList.contains('open')); };
+$('theme').onclick = () => { const v = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = v; write('theme', v); };
+document.documentElement.dataset.theme = read('theme', 'light');
+window.addEventListener('hashchange', route);
+
+Promise.all(['curriculum.json', 'catalog.json', 'extended.json', 'enrichment.json', 'code_meta.json', 'quizzes.json'].map(p => fetch(p).then(r => { if (!r.ok) throw Error('Unable to load ' + p); return r.json(); })))
+  .then(([l, c, x, en, cm, qz]) => {
+    lessons = l; catalog = c; extended = x; enrichment = en; codeMeta = cm; quizzes = qz;
+    for (const a of l) (groups[a.module] ??= []).push(a);
+    route();
+  })
+  .catch(e => { $('main').textContent = 'Unable to load academy. Start the local Python server. ' + e.message; });
