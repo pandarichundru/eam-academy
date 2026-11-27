@@ -2946,3 +2946,30 @@ footer {
   gap: 0.75rem;
   margin-top: 1.5rem;
 }
+
+/* Enhanced Table Dictionary & Key/FK Explanations */
+.table-sub {
+  font-size: 12px;
+  line-height: 1.35;
+  margin-top: 2px;
+}
+.fk-item {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.fk-item:last-child {
+  border-bottom: 0;
+}
+.fk-explain {
+  font-size: 12.5px;
+  line-height: 1.4;
+  margin-top: 3px;
+}
+.col-dict-table td, .col-dict-table th {
+  vertical-align: top;
+}
+.col-explain {
+  font-size: 13px;
+  line-height: 1.45;
+  min-width: 240px;
+}
