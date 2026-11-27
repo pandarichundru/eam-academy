@@ -619,7 +619,7 @@ async function runCodeSearch(kind, offset = 0) {
     const html = j.items.map(it => {
       const tblLinks = (it.tables || '').split(',').map(x => x.trim()).filter(Boolean).slice(0, 8)
         .map(t => A('table/' + U(t), t, 'taglink')).join('');
-      return `<div class="list-item"><div class="row between code-item-head"><div>${A('code/' + it.id, it.name)} <span class="pill">${E(it.kind.toUpperCase())}</span> <small class="tabular">Candidate ${E(it.candidate)} · ${it.line_count} lines</small></div><a class="button" href="#code/${E(it.id)}"><span>View full SQL</span>${ICON_ARROW_RIGHT}</a></div>${tblLinks ? `<div class="mt-sm">${tblLinks}</div>` : ''}<pre class="code-excerpt">${HMark(it.excerpt)}</pre></div>`;
+      return `<div class="list-item"><div class="row between code-item-head"><div>${A('code/' + it.id, it.name)} <span class="pill">${E(it.kind.toUpperCase())}</span> <small class="tabular">Candidate ${E(it.candidate)} · ${it.line_count} lines</small></div><a class="button" href="#code/${E(it.id)}"><span>${['procedure','trigger'].includes(it.kind) ? 'Explanation and SQL' : 'View full SQL'}</span>${ICON_ARROW_RIGHT}</a></div>${tblLinks ? `<div class="mt-sm">${tblLinks}</div>` : ''}<pre class="code-excerpt">${HMark(it.excerpt)}</pre></div>`;
     }).join('');
     $('codeResults').innerHTML = offset ? $('codeResults').innerHTML + html : (html || '<p>No matching code objects.</p>');
     $('codeMore').innerHTML = j.more ? `<button id="codeLoadMore">Load more (${j.total - offset - j.items.length} remaining)</button>` : '';
@@ -678,6 +678,74 @@ function renderCodesTab(tab) {
   }
 }
 
+function explainRecoveredSql(item) {
+  if (!['trigger', 'procedure'].includes(item.kind)) return '';
+  const body = item.body || '';
+  // Preserve offsets so each observation points to the matching line in the viewer.
+  const mask = fragment => fragment.replace(/[^\n]/g, ' ');
+  const sql = body.replace(/--[^\n]*|\/\*[\s\S]*?(?:\*\/|$)|N?'(?:''|[^'])*(?:'|$)/gi, mask);
+  const observations = [];
+  const seen = new Set();
+  const lineStarts = [0];
+  for (let i = 0; i < sql.length; i++) if (sql[i] === '\n') lineStarts.push(i + 1);
+  function note(at, description) {
+    if (seen.has(description)) return;
+    seen.add(description);
+    let lo = 0, hi = lineStarts.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (lineStarts[mid] <= at) lo = mid + 1;
+      else hi = mid;
+    }
+    observations.push({line: lo, description});
+  }
+  const header = sql.match(/\b(?:create(?:\s+or\s+alter)?|alter)\s+(?:trigger|proc(?:edure)?)\s+([\w.\[\]]+)/i);
+  const dynamicHeader = /\bcreate\s+(?:trigger|procedure)\s*'/i.test(body);
+  let opening;
+  if (dynamicHeader || !header) {
+    opening = 'The recovered text contains a generated or incomplete definition. Its final object name and behavior need confirmation from the complete definition.';
+  } else if (item.kind === 'trigger') {
+    const event = sql.slice(header.index).match(/\bon\s+([\w.\[\]]+)\s+(for|after|instead\s+of)\s+((?:insert|delete|update)(?:\s*,\s*(?:insert|delete|update))*)/i);
+    opening = event ? `When a statement targets ${event[1]} for ${event[3].toUpperCase().replace(/\s*,\s*/g, ', ')}, this trigger runs ${/^instead/i.test(event[2]) ? 'in place of' : 'after'} that operation.` : 'This trigger runs automatically. The recovered header does not establish its full firing condition.';
+  } else {
+    const signature = sql.slice(header.index + header[0].length).split(/\bas\b/i)[0];
+    const params = [...signature.matchAll(/(@\w+)\s+[\w.\[\]]+(?:\s*\([^)]*\))?([^,@]*)/gi)];
+    opening = `${item.name} runs when called.`;
+    if (params.length) opening += ' Its declared parameters include ' + params.map(p => p[1] + (/\bOUT(?:PUT)?\b/i.test(p[2]) ? ' (can return a value)' : '')).join(', ') + '.';
+  }
+  const tables = new Set((item.tables || '').toUpperCase().split(',').map(t => t.trim()));
+  const statements = /\b(insert\s+(?:into\s+)?|delete\s+(?:from\s+)?|update\s+|merge\s+(?:into\s+)?|from\s+|join\s+)([\w.\[\]]+)/gi;
+  for (const m of sql.matchAll(statements)) {
+    const table = m[2].replace(/[\[\]]/g, '').split('.').pop().toUpperCase();
+    if (!tables.has(table)) continue;
+    const verb = m[1].trim().split(/\s/)[0].toLowerCase();
+    const action = {insert:'Adds rows to', delete:'Removes rows from', update:'Changes existing rows in', merge:'Reconciles rows in', from:'Reads rows from', join:'Matches rows against'}[verb];
+    note(m.index, action + ' ' + table + '.');
+  }
+  for (const m of sql.matchAll(/\bexec(?:ute)?\s+(?:@\w+\s*=\s*)?((?:\[?\w+\]?\.)*\[?[a-z_]\w*\]?)/gi)) {
+    if (/^(as|at|with)$/i.test(m[1])) continue;
+    note(m.index, /^o7mobile_sync_event$/i.test(m[1]) ? 'Passes the affected record to the mobile synchronization routine.' : 'Delegates part of the work to ' + m[1] + '.');
+  }
+  for (const m of sql.matchAll(/\b(?:from|join)\s+(inserted|deleted)\b/gi))
+    note(m.index, m[1].toLowerCase() === 'inserted' ? 'Uses the new row values supplied by the triggering statement.' : 'Uses the previous row values supplied by the triggering statement.');
+  const revision = /\b(\w+_updatecount)\s*=\s*isnull\([^)]*\)\s*\+\s*1/i.exec(sql);
+  if (revision) note(revision.index, 'Advances the row revision counter in ' + revision[1] + ' so later work can distinguish this version.');
+  const saved = /\b(\w+_lastsaved)\s*=\s*getdate\s*\(/i.exec(sql);
+  if (saved) note(saved.index, 'Records the save time in ' + saved[1] + '.');
+  const dynamic = /\bexec(?:ute)?\s*\(\s*@/i.exec(sql);
+  if (dynamic) note(dynamic.index, 'Runs SQL assembled at runtime. Its final operations depend on the generated text.');
+  const rollback = /\brollback\s+tran(?:saction)?\b/i.exec(sql);
+  if (rollback) note(rollback.index, 'Can roll back the transaction when execution reaches this branch.');
+  if (item.id == 52) opening += ' For a user other than SYS, it takes the point code from each deleted row and sends a DELETE event to mobile synchronization.';
+  if (item.id == 2457) opening += ' It checks the trace-enabled setting. When enabled, it builds a message from the supplied trace position and sends it to the output-log routine.';
+  if (item.id == 3206) opening += ' This recovered Flex hook sets the check output to zero and the message to NULL. The body contains no custom validation.';
+  observations.sort((a,b) => a.line - b.line);
+  const detail = observations.map(o => `<li><small>Line ${o.line}</small> · ${E(o.description)}</li>`).join('');
+  return `<section class="panel mt-md"><h2>What this ${E(item.kind)} does</h2><p>${E(opening)}</p>` +
+    (detail ? `<details open><summary>Operations visible in this candidate</summary><ul>${detail}</ul></details>` : '<p>The excerpt does not establish a specific table operation or named routine call.</p>') +
+    '<small>Line references describe statements in the recovered SQL. Conditions and loops determine which statements execute for a particular record.</small></section>';
+}
+
 async function codeItemPage(id) {
   const item = await api('/api/code/item?id=' + U(id));
   const backRoute = item.kind === 'trigger' ? 'triggers' : item.kind === 'procedure' ? 'procedures' : 'codes';
@@ -692,6 +760,7 @@ async function codeItemPage(id) {
     + `<div class="note warn">${ICON_ALERT}<span>RECOVERY REFERENCE ONLY — NOT A VERIFIED OR DEPLOYABLE SCRIPT. Never run against production or training SQLite.</span></div>`
     + `<div class="row"><a class="button" href="#${backRoute}">${ICON_ARROW_LEFT}<span>${backLabel}</span></a><button type="button" id="copySqlBtn" class="primary">${ICON_COPY}<span>Copy SQL</span></button><button type="button" id="dlSqlBtn">${ICON_DOWNLOAD}<span>Download .sql</span></button></div>`
     + sibs
+    + explainRecoveredSql(item)
     + (tblLinks ? `<div class="panel mt-md mb-md"><strong>Referenced R5 tables:</strong><div class="mt-sm">${tblLinks}</div></div>` : '')
     + `<div class="code-viewer mt-md"><div class="code-viewer-head"><span>T-SQL · ${lineCount} lines</span><span class="tabular">Candidate ${E(item.candidate)}</span></div><div class="code-viewer-body"><div class="code-gutter" aria-hidden="true">${gutter}</div><pre class="code-view" id="rawSqlCode">${E(item.body)}</pre></div></div>`;
 }
