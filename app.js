@@ -155,8 +155,6 @@ const ICON_PLAY = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" s
 const ICON_DOWNLOAD = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>';
 const ICON_EXTERNAL = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17 17 7"></path><path d="M8 7h9v9"></path></svg>';
 const ICON_ALERT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
-const ICON_MOON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>';
-const ICON_SUN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>';
 const ICON_BOOK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path></svg>';
 const ICON_TERMINAL = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>';
 const ICON_COMPASS = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>';
@@ -254,6 +252,14 @@ function renderNav(route, id) {
   for (const link of $('topnav').querySelectorAll('a')) {
     if (link.hash === '#' + section) link.setAttribute('aria-current','page');
     else link.removeAttribute('aria-current');
+  }
+  const bottomNav = $('mobileBottomNav');
+  if (bottomNav) {
+    for (const link of bottomNav.querySelectorAll('a')) {
+      if (link.hash === '#' + section) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
+    }
+    $('mobileMoreBtn')?.classList.toggle('is-active', ['workshops', 'technical', 'reference', 'progress'].includes(section));
   }
   const selected = lessons.find(l => l.id === id);
   const c = codeMeta.counts || {};
@@ -1132,6 +1138,7 @@ async function route() {
       document.title = (main.querySelector('h1')?.textContent || 'Learning') + ' · EAM Academy';
       window.scrollTo(0, 0);
       setDrawer(false);
+      setMobileNav(false);
     }
   } catch (e) {
     if (current === generation) main.innerHTML = `<p class="warning">${E(e.message)}</p>`;
@@ -1192,16 +1199,30 @@ $('quick').onsubmit = e => {
 };
 document.querySelector('.skip').addEventListener('click', e => { e.preventDefault(); $('main').focus(); });
 function setDrawer(open) {
+  if (open) setMobileNav(false);
   $('side').classList.toggle('open', open);
   $('sideBackdrop')?.classList.toggle('open', open);
   $('menu').setAttribute('aria-expanded', String(open));
+}
+function setMobileNav(open) {
+  if (open) {
+    $('side').classList.remove('open');
+    $('sideBackdrop')?.classList.remove('open');
+    $('menu').setAttribute('aria-expanded', 'false');
+  }
+  $('topnav')?.classList.toggle('is-open', open);
+  $('mobileNavBackdrop')?.classList.toggle('open', open);
+  $('mobileNavBtn')?.classList.toggle('is-open', open);
+  $('mobileNavBtn')?.setAttribute('aria-expanded', String(open));
+  $('mobileMoreBtn')?.setAttribute('aria-expanded', String(open));
 }
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault(); $('quickInput').focus(); $('quickInput').select(); return;
   }
-  if (e.key === 'Escape' && $('side').classList.contains('open')) {
-    setDrawer(false); $('menu').focus(); return;
+  if (e.key === 'Escape') {
+    if ($('topnav')?.classList.contains('is-open')) { setMobileNav(false); $('mobileNavBtn')?.focus(); return; }
+    if ($('side').classList.contains('open')) { setDrawer(false); $('menu').focus(); return; }
   }
   if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
     e.preventDefault(); $('quickInput')?.focus();
@@ -1209,22 +1230,10 @@ document.addEventListener('keydown', e => {
 });
 $('menu').onclick = () => setDrawer(!$('side').classList.contains('open'));
 $('sideBackdrop')?.addEventListener('click', () => setDrawer(false));
-$('theme').onclick = () => { const v = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = v; write('theme', v); syncTheme(); };
-const systemTheme = matchMedia('(prefers-color-scheme: dark)');
-function syncTheme() {
-  const isDark = read('theme', systemTheme.matches ? 'dark' : 'light') === 'dark';
-  document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
-  const btn = $('theme');
-  if (btn) {
-    btn.setAttribute('aria-pressed', isDark);
-    btn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
-    btn.innerHTML = isDark ? ICON_SUN : ICON_MOON;
-  }
-  const meta = $('metaThemeColor');
-  if (meta) meta.content = isDark ? '#181818' : '#ffffff';
-}
-systemTheme.addEventListener('change', syncTheme);
-syncTheme();
+$('mobileNavBtn')?.addEventListener('click', () => setMobileNav(!$('topnav')?.classList.contains('is-open')));
+$('mobileMoreBtn')?.addEventListener('click', () => setMobileNav(!$('topnav')?.classList.contains('is-open')));
+$('mobileNavBackdrop')?.addEventListener('click', () => setMobileNav(false));
+$('topnav')?.addEventListener('click', e => { if (e.target.closest('a')) setMobileNav(false); });
 window.addEventListener('hashchange', route);
 
 Promise.all(['curriculum.json', 'catalog.json', 'extended.json', 'enrichment.json', 'code_meta.json', 'quizzes.json', 'introduction.json'].map(p => fetch(p).then(r => { if (!r.ok) throw Error('Unable to load ' + p); return r.json(); })))
