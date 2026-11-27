@@ -1,12 +1,14 @@
 [
   {
+    "figure": {"title": "Trace one seal repair", "cards": [["Equipment · P-101A", "Which pump leaked? Its equipment record connects this repair to earlier work on the same unit."], ["Work order · seal leak", "What happened? The technician records the finding, repair and hours worked."], ["Parts issue · one seal", "What did the job consume? Stores issues a seal against the order so its use can be traced."]]}, "reading": [["HxGN EAM · Work management", "https://docs.hexagonppm.com/r/en-US/EAM-System-Overview/12.0/1261935"], ["HxGN EAM · Equipment events and work orders", "https://docs.hexagonppm.com/r/en-US/HxGN-EAM-Help/1260846"], ["IBM · Enterprise asset management across the lifecycle", "https://www.ibm.com/think/topics/enterprise-asset-management"]],
     "id": "INTRO01", "reference": "L009", "title": "What is Enterprise Asset Management?",
     "concept": "Enterprise Asset Management (EAM) is how an organization manages physical assets from planning to retirement. It connects the people who operate equipment with those who maintain it, buy parts and account for costs.",
-    "scenario": "A water plant needs cooling water during every shift. Operators report a leaking pump, the planner schedules a repair and stores supplies a seal.",
+    "scenario": "A water plant needs cooling water during every shift. The supervisor wants to know whether this is the third leak on this pump or the third leak at this installation. Operators report a leaking pump, the planner schedules a repair and stores supplies a seal.",
     "walkthrough": ["Identify the service the plant needs: a reliable supply of cooling water.", "Follow the leak report to a work order against the pump. The technician records the repair and stores records the seal issue.", "Review the pump’s repair history and downtime when deciding whether to repair or replace it."],
     "verify": "Trace the physical pump, the work order and the seal issue. Together they explain what needed attention, what was done and what it consumed."
   },
   {
+    "figure": {"title": "At the receiving dock", "cards": [["Serialized pump", "Track the individual unit and its repair history."], ["Box of seals", "Track quantities received, issued and remaining."], ["North pump room", "Record where the equipment is installed."]]},
     "id": "INTRO02", "reference": "L012", "title": "What is an asset?",
     "concept": "An asset is something that provides value to an organization. In maintenance, a physical item often gets its own asset record when people need to track its condition, work, cost or history individually.",
     "scenario": "Receiving delivers one serialized pump and a box of identical replacement seals to the pump room.",
@@ -14,6 +16,7 @@
     "verify": "If the pump moves, its serial number and repair history travel with it. The destination location changes. The remaining seals still have a stock balance."
   },
   {
+    "figure": {"title": "What changes when a pump is swapped?", "cards": [["Asset", "P-101A leaves and P-101B takes its place."], ["Position", "CW-DUTY still identifies the duty point."], ["Location", "The installation remains in the north pump room."], ["System", "Both units serve the cooling-water system at different times."]]},
     "id": "INTRO03", "reference": "L019", "title": "Asset, position, system and location",
     "concept": "The asset identifies the physical unit, the position identifies its duty, the location tells you where to go and the system groups equipment that delivers a service.",
     "scenario": "Pump P-101A is replaced by spare P-101B at the duty position CW-DUTY in the north pump room.",
@@ -21,6 +24,7 @@
     "verify": "To find which unit was repaired, look up the asset. To count swaps at the same duty point, look up the position."
   },
   {
+    "figure": {"title": "Three milestones in the pump’s life", "cards": [["Delivery", "The receipt identifies the unit supplied."], ["Commissioning", "Acceptance records when the pump entered service."], ["Retirement", "Removal closes its service period and preserves its history."]]},
     "id": "INTRO04", "reference": "L012", "title": "The asset lifecycle, from planning to retirement",
     "concept": "The asset lifecycle covers the decisions and records created before, during and after an asset’s working life.",
     "scenario": "The plant adds a standby cooling-water pump and needs a record of why it was bought, when it entered service and how it eventually left service.",
@@ -28,6 +32,7 @@
     "verify": "The receipt proves delivery. The commissioning record shows acceptance into service. The retirement record closes the service period while preserving earlier work."
   },
   {
+    "figure": {"title": "Follow the evidence of a repair", "cards": [["Request", "The operator reports a leak at CW-DUTY."], ["Work order", "The planner specifies the repair and the seal required."], ["Completion", "The technician records the seal used and the result of the leak check."]]},
     "id": "INTRO05", "reference": "L067", "title": "From a work request to a closed work order",
     "concept": "A request reports a need. A work order records the authorized scope, resources, execution and outcome.",
     "scenario": "An operator sees a seal leak at CW-DUTY and submits a request.",
@@ -35,6 +40,7 @@
     "verify": "A closed repair should identify the asset, describe the work and contain a recorded outcome. A parts issue alone does not prove installation."
   },
   {
+    "figure": {"title": "What triggers the work?", "cards": [["Corrective", "A reported leak prompts repair."], ["Time-based preventive", "A scheduled inspection comes due."], ["Condition-based", "A vibration reading crosses the agreed action threshold."]]},
     "id": "INTRO06", "reference": "L081", "title": "Corrective, preventive and condition-based maintenance",
     "concept": "Maintenance can be triggered by an observed fault, a planned interval or a measured condition. The trigger explains why the work is due.",
     "scenario": "The pump has a leaking seal, a monthly inspection schedule and a vibration meter.",
@@ -42,6 +48,7 @@
     "verify": "The PM schedule describes recurring work. The generated order describes one occurrence. A meter reading supplies evidence for a condition decision."
   },
   {
+    "figure": {"title": "Read the history at two levels", "cards": [["Physical unit", "Do repeat repairs follow P-101A across installations?"], ["Duty position", "Do several pumps develop the same fault at CW-DUTY?"]]},
     "id": "INTRO07", "reference": "L077", "title": "Read an asset’s maintenance history",
     "concept": "Asset history combines dated records. Each record answers a different question about work, cost or condition.",
     "scenario": "On 3 May a leak was reported. WO-214 closed on 5 May with two labor hours at 40 per hour and one seal costing 18. The schedule lists the next inspection on 2 June.",

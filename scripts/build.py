@@ -404,6 +404,16 @@ def render_lesson_body(l, enrichment, groups):
     issue_title = f'Content error: {lesson_id} – {title}'
     issue_url = f'https://github.com/pandarichundru/eam-academy/issues/new?template=bug_report.md&title={issue_title.replace(" ", "+")}'
 
+    figure_html = ''
+    if figure := l.get('figure'):
+        cards = ''.join(f'<div><dt>{e(term)}</dt><dd>{e(detail)}</dd></div>'
+                        for term, detail in figure['cards'])
+        figure_html = f'<figure class="record-map"><figcaption>{e(figure["title"])}</figcaption><dl>{cards}</dl></figure>'
+    reading_html = ''
+    if reading := l.get('reading'):
+        links = ''.join(f'<li><a href="{e(url)}">{e(label)}</a></li>' for label, url in reading)
+        reading_html = f'<section class="section"><h2>Read the sources</h2><ul>{links}</ul></section>'
+
     return f'''
     <article class="lesson-content">
       <div class="eyebrow">{e(module)}</div>
@@ -433,6 +443,8 @@ def render_lesson_body(l, enrichment, groups):
         <p class="muted">Fictional PLANT01 example for learning; not a live EAM transaction.</p>
       </section>
 
+      {figure_html}
+      {reading_html}
       {context_html}
       {procedure_html}
       {example_html}
