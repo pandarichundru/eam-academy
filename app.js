@@ -688,6 +688,10 @@ function explainRecoveredSql(item) {
   const seen = new Set();
   const lineStarts = [0];
   for (let i = 0; i < sql.length; i++) if (sql[i] === '\n') lineStarts.push(i + 1);
+  function restOfLine(at) {
+    const end = body.indexOf('\n', at);
+    return body.slice(at, end < 0 ? body.length : end).trimEnd();
+  }
   function note(at, description) {
     if (seen.has(description)) return;
     seen.add(description);
@@ -702,6 +706,7 @@ function explainRecoveredSql(item) {
   const header = sql.match(/\b(?:create(?:\s+or\s+alter)?|alter)\s+(?:trigger|proc(?:edure)?)\s+([\w.\[\]]+)/i);
   const dynamicHeader = /\bcreate\s+(?:trigger|procedure)\s*'/i.test(body);
   let opening;
+  let parameterPanel = '';
   if (dynamicHeader || !header) {
     opening = 'The recovered text contains a generated or incomplete definition. Its final object name and behavior need confirmation from the complete definition.';
   } else if (item.kind === 'trigger') {
@@ -709,9 +714,24 @@ function explainRecoveredSql(item) {
     opening = event ? `When a statement targets ${event[1]} for ${event[3].toUpperCase().replace(/\s*,\s*/g, ', ')}, this trigger runs ${/^instead/i.test(event[2]) ? 'in place of' : 'after'} that operation.` : 'This trigger runs automatically. The recovered header does not establish its full firing condition.';
   } else {
     const signature = sql.slice(header.index + header[0].length).split(/\bas\b/i)[0];
-    const params = [...signature.matchAll(/(@\w+)\s+[\w.\[\]]+(?:\s*\([^)]*\))?([^,@]*)/gi)];
+    const params = [...signature.matchAll(/(@\w+)\s+([\w.\[\]]+(?:\s*\([^)]*\))?)([^,@]*)/gi)];
     opening = `${item.name} runs when called.`;
-    if (params.length) opening += ' Its declared parameters include ' + params.map(p => p[1] + (/\bOUT(?:PUT)?\b/i.test(p[2]) ? ' (can return a value)' : '')).join(', ') + '.';
+    if (params.length) {
+      const rows = params.map(p => [p[1],p[2],/\bOUT(?:PUT)?\b/i.test(p[3]) ? 'May return a value to its caller' : 'Input supplied by its caller or default']);
+      parameterPanel = '<details><summary>Parameters and outputs (' + rows.length + ')</summary>' + table(['Parameter','SQL type','Role'],rows) + '</details>';
+      const outputs = new Set(params.filter(p => /\bOUT(?:PUT)?\b/i.test(p[3])).map(p => p[1].toLowerCase()));
+      for (const assignment of sql.matchAll(/\b(?:set|select)\s+(@\w+)\s*=/gi)) {
+        if (!outputs.has(assignment[1].toLowerCase())) continue;
+        const rhs = restOfLine(assignment.index + assignment[0].length).trim().match(/^(NULL|-?\d+(?:\.\d+)?|N?'(?:''|[^'])*'|@\w+)\s*;?\s*(?:--.*)?$/i);
+        note(assignment.index, 'Assigns ' + (rhs ? rhs[1] + ' to ' : 'a value to ') + 'output parameter ' + assignment[1] + '.');
+      }
+    }
+  }
+  const parts = item.name.match(/^(POS|PRE)(INS|UPD|DEL)(\d*)_(\w+)$/i);
+  if (parts && item.kind === 'trigger') {
+    const operation = {INS:'insert', UPD:'update', DEL:'delete'}[parts[2].toUpperCase()];
+    opening += ' In this identifier, ' + parts[2] + ' abbreviates ' + operation +
+      '. The SQL header above determines when it fires. The number and suffix are preserved as catalog identifiers.';
   }
   const tables = new Set((item.tables || '').toUpperCase().split(',').map(t => t.trim()));
   const statements = /\b(insert\s+(?:into\s+)?|delete\s+(?:from\s+)?|update\s+|merge\s+(?:into\s+)?|from\s+|join\s+)([\w.\[\]]+)/gi;
@@ -728,6 +748,25 @@ function explainRecoveredSql(item) {
   }
   for (const m of sql.matchAll(/\b(?:from|join)\s+(inserted|deleted)\b/gi))
     note(m.index, m[1].toLowerCase() === 'inserted' ? 'Uses the new row values supplied by the triggering statement.' : 'Uses the previous row values supplied by the triggering statement.');
+  const plainTests = {
+    '=': 'equals', '<>': 'differs from', '!=': 'differs from', '>': 'is greater than',
+    '<': 'is less than', '>=': 'is at least', '<=': 'is at most'
+  };
+  for (const test of sql.matchAll(/^\s*if\s+(?:\(\s*)?(@@?\w+)\s*(<>|!=|>=|<=|=|>|<)\s*/gim)) {
+    const start = test.index + test[0].toLowerCase().indexOf('if');
+    const expression = restOfLine(start);
+    const value = expression.match(/^if\s+\(?\s*@@?\w+\s*(?:<>|!=|>=|<=|=|>|<)\s*(N?'(?:''|[^'])*'|[-+]?\d+(?:\.\d+)?|@@?\w+)\s*\)?\s*(?:begin\s*)?(?:--.*)?$/i);
+    if (!value) continue;
+    const subject = { '@@rowcount':'the number of rows affected by the preceding statement',
+      '@@fetch_status':'the cursor fetch status', '@@error':'the preceding statement’s SQL error code' }[test[1].toLowerCase()] || test[1];
+    note(start, 'Enters this branch when ' + subject + ' ' + plainTests[test[2]] + ' ' + value[1] + '.');
+  }
+  for (const test of sql.matchAll(/\bif\s+(@\w+)\s+is\s+(not\s+)?null\b/gi))
+    note(test.index, 'Tests whether ' + test[1] + (test[2] ? ' has a value.' : ' is NULL.'));
+  for (const loop of sql.matchAll(/\bwhile\s+@@fetch_status\s*=\s*0\b/gi))
+    note(loop.index, 'Repeats the loop while the cursor successfully fetches another row.');
+  for (const ret of sql.matchAll(/^\s*return\s+(@\w+|-?\d+)\s*;?\s*$/gim))
+    note(ret.index + ret[0].toLowerCase().indexOf('return'), 'Returns control with status ' + ret[1] + '.');
   const revision = /\b(\w+_updatecount)\s*=\s*isnull\([^)]*\)\s*\+\s*1/i.exec(sql);
   if (revision) note(revision.index, 'Advances the row revision counter in ' + revision[1] + ' so later work can distinguish this version.');
   const saved = /\b(\w+_lastsaved)\s*=\s*getdate\s*\(/i.exec(sql);
@@ -742,7 +781,7 @@ function explainRecoveredSql(item) {
   observations.sort((a,b) => a.line - b.line);
   const detail = observations.map(o => `<li><small>Line ${o.line}</small> · ${E(o.description)}</li>`).join('');
   return `<section class="panel mt-md"><h2>What this ${E(item.kind)} does</h2><p>${E(opening)}</p>` +
-    (detail ? `<details open><summary>Operations visible in this candidate</summary><ul>${detail}</ul></details>` : '<p>The excerpt does not establish a specific table operation or named routine call.</p>') +
+    parameterPanel + (detail ? `<details open><summary>Operations visible in this candidate</summary><ul>${detail}</ul></details>` : '<p>The excerpt does not establish a specific table operation or named routine call.</p>') +
     '<small>Line references describe statements in the recovered SQL. Conditions and loops determine which statements execute for a particular record.</small></section>';
 }
 
