@@ -249,10 +249,15 @@ function sourcePanel(l) {
 
 function quizBlock(qList) {
   if (!qList.length) return '';
-  return qList.map(q => {
+  const shuffled = [...qList];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled.map(q => {
     const saved = quizState[q.id];
     const badge = saved === true ? '<span class="pill ok">✓ Answered correctly</span>' : saved === false ? '<span class="pill warn">Needs review</span>' : '';
-    return `<div class="quiz-box" data-qid="${E(q.id)}"><div class="row between"><strong>Quick check · ${E(q.id)}</strong>${badge}</div><p>${E(q.q)}</p>${q.options.map((opt, idx) => `<label class="quiz-opt"><input type="radio" name="quiz_${E(q.id)}" value="${idx}"><span>${E(opt)}</span></label>`).join('')}<div class="row"><button type="button" class="primary" data-check-quiz="${E(q.id)}">Check answer</button></div><div class="quiz-feedback" id="qf_${E(q.id)}"></div></div>`;
+    return `<div class="quiz-box" data-qid="${E(q.id)}"><div class="row between"><strong>Quick check · ${E(q.id)}</strong>${badge}</div><p>${E(q.q)}</p>${q.options.map((opt, idx) => `<label class="quiz-opt"><input type="radio" name="quiz_${E(q.id)}" value="${idx}"><span>${E(opt)}</span></label>`).join('')}<div class="row"><button type="button" class="primary" data-check-quiz="${E(q.id)}">Check answer</button></div><div class="quiz-feedback" aria-live="polite" id="qf_${E(q.id)}"></div></div>`;
   }).join('');
 }
 
@@ -648,14 +653,20 @@ function progressPage() {
 
 function assess() {
   return H('Assessments & Quizzes', 'Interactive quizzes & scenario checks', 'Test your understanding with module multiple-choice quizzes, then review written scenario explanations.')
-    + `<div class="row"><label for="assessPick">Module</label><select id="assessPick">${Object.keys(groups).map(m => `<option>${E(m)}</option>`).join('')}</select></div><div id="assessList"></div>`;
+    + `<div class="row"><label for="assessPick">Module</label><select id="assessPick">${Object.keys(groups).map(m => `<option>${E(m)}</option>`).join('')}</select><label><input id="missedOnly" type="checkbox" ${read('missedOnly',false) ? 'checked' : ''}> Review missed questions</label></div><p id="quizScore" aria-live="polite"></p><div id="assessList"></div>`;
+}
+function quizReport(items) {
+  const correct = items.filter(q => quizState[q.id] === true).length;
+  const missed = items.filter(q => quizState[q.id] === false).length;
+  return correct + ' correct · ' + missed + ' missed · ' + (items.length-correct-missed) + ' unanswered';
 }
 function renderAssess(m) {
   const mQuizzes = quizzes.filter(q => q.module === m);
-  const scored = mQuizzes.filter(q => q.id in quizState);
-  const ok = scored.filter(q => quizState[q.id]).length;
-  $('assessList').innerHTML = `<h2>Interactive module quiz (${ok}/${mQuizzes.length} answered correctly)</h2>`
-    + (mQuizzes.length ? quizBlock(mQuizzes) : '<p class="muted">No multiple-choice questions for this module.</p>')
+  const missed = $('missedOnly').checked;
+  const bank = missed ? mQuizzes.filter(q => quizState[q.id] === false) : mQuizzes;
+  $('quizScore').textContent = quizReport(mQuizzes);
+  $('assessList').innerHTML = `<h2>${missed ? 'Missed questions' : 'Module quiz'}</h2>`
+    + (bank.length ? quizBlock(bank) : '<p class="muted">No questions in this selection.</p>')
     + `<h2>Written scenario checks</h2>`
     + groups[m].map((l, i) => `<details><summary>${i + 1}. ${E(l.title)} — ${E(l.scenario)}</summary><p><strong>Question:</strong> Explain the business purpose, the required sequence, and how you would verify the outcome.</p><p><strong>Answer guidance:</strong> ${E(l.concept)}</p>${l.walkthrough.length ? `<ol>${l.walkthrough.map(x => `<li>${E(x)}</li>`).join('')}</ol>` : `<pre>${E(l.sql)}</pre>`}<p><strong>Validation:</strong> ${E(l.verify)}</p>${lessonLink(l)}</details>`).join('');
 }
@@ -835,6 +846,7 @@ async function route() {
       }
       case 'assess':
         main.innerHTML = assess();
+        $('missedOnly').onchange = e => { write('missedOnly', e.target.checked); renderAssess($('assessPick').value); };
         $('assessPick').onchange = e => renderAssess(e.target.value);
         renderAssess($('assessPick').value);
         break;
@@ -911,6 +923,9 @@ $('main').addEventListener('click', e => {
     const ok = Number(sel.value) === q.answer;
     quizState[qid] = ok; logActivity();
     write('quiz', quizState);
+    if ($('quizScore')) $('quizScore').textContent = quizReport(quizzes.filter(item => item.module === $('assessPick').value));
+    const status = qb.closest('.quiz-box').querySelector('.pill');
+    if (status) status.remove();
     fb.innerHTML = `<div class="note ${ok ? 'ok' : 'warn'}"><strong>${ok ? '✓ Correct.' : 'Not quite.'}</strong> ${E(q.explain)}</div>`;
   }
 });
