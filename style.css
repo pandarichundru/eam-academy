@@ -2973,3 +2973,90 @@ footer {
   line-height: 1.45;
   min-width: 240px;
 }
+
+/* Lesson visual diagrams & SVG illustrations */
+.lesson-slide {
+  margin: var(--s-4, 1rem) 0;
+  padding: var(--s-4, 1rem) var(--s-5, 1.25rem);
+  background: var(--bg-secondary, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--r-md, 8px);
+}
+.lesson-slide figcaption {
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: var(--s-3, 0.75rem);
+}
+.lesson-slide > p {
+  margin: var(--s-3, 0.75rem) 0 0;
+  font-size: 0.88rem;
+  color: var(--text-muted, #64748b);
+}
+.slide-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--s-3, 0.75rem);
+  margin: 0;
+}
+.slide-pair > div {
+  padding: var(--s-3, 0.75rem);
+  background: var(--bg, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--r-sm, 6px);
+}
+.slide-pair dt {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #64748b);
+  margin-bottom: 4px;
+}
+.slide-pair dd {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+.slide-icon {
+  width: 64px;
+  height: 34px;
+  flex-shrink: 0;
+  display: inline-block;
+}
+.slide-tree {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2, 0.5rem);
+}
+.slide-tree ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2, 0.5rem);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.slide-tree li, .slide-flow li {
+  padding: 6px 12px;
+  background: var(--bg, #ffffff);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: var(--r-sm, 6px);
+  font-size: 0.88rem;
+}
+.slide-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-2, 0.5rem);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  counter-reset: flowstep;
+}
+.slide-flow li::before {
+  counter-increment: flowstep;
+  content: counter(flowstep) ". ";
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+}

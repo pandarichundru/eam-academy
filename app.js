@@ -50,34 +50,34 @@ const glossary = {
 };
 
 const crosswalk = [
-  ['organizations', 'R5ORGANIZATION', 'Owning organization codes & currency context'],
-  ['departments', 'R5MRCS', 'Maintenance departments / MRCs'],
-  ['locations', 'R5OBJECTS', 'Location-typed equipment records (OBJ_OBTYPE = L)'],
-  ['equipment', 'R5OBJECTS', 'Assets, positions, systems, and locations'],
-  ['equipment_links', 'R5STRUCTURES', 'Parent-child equipment hierarchy links'],
-  ['work_orders', 'R5EVENTS', 'Work orders, PM events, and service requests'],
-  ['activities', 'R5ACTIVITIES', 'Tasks scoped by composite key (ACT_EVENT, ACT_ACT)'],
-  ['trades', 'R5TRADES', 'Craft / labor trade master definitions'],
-  ['employees', 'R5PERSONNEL', 'Employee / technician master records'],
-  ['labor_entries', 'R5BOOKEDHOURS', 'Actual booked labor hours against work activities'],
-  ['parts', 'R5PARTS', 'Inventory part catalog master'],
-  ['stores', 'R5STORES', 'Stock-holding warehouse stores'],
-  ['bins', 'R5BINS', 'Storage bins inside a store'],
-  ['stock', 'R5STOCK', 'Part-store stock levels, reorder & min/max'],
-  ['reservations', 'R5TRANSLINES', 'Planned material reservations / demand'],
-  ['material_issues', 'R5TRANSACTIONS', 'Posted issue/return inventory transactions'],
-  ['suppliers', 'R5COMPANIES', 'Suppliers & manufacturers'],
-  ['requisitions', 'R5REQUISITIONS', 'Purchase requisition headers'],
-  ['requisition_lines', 'R5REQUISLINES', 'Purchase requisition line items'],
-  ['purchase_orders', 'R5ORDERS', 'Purchase order headers'],
-  ['purchase_lines', 'R5ORDERLINES', 'Purchase order line items'],
-  ['receipts', 'R5DOCKRECEIPTS', 'PO receiving headers & quantities'],
-  ['meters', 'R5METERS', 'Physical/logical meter definitions'],
-  ['meter_readings', 'R5READINGS', 'Recorded meter readings'],
-  ['pm_schedules', 'R5PPM', 'Preventive maintenance schedule definitions'],
-  ['inspections', 'R5ASPECTPOINTS', 'Inspection aspects & recorded results'],
-  ['projects', 'R5PROJECTS', 'Capital / shutdown project headers'],
-  ['work_projects', 'R5EVENTS', 'Project association on work orders (EVT_PROJECT)'],
+  ['R5ORGANIZATION', 'Organization Master', 'Owning organization codes & currency context (ORG_CODE, ORG_CURR)'],
+  ['R5MRCS', 'Departments (MRCs)', 'Maintenance departments / MRCs (MRC_CODE, MRC_ORG)'],
+  ['R5FACILITIES', 'Facilities / Locations', 'Facility and location codes (FAC_CODE, FAC_ORG)'],
+  ['R5OBJECTS', 'Equipment Master', 'Assets, positions, systems, and locations (OBJ_CODE, OBJ_LOCATION)'],
+  ['R5STRUCTURES', 'Equipment Hierarchies', 'Parent-child equipment hierarchy links (STC_PARENT, STC_CHILD)'],
+  ['R5EVENTS', 'Work Orders & Events', 'Work orders, PM events, and service requests (EVT_CODE, EVT_OBJECT)'],
+  ['R5ACTIVITIES', 'Work Order Activities', 'Tasks scoped by composite key (ACT_EVENT, ACT_ACT)'],
+  ['R5TRADES', 'Labor Trades', 'Craft / labor trade master definitions (TRD_CODE)'],
+  ['R5PERSONNEL', 'Employees / Technicians', 'Employee / technician master records (PER_CODE, PER_TRADE)'],
+  ['R5BOOKEDHOURS', 'Booked Labor Hours', 'Actual booked labor hours against work activities (BOO_EVENT, BOO_ACT)'],
+  ['R5PARTS', 'Parts Catalog', 'Inventory part catalog master (PAR_CODE, PAR_UOM)'],
+  ['R5STORES', 'Storerooms', 'Stock-holding warehouse stores (STR_CODE, STR_ORG)'],
+  ['R5BINS', 'Warehouse Bins', 'Storage bins inside a store (BIN_STORE, BIN_CODE)'],
+  ['R5STOCK', 'Store Stock Levels', 'Part-store stock levels & reorder points (STO_PART, STO_STORE)'],
+  ['R5MATLPARTS', 'Material List Reservations', 'Planned material reservations / demand (MLP_CODE, MLP_PART)'],
+  ['R5ISSUES', 'Material Issues', 'Posted issue transactions to work orders (ISS_EVENT, ISS_PART)'],
+  ['R5COMPANIES', 'Suppliers & Companies', 'Suppliers & manufacturers (COM_CODE, COM_DESC)'],
+  ['R5REQUISITIONS', 'Purchase Requisitions', 'Purchase requisition headers (REQ_CODE, REQ_STATUS)'],
+  ['R5REQUISLINES', 'Requisition Lines', 'Purchase requisition line items (RQL_REQ, RQL_REQLINE)'],
+  ['R5ORDERS', 'Purchase Orders', 'Purchase order headers (ORD_CODE, ORD_SUPPLIER)'],
+  ['R5ORDERLINES', 'Purchase Order Lines', 'Purchase order line items (ORL_ORDER, ORL_ORDLINE)'],
+  ['R5DOCKLINES', 'Dock Receiving Lines', 'PO receiving quantities against PO lines (DKL_ORDER, DKL_ORDLINE)'],
+  ['R5METERS', 'Equipment Meters', 'Physical/logical meter definitions (MET_CODE, MET_OBJECT)'],
+  ['R5READINGS', 'Meter Readings', 'Recorded meter readings (REA_METER, REA_DATE, REA_READING)'],
+  ['R5PPMOBJECTS', 'PM Equipment Schedules', 'Preventive maintenance schedule assignments (PPO_PPM, PPO_OBJECT)'],
+  ['R5ACTCHECKLISTS', 'Activity Checklists', 'Inspection checklists & findings (ACK_CODE, ACK_OBJECT)'],
+  ['R5PROJECTS', 'Projects', 'Capital / shutdown project headers (PRJ_CODE, PRJ_ORIGBUD)'],
+  ['R5PROJBUDCLASSES', 'Project Budgets / Links', 'Project budget & work links (PCL_PROJBUD, PCL_PROJECT)'],
 ];
 
 const businessFlows = [
@@ -307,10 +307,10 @@ const pumpSteps = [
 ];
 
 const pumpQueries = [
-  { title: 'Check the schedule', sql: "SELECT equipment, code, interval_value, basis\nFROM pm_schedules\nWHERE equipment = 'PUMP-001';", result: 'PUMP-001 · PUMP30 · 30 · Days. This confirms the configured interval. The training schema does not store a PM-to-work-order link, so this result cannot establish which order the schedule generated.' },
-  { title: 'Inspect the open orders', sql: "SELECT equipment_code, id\nFROM work_orders\nWHERE status = 'Open'\nORDER BY equipment_code, id;", result: 'COMP-001 has order 103. PUMP-001 has order 101. At this stage each row represents one open work order.' },
-  { title: 'Find assets with multiple open orders', sql: "SELECT equipment_code, COUNT(*) AS open_orders\nFROM work_orders\nWHERE status = 'Open'\nGROUP BY equipment_code\nHAVING COUNT(*) > 1;", result: 'Zero rows is the correct answer. WHERE removes closed orders before grouping. HAVING keeps only groups with two or more orders. Change > 1 to >= 1 to see both assets with a count of one.' },
-  { title: 'Diagnose an inflated count', sql: "SELECT w.equipment_code, COUNT(*) AS joined_rows,\n       COUNT(DISTINCT w.id) AS open_orders\nFROM work_orders w\nLEFT JOIN activities a ON a.wo = w.id\nWHERE w.status = 'Open'\nGROUP BY w.equipment_code\nORDER BY w.equipment_code;", result: 'PUMP-001 shows two joined rows but one order because order 101 has two activities. COMP-001 shows one row and one order because the left join preserves order 103 even without an activity. For a pure order count, use the simpler orders-only query.' }
+  { title: 'Check the schedule', sql: "SELECT PPO_OBJECT, PPO_PPM, PPO_FREQ, PPO_ISSTYPE\nFROM R5PPMOBJECTS\nWHERE PPO_OBJECT = 'PUMP-001';", result: 'PUMP-001 · PUMP30 · 30 · Days. This confirms the configured interval. The training database does not store a PM-to-work-order link, so this result cannot establish which order the schedule generated.' },
+  { title: 'Inspect the open orders', sql: "SELECT EVT_OBJECT, EVT_CODE\nFROM R5EVENTS\nWHERE EVT_STATUS = 'Open'\nORDER BY EVT_OBJECT, EVT_CODE;", result: 'COMP-001 has order 103. PUMP-001 has order 101. At this stage each row represents one open work order.' },
+  { title: 'Find assets with multiple open orders', sql: "SELECT EVT_OBJECT, COUNT(*) AS open_orders\nFROM R5EVENTS\nWHERE EVT_STATUS = 'Open'\nGROUP BY EVT_OBJECT\nHAVING COUNT(*) > 1;", result: 'Zero rows is the correct answer. WHERE removes closed orders before grouping. HAVING keeps only groups with two or more orders. Change > 1 to >= 1 to see both assets with a count of one.' },
+  { title: 'Diagnose an inflated count', sql: "SELECT w.EVT_OBJECT, COUNT(*) AS joined_rows,\n       COUNT(DISTINCT w.EVT_CODE) AS open_orders\nFROM R5EVENTS w\nLEFT JOIN R5ACTIVITIES a ON a.ACT_EVENT = w.EVT_CODE\nWHERE w.EVT_STATUS = 'Open'\nGROUP BY w.EVT_OBJECT\nORDER BY w.EVT_OBJECT;", result: 'PUMP-001 shows two joined rows but one order because order 101 has two activities. COMP-001 shows one row and one order because the left join preserves order 103 even without an activity. For a pure order count, use the simpler orders-only query.' }
 ];
 
 const sqlReading = {
@@ -1000,14 +1000,14 @@ function historyMarkup() {
 }
 function sqlPage(id) {
   const l = lessons.find(x => x.id === id && x.type === 'technical');
-  return H('SQL practice · technical only', 'Read-only SQL lab', 'All records are fictional and the SQLite schema is not the production R5 schema. Click schema columns to insert them, or use Check my output on lesson challenges.')
+  return H('SQL practice · technical only', 'Read-only SQL lab', 'All tables and columns use exact Infor EAM 11.6 (EAM116) vanilla R5 names with synthetic training rows. Click schema columns to insert them, or use Check my output on lesson challenges.')
     + `<div class="sql-workspace"><div class="panel"><div class="sql-toolbar"><label for="sqlExample">Choose a lesson query</label><select id="sqlExample"><option value="">Custom query</option>${lessons.filter(x => x.type === 'technical').map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${E(x.title)}</option>`).join('')}</select></div>`
-    + `<p class="mt-md mb-sm"><label for="sqlText">SQL statement</label></p><div class="editor-shell"><div class="editor-head"><span>SQLite · Read-only</span><span class="editor-hint"><kbd>⌘↵</kbd> Run</span></div><textarea id="sqlText" spellcheck="false">${E(l?.sql || 'SELECT * FROM work_orders ORDER BY id;')}</textarea></div>`
+    + `<p class="mt-md mb-sm"><label for="sqlText">SQL statement</label></p><div class="editor-shell"><div class="editor-head"><span>SQLite · Read-only</span><span class="editor-hint"><kbd>⌘↵</kbd> Run</span></div><textarea id="sqlText" spellcheck="false">${E(l?.sql || 'SELECT * FROM R5EVENTS ORDER BY EVT_CODE;')}</textarea></div>`
     + `<div class="row mt-sm"><button id="runSQL" class="primary">${ICON_PLAY}<span>Run read-only query</span></button><button id="checkSQL" class="${l ? '' : 'is-hidden'}">${ICON_CHECK}<span>Check my output</span></button><small>SELECT / CTE · max 200 displayed rows</small></div>`
     + `<p id="sqlExpected" class="note">${E(l?.verify || 'Select a lesson for an expected result.')}</p><div id="sqlCheckMsg"></div><div id="sqlResult"></div></div>`
     + '<aside class="panel sql-browser"><h2>Training schema</h2><div id="sqlSchema">Loading schema…</div></aside></div>'
     + '<div id="queryHistory">' + historyMarkup() + '</div>'
-    + `<details><summary>Training table → Production R5 crosswalk (28 tables)</summary>${table(['Training table', 'Approximate R5 table', 'Purpose'], crosswalk)}</details>`;
+    + `<details><summary>Training database · 28 EAM 11.6 R5 tables</summary>${table(['R5 Table', 'Entity', 'Purpose'], crosswalk)}</details>`;
 }
 
 function progressPage() {
