@@ -143,6 +143,70 @@ const businessFlows = [
   },
 ];
 
+const ICON_COPY = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>';
+const ICON_CHECK = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+const ICON_MOON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>';
+const ICON_SUN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>';
+
+const SQL_KEYWORDS = new Set([
+  'SELECT','FROM','WHERE','AND','OR','NOT','IN','IS','NULL','AS','ON','JOIN','LEFT','RIGHT','INNER','OUTER','FULL','CROSS',
+  'GROUP','BY','ORDER','ASC','DESC','HAVING','LIMIT','OFFSET','DISTINCT','UNION','ALL','WITH','CASE','WHEN','THEN','ELSE','END',
+  'CAST','COALESCE','OVER','PARTITION','ROW_NUMBER','RANK','DENSE_RANK','LAG','LEAD','COUNT','SUM','AVG','MIN','MAX',
+  'CREATE','TABLE','VIEW','TRIGGER','PROCEDURE','FUNCTION','INDEX','UNIQUE','PRIMARY','KEY','REFERENCES','ALTER','DROP',
+  'INSERT','INTO','VALUES','UPDATE','SET','DELETE','BEGIN','DECLARE','IF','RETURN','RETURNS','EXEC','EXECUTE','EXISTS','BETWEEN','LIKE'
+]);
+
+function highlightSQL(source) {
+  const tokenRe = /(--[^\n]*|\/\*[\s\S]*?\*\/|'(?:''|[^'])*'|\b\d+(?:\.\d+)?\b|\b[A-Za-z_][A-Za-z0-9_]*\b)/g;
+  let out = '', last = 0, m;
+  while ((m = tokenRe.exec(source)) !== null) {
+    if (m.index > last) out += E(source.slice(last, m.index));
+    const tok = m[0];
+    if (tok.startsWith('--') || tok.startsWith('/*')) out += `<span class="tok-com">${E(tok)}</span>`;
+    else if (tok.startsWith("'")) out += `<span class="tok-str">${E(tok)}</span>`;
+    else if (/^\d/.test(tok)) out += `<span class="tok-num">${E(tok)}</span>`;
+    else if (SQL_KEYWORDS.has(tok.toUpperCase())) out += `<span class="tok-kw">${E(tok)}</span>`;
+    else out += E(tok);
+    last = tokenRe.lastIndex;
+  }
+  if (last < source.length) out += E(source.slice(last));
+  return out;
+}
+
+function enhanceCodeBlocks(root) {
+  if (!root) return;
+  root.querySelectorAll('pre').forEach(pre => {
+    if (pre.classList.contains('source-text') || pre.querySelector('mark')) return;
+    const raw = pre.textContent;
+    if (/\b(SELECT|CREATE|ALTER|WITH|DECLARE|BEGIN|INSERT|UPDATE|DELETE|FROM|WHERE)\b/i.test(raw)) {
+      pre.innerHTML = highlightSQL(raw);
+    }
+    if (pre.classList.contains('code-view') || pre.parentElement?.classList.contains('code-block')) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'code-block';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'copy-code-btn';
+    btn.setAttribute('aria-label', 'Copy code');
+    btn.innerHTML = `${ICON_COPY}<span>Copy</span>`;
+    btn.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(raw);
+        btn.classList.add('is-copied');
+        btn.innerHTML = `${ICON_CHECK}<span>Copied</span>`;
+        setTimeout(() => {
+          if (btn.isConnected) {
+            btn.classList.remove('is-copied');
+            btn.innerHTML = `${ICON_COPY}<span>Copy</span>`;
+          }
+        }, 1600);
+      } catch {}
+    };
+    pre.parentNode.insertBefore(wrap, pre);
+    wrap.append(btn, pre);
+  });
+}
+
 const H = (tag, title, desc = '') => `<div class="eyebrow">${E(tag)}</div><h1>${E(title)}</h1>${desc ? `<p class="muted">${E(desc)}</p>` : ''}`;
 const A = (route, label, cls = '') => `<a ${cls ? `class="${cls}"` : ''} href="#${route}">${E(label)}</a>`;
 const ext = (url, label) => `<a href="${E(url)}" target="_blank" rel="noopener noreferrer">${E(label)} ↗</a>`;
@@ -346,9 +410,9 @@ function path(r) {
 
 function flowsPage() {
   return H('End-to-end workflows', 'EAM business process flows', 'Follow five core operational lifecycles from master data through transactions and closeout. Each stage links to the corresponding tutorial and R5 table evidence.')
-    + businessFlows.map(f => `<section class="panel" style="margin-bottom:16px"><h2>${E(f.title)}</h2><p class="muted">${E(f.desc)}</p><div class="diagram">${f.steps.map((st, idx) => {
+    + businessFlows.map(f => `<section class="panel mb-md"><h2>${E(f.title)}</h2><p class="muted">${E(f.desc)}</p><div class="diagram">${f.steps.map((st, idx) => {
       const l = findLessonByTitle(st.lesson);
-      return `${idx ? '<b>→</b>' : ''}<div class="node" style="display:inline-flex;flex-direction:column;gap:4px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--soft)"><strong>${l ? A('lesson/' + l.id, st.label) : E(st.label)}</strong><small>${A('table/' + U(st.table), st.table)}</small></div>`;
+      return `${idx ? '<b>→</b>' : ''}<div class="flow-node"><strong>${l ? A('lesson/' + l.id, st.label) : E(st.label)}</strong><small>${A('table/' + U(st.table), st.table)}</small></div>`;
     }).join('')}</div></section>`).join('');
 }
 
@@ -479,8 +543,8 @@ function codeExplorerPage(mode, initialFilter = '') {
     : ['O7', 'AUDITSQL', 'BAIM', 'POSINS', 'XML', 'R5EVENTS', 'R5OBJECTS', 'R5TRANSACTIONS'];
   return H('Recovered SQL Reference', title, sub)
     + `<div class="note warn">Read-only archive carved from Infor EAM 11.6 SQL Server backup. Multiple candidate blocks may exist per object. Never execute recovered SQL against production.</div>`
-    + `<div class="panel"><form id="codeSearchForm"><div class="row"><input type="search" id="codeQ" placeholder="Search ${isTrg ? 'trigger name, SQL, or keyword' : 'procedure name, parameter, or SQL'}" value="${E(initialFilter.startsWith('R5') ? '' : initialFilter)}"><input id="codeTable" placeholder="Filter by R5 table (e.g. R5EVENTS)" value="${E(initialFilter.startsWith('R5') ? initialFilter : '')}" style="max-width:250px"><button class="primary">Search</button></div></form><div class="row" style="margin-top:10px"><small>Quick filter:</small>${chips.map(ch => `<button type="button" class="chip" data-code-chip="${E(ch)}">${E(ch)}</button>`).join('')}<button type="button" class="chip" data-code-chip="">Reset</button></div></div>`
-    + `<div id="codeMetaStats" class="muted" style="margin:10px 0">Loading…</div><div id="codeResults"></div><div id="codeMore" style="margin-top:12px"></div>`;
+    + `<div class="panel"><form id="codeSearchForm"><div class="row"><input type="search" id="codeQ" placeholder="Search ${isTrg ? 'trigger name, SQL, or keyword' : 'procedure name, parameter, or SQL'}" value="${E(initialFilter.startsWith('R5') ? '' : initialFilter)}"><input id="codeTable" class="input-narrow" placeholder="Filter by R5 table (e.g. R5EVENTS)" value="${E(initialFilter.startsWith('R5') ? initialFilter : '')}"><button class="primary">Search</button></div></form><div class="row mt-md"><small>Quick filter:</small>${chips.map(ch => `<button type="button" class="chip" data-code-chip="${E(ch)}">${E(ch)}</button>`).join('')}<button type="button" class="chip" data-code-chip="">Reset</button></div></div>`
+    + `<div id="codeMetaStats" class="muted mt-md mb-sm">Loading…</div><div id="codeResults"></div><div id="codeMore" class="mt-md"></div>`;
 }
 
 let codeToken = 0;
@@ -488,7 +552,7 @@ async function runCodeSearch(kind, offset = 0) {
   const token = ++codeToken;
   const q = $('codeQ')?.value || '';
   const tbl = $('codeTable')?.value || '';
-  if (!offset && $('codeResults')) $('codeResults').innerHTML = '<p>Loading code objects…</p>';
+  if (!offset && $('codeResults')) $('codeResults').innerHTML = '<p class="muted">Loading code objects…</p>';
   try {
     const j = await api(`/api/code/search?kind=${U(kind)}&q=${U(q)}&table=${U(tbl)}&offset=${offset}`);
     if (token !== codeToken || !$('codeResults')) return;
@@ -496,7 +560,7 @@ async function runCodeSearch(kind, offset = 0) {
     const html = j.items.map(it => {
       const tblLinks = (it.tables || '').split(',').map(x => x.trim()).filter(Boolean).slice(0, 8)
         .map(t => A('table/' + U(t), t, 'taglink')).join('');
-      return `<div class="list-item"><div class="row between"><div>${A('code/' + it.id, it.name)} <span class="pill">${E(it.kind.toUpperCase())}</span> <small>Candidate ${E(it.candidate)} · ${it.line_count} lines</small></div>${A('code/' + it.id, 'View full SQL →', 'button')}</div>${tblLinks ? `<div style="margin:6px 0">${tblLinks}</div>` : ''}<pre style="margin:6px 0;padding:10px">${HMark(it.excerpt)}</pre></div>`;
+      return `<div class="list-item"><div class="row between"><div>${A('code/' + it.id, it.name)} <span class="pill">${E(it.kind.toUpperCase())}</span> <small>Candidate ${E(it.candidate)} · ${it.line_count} lines</small></div>${A('code/' + it.id, 'View full SQL →', 'button')}</div>${tblLinks ? `<div class="mt-sm">${tblLinks}</div>` : ''}<pre class="code-excerpt">${HMark(it.excerpt)}</pre></div>`;
     }).join('');
     $('codeResults').innerHTML = offset ? $('codeResults').innerHTML + html : (html || '<p>No matching code objects.</p>');
     $('codeMore').innerHTML = j.more ? `<button id="codeLoadMore">Load more (${j.total - offset - j.items.length} remaining)</button>` : '';
@@ -519,21 +583,21 @@ function renderCodesTab(tab) {
   if (tab === 'sql') {
     const c = codeMeta.counts || {};
     body.innerHTML = `<div class="note warn">Recovered SQL Server views, functions, table DDL, and index candidates. Read-only reference only.</div>`
-      + `<div class="panel"><form id="codeSearchForm"><div class="row"><select id="ddlKind"><option value="view,function,table_ddl,index">All SQL DDL (${(c.view ?? 304) + (c.function ?? 947) + (c.table_ddl ?? 10) + (c.index ?? 1)})</option><option value="view">Views (${c.view ?? 304})</option><option value="function">Functions (${c.function ?? 947})</option><option value="table_ddl">Tables (${c.table_ddl ?? 10})</option><option value="index">Unique Indexes (${c.index ?? 1})</option></select><input type="search" id="codeQ" placeholder="Search view/function name or SQL"><input id="codeTable" placeholder="Filter R5 table" style="max-width:200px"><button class="primary">Search</button></div></form></div>`
-      + `<div id="codeMetaStats" class="muted" style="margin:10px 0">Loading…</div><div id="codeResults"></div><div id="codeMore"></div>`;
+      + `<div class="panel"><form id="codeSearchForm"><div class="row"><select id="ddlKind"><option value="view,function,table_ddl,index">All SQL DDL (${(c.view ?? 304) + (c.function ?? 947) + (c.table_ddl ?? 10) + (c.index ?? 1)})</option><option value="view">Views (${c.view ?? 304})</option><option value="function">Functions (${c.function ?? 947})</option><option value="table_ddl">Tables (${c.table_ddl ?? 10})</option><option value="index">Unique Indexes (${c.index ?? 1})</option></select><input type="search" id="codeQ" placeholder="Search view/function name or SQL"><input id="codeTable" class="input-narrow" placeholder="Filter R5 table"><button class="primary">Search</button></div></form></div>`
+      + `<div id="codeMetaStats" class="muted mt-md mb-sm">Loading…</div><div id="codeResults"></div><div id="codeMore" class="mt-md"></div>`;
     $('codeSearchForm').onsubmit = e => { e.preventDefault(); runCodeSearch($('ddlKind').value, 0); };
     $('ddlKind').onchange = () => runCodeSearch($('ddlKind').value, 0);
     runCodeSearch($('ddlKind').value, 0);
   } else if (tab === 'params') {
-    body.innerHTML = `<p class="muted">Installation and system parameters extracted directly from Hexagon EAM Help with page citations.</p><input id="paramFilter" type="search" placeholder="Filter parameter code or description (e.g. ASSETASS, AUTOANUM, POCURR)"><div id="paramList" style="margin-top:12px"></div>`;
+    body.innerHTML = `<p class="muted">Installation and system parameters extracted directly from Hexagon EAM Help with page citations.</p><input id="paramFilter" type="search" placeholder="Filter parameter code or description (e.g. ASSETASS, AUTOANUM, POCURR)"><div id="paramList" class="mt-md"></div>`;
     const draw = (q = '') => {
       const hits = (codeMeta.install_params || []).filter(p => (p.code + ' ' + p.refs.map(r => r.context).join(' ')).toLowerCase().includes(q.toLowerCase()));
-      $('paramList').innerHTML = `<p class="muted">${hits.length} parameters</p>` + hits.map(p => `<div class="panel" style="margin-bottom:10px"><div class="row between"><strong>${E(p.code)}</strong><span class="pill">${p.mentions} Help mention(s)</span></div>${p.refs.map(r => `<p style="margin:6px 0">${sourceLink(r.doc_id, 'HxGN Help p. ' + r.page)} — <span class="muted">${E(r.context)}</span></p>`).join('')}</div>`).join('');
+      $('paramList').innerHTML = `<p class="muted">${hits.length} parameters</p>` + hits.map(p => `<div class="panel mb-sm"><div class="row between"><strong>${E(p.code)}</strong><span class="pill">${p.mentions} Help mention(s)</span></div>${p.refs.map(r => `<p class="mt-sm mb-sm">${sourceLink(r.doc_id, 'HxGN Help p. ' + r.page)} — <span class="muted">${E(r.context)}</span></p>`).join('')}</div>`).join('');
     };
     $('paramFilter').oninput = e => draw(e.target.value);
     draw();
   } else if (tab === 'classes') {
-    body.innerHTML = `<p class="muted">Equipment classes from supplied archive reference sheet.</p><input id="clsFilter" type="search" placeholder="Filter class code or description"><div id="clsList" style="margin-top:12px"></div>`;
+    body.innerHTML = `<p class="muted">Equipment classes from supplied archive reference sheet.</p><input id="clsFilter" type="search" placeholder="Filter class code or description"><div id="clsList" class="mt-md"></div>`;
     const draw = (q = '') => {
       const hits = (codeMeta.equipment_classes || []).filter(x => (x.code + ' ' + x.desc).toLowerCase().includes(q.toLowerCase()));
       $('clsList').innerHTML = table(['Class code', 'Description'], hits.map(x => [x.code, x.desc]));
@@ -541,7 +605,7 @@ function renderCodesTab(tab) {
     $('clsFilter').oninput = e => draw(e.target.value);
     draw();
   } else if (tab === 'categories') {
-    body.innerHTML = `<p class="muted">Asset categories exported from the reference database.</p><input id="catFilter" type="search" placeholder="Filter category code or description"><div id="catList" style="margin-top:12px"></div>`;
+    body.innerHTML = `<p class="muted">Asset categories exported from the reference database.</p><input id="catFilter" type="search" placeholder="Filter category code or description"><div id="catList" class="mt-md"></div>`;
     const draw = (q = '') => {
       const hits = (codeMeta.asset_categories || []).filter(x => (x.code + ' ' + x.desc).toLowerCase().includes(q.toLowerCase()));
       $('catList').innerHTML = table(['Category code', 'Description'], hits.map(x => [x.code, x.desc]));
@@ -551,7 +615,7 @@ function renderCodesTab(tab) {
   } else if (tab === 'flex') {
     const fx = codeMeta.flex_sql || [];
     body.innerHTML = `<p class="muted">Flex SQL related module candidates identified in recovered triggers and stored procedures (R5FLEXSQL / R5FLEXTABLES).</p>`
-      + fx.map(x => `<div class="panel" style="margin-bottom:10px"><div class="row between"><strong>${E(x.name)}</strong><span class="pill">${E(x.source)}</span></div><div style="margin:8px 0">${x.tables.map(t => A('table/' + U(t), t, 'taglink')).join(' ')}</div>${A(x.source.includes('Trigger') ? 'triggers' : 'procedures', 'Open in explorer →', 'button')}</div>`).join('');
+      + fx.map(x => `<div class="panel mb-sm"><div class="row between"><strong>${E(x.name)}</strong><span class="pill">${E(x.source)}</span></div><div class="mt-sm mb-sm">${x.tables.map(t => A('table/' + U(t), t, 'taglink')).join(' ')}</div>${A(x.source.includes('Trigger') ? 'triggers' : 'procedures', 'Open in explorer →', 'button')}</div>`).join('');
   }
 }
 
@@ -561,19 +625,19 @@ async function codeItemPage(id) {
   const backLabel = item.kind === 'trigger' ? '← All Triggers' : item.kind === 'procedure' ? '← All Stored Procedures' : '← All Codes';
   const tblLinks = (item.tables || '').split(',').map(x => x.trim()).filter(Boolean).map(t => A('table/' + U(t), t, 'taglink')).join('');
   const sibs = (item.siblings || []).length > 1
-    ? `<div class="row" style="margin:10px 0"><small>Candidates for ${E(item.norm_name)}:</small>${item.siblings.map(sb => A('code/' + sb.id, `Candidate ${sb.candidate} (${sb.line_count}L)`, sb.id === item.id ? 'button primary' : 'button')).join('')}</div>`
+    ? `<div class="row mt-md"><small>Candidates for ${E(item.norm_name)}:</small>${item.siblings.map(sb => A('code/' + sb.id, `Candidate ${sb.candidate} (${sb.line_count}L)`, sb.id === item.id ? 'button primary' : 'button')).join('')}</div>`
     : '';
   return H('Recovered SQL Source', item.name, `${item.kind.toUpperCase()} · Candidate ${item.candidate} · ${item.line_count} lines${item.offset ? ` · backup byte ${item.offset}` : ''}`)
     + `<div class="note warn">RECOVERY REFERENCE ONLY — NOT A VERIFIED OR DEPLOYABLE SCRIPT. Never run against production or training SQLite.</div>`
-    + `<div class="row">${A(backRoute, backLabel, 'button')}<button type="button" id="copySqlBtn" class="primary">Copy SQL</button><button type="button" id="dlSqlBtn">Download .sql</button></div>`
+    + `<div class="row">${A(backRoute, backLabel, 'button')}<button type="button" id="copySqlBtn" class="primary">${ICON_COPY}<span>Copy SQL</span></button><button type="button" id="dlSqlBtn">Download .sql</button></div>`
     + sibs
-    + (tblLinks ? `<div class="panel" style="margin:12px 0"><strong>Referenced R5 tables:</strong><div style="margin-top:6px">${tblLinks}</div></div>` : '')
+    + (tblLinks ? `<div class="panel mt-md mb-md"><strong>Referenced R5 tables:</strong><div class="mt-sm">${tblLinks}</div></div>` : '')
     + `<pre class="code-view" id="rawSqlCode">${E(item.body)}</pre>`;
 }
 
 function tablesPage() {
   return H('Technical reference', 'Database table dictionary', 'The supplied schema index is evidence, not a verified schema for every release.')
-    + `<input id="tableFilter" type="search" placeholder="Search R5 table name (e.g. R5EVENTS, R5OBJECTS)"><div id="tableList" style="margin-top:12px"></div>`;
+    + `<input id="tableFilter" type="search" placeholder="Search R5 table name (e.g. R5EVENTS, R5OBJECTS)"><div id="tableList" class="mt-md"></div>`;
 }
 function renderTables(q = '') {
   const hits = catalog.tables.filter(t => t[0].toLowerCase().includes(q.toLowerCase()));
@@ -588,17 +652,17 @@ function tablePage(t) {
   const edges = extended.relations.filter(x => x.some(y => y.split('.')[0] === t));
   const tokens = (codeMeta.col_tokens || {})[t] || [];
 
-  const structured = kt ? `<div class="grid" style="margin:14px 0">
+  const structured = kt ? `<div class="grid mt-md mb-md">
     <div class="panel"><h3>Primary key &amp; area</h3><p><span class="pill">${E(kt.area)}</span></p><p><strong>PK:</strong> <code>${E(kt.pk || 'Not listed')}</code></p><p><strong>Outbound FKs:</strong> ${kt.out_fks.length} · <strong>Inbound refs:</strong> ${kt.in_fks.length} · <strong>Triggers:</strong> ${kt.triggers.length}</p></div>
     <div class="panel"><h3>Outbound foreign keys (${kt.out_fks.length})</h3>${kt.out_fks.length ? kt.out_fks.map(fk => { const target = fk.to.split('.')[0]; return `<div><code>${E(fk.from)}</code> → ${A('table/' + U(target), fk.to)}</div>`; }).join('') : '<p class="muted">None listed</p>'}</div>
   </div>
-  <div class="grid" style="margin:14px 0">
-    <div class="panel"><h3>Referenced by (${kt.in_fks.length})</h3><div style="max-height:260px;overflow:auto">${kt.in_fks.length ? kt.in_fks.map(fk => { const src = fk.from.split('.')[0]; return `<div>${A('table/' + U(src), fk.from)} → <code>${E(fk.to)}</code>${fk.star ? ' ★' : ''}</div>`; }).join('') : '<p class="muted">None listed</p>'}</div></div>
-    <div class="panel"><h3>Key-table triggers (${kt.triggers.length})</h3><div style="max-height:260px;overflow:auto">${kt.triggers.length ? kt.triggers.map(tr => A('triggers/' + U(tr.split(' ')[0]), tr, 'taglink')).join('') : '<p class="muted">None listed</p>'}</div></div>
+  <div class="grid mt-md mb-md">
+    <div class="panel"><h3>Referenced by (${kt.in_fks.length})</h3><div class="scroll-panel">${kt.in_fks.length ? kt.in_fks.map(fk => { const src = fk.from.split('.')[0]; return `<div>${A('table/' + U(src), fk.from)} → <code>${E(fk.to)}</code>${fk.star ? ' ★' : ''}</div>`; }).join('') : '<p class="muted">None listed</p>'}</div></div>
+    <div class="panel"><h3>Key-table triggers (${kt.triggers.length})</h3><div class="scroll-panel">${kt.triggers.length ? kt.triggers.map(tr => A('triggers/' + U(tr.split(' ')[0]), tr, 'taglink')).join('') : '<p class="muted">None listed</p>'}</div></div>
   </div>` : `<div class="panel"><p><strong>Indexed primary key:</strong> ${E(row?.[1] || 'Not listed')}</p>${d ? `<pre>${E(d)}</pre>` : '<p class="muted">No detailed key-table export supplied for this table.</p>'}</div>`;
 
   return H('Schema evidence', t, kt ? `${kt.area} · Detailed key-table export` : 'Index only · no detailed export')
-    + `<div class="row" style="margin-bottom:12px">${A('er/' + U(t), 'Open Visual ER Diagram', 'button primary')}${A('triggers/' + U(t), 'Search Triggers for ' + t, 'button')}${A('procedures/' + U(t), 'Search Procedures for ' + t, 'button')}</div>`
+    + `<div class="row mb-md">${A('er/' + U(t), 'Open Visual ER Diagram', 'button primary')}${A('triggers/' + U(t), 'Search Triggers for ' + t, 'button')}${A('procedures/' + U(t), 'Search Procedures for ' + t, 'button')}</div>`
     + (t === 'R5EVENTS' ? '<p>' + A('lesson/L127','Worked training example · Find open work orders') + '</p>' : '')
     + structured
     + `<h2>Recovered SQL objects referencing ${E(t)}</h2><div id="tableCodeRefs"><p class="muted">Checking triggers, procedures &amp; views…</p></div>`
@@ -650,7 +714,7 @@ function erPage(t = 'R5EVENTS') {
   const presets = ['R5OBJECTS', 'R5EVENTS', 'R5ACTIVITIES', 'R5PARTS', 'R5STOCK', 'R5ORDERS', 'R5REQUISITIONS', 'R5PPM', 'R5ORGANIZATION'];
   return H('Technical reference', 'Visual ER relationship explorer', 'Click any parent (left) or child (right) table node in the diagram to re-center the ER view. This is derived from key-table exports, not a full database ERD.')
     + `<div class="row"><label for="erPick">Focus table</label><select id="erPick">${names.map(n => `<option ${n === t ? 'selected' : ''}>${E(n)}</option>`).join('')}</select>${A('table/' + U(t), 'Table details', 'button')}${A('triggers/' + U(t), 'Table triggers', 'button')}</div>`
-    + `<div class="row" style="margin-top:10px"><small>Core domains:</small>${presets.map(p => A('er/' + U(p), p, p === t ? 'chip active button' : 'chip button')).join('')}</div>`
+    + `<div class="row mt-md"><small>Core domains:</small>${presets.map(p => A('er/' + U(p), p, p === t ? 'chip active button' : 'chip button')).join('')}</div>`
     + `<div class="er-wrap">${buildErSvg(t)}</div>`
     + `<h2>${E(t)} · ${edges.length} indexed column links</h2>`
     + table(['Child column', 'Parent column'], edges)
@@ -670,14 +734,14 @@ function downloadCsv(result) {
   setTimeout(() => URL.revokeObjectURL(url),1000);
 }
 function historyMarkup() {
-  return sqlHist.length ? `<details><summary>Recent query history (${sqlHist.length})</summary>${sqlHist.map((q, idx) => `<div class="list-item"><button type="button" data-load-sql="${idx}">Load</button> <code style="margin-left:8px">${E(q.slice(0, 120))}</code></div>`).join('')}</details>` : '';
+  return sqlHist.length ? `<details><summary>Recent query history (${sqlHist.length})</summary>${sqlHist.map((q, idx) => `<div class="list-item"><button type="button" data-load-sql="${idx}">Load</button> <code class="ml-sm">${E(q.slice(0, 120))}</code></div>`).join('')}</details>` : '';
 }
 function sqlPage(id) {
   const l = lessons.find(x => x.id === id && x.type === 'technical');
   return H('SQL practice · technical only', 'Read-only SQL lab', 'All records are fictional and the SQLite schema is not the production R5 schema. Click schema columns to insert them, or use Check my output on lesson challenges.')
     + `<div class="sql-workspace"><div class="panel"><label for="sqlExample">Choose a lesson query</label> <select id="sqlExample"><option value="">Custom query</option>${lessons.filter(x => x.type === 'technical').map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${E(x.title)}</option>`).join('')}</select>`
-    + `<p style="margin-top:10px"><label for="sqlText">SQL statement</label></p><textarea id="sqlText">${E(l?.sql || 'SELECT * FROM work_orders ORDER BY id;')}</textarea>`
-    + `<div class="row" style="margin-top:8px"><button id="runSQL" class="primary">Run read-only query</button><button id="checkSQL" ${l ? '' : 'style="display:none"'}>Check my output</button><small>SELECT / CTE · max 200 displayed rows</small></div>`
+    + `<p class="mt-md mb-sm"><label for="sqlText">SQL statement</label></p><textarea id="sqlText">${E(l?.sql || 'SELECT * FROM work_orders ORDER BY id;')}</textarea>`
+    + `<div class="row mt-sm"><button id="runSQL" class="primary">Run read-only query</button><button id="checkSQL" class="${l ? '' : 'is-hidden'}">Check my output</button><small>SELECT / CTE · max 200 displayed rows</small></div>`
     + `<p id="sqlExpected" class="note">${E(l?.verify || 'Select a lesson for an expected result.')}</p><div id="sqlCheckMsg"></div><div id="sqlResult"></div></div>`
     + '<aside class="panel sql-browser"><h2>Training schema</h2><div id="sqlSchema">Loading schema…</div></aside></div>'
     + '<div id="queryHistory">' + historyMarkup() + '</div>'
@@ -696,7 +760,7 @@ function progressPage() {
     + Object.entries(groups).map(([m, ls]) => `<div class="list-item"><div class="row between">${A('module/' + U(m), m)}<small>${ls.filter(l => done.includes(l.id)).length}/${ls.length}</small></div>${progress(ls.filter(l => done.includes(l.id)).length, ls.length)}</div>`).join('')
     + `<h2>Bookmarks</h2>${lessons.filter(l => marks.includes(l.id)).map(l => `<div class="list-item">${lessonLink(l)}</div>`).join('') || '<p>No bookmarks yet.</p>'}`
     + `<h2>Revision notes</h2>${lessons.filter(l => notes[l.id]).map(l => `<div class="list-item">${lessonLink(l)}<p>${E(notes[l.id])}</p></div>`).join('') || '<p>No notes yet.</p>'}`
-    + `<div class="row" style="margin-top:18px"><button id="exportProgress" class="primary">Export progress JSON</button><label class="button" for="importFile">Import progress JSON</label><input id="importFile" type="file" accept=".json,application/json" ><button id="resetProgress">Reset local progress</button></div><div id="importMsg" style="margin-top:8px"></div>`;
+    + `<div class="row mt-lg"><button id="exportProgress" class="primary">Export progress JSON</button><label class="button" for="importFile">Import progress JSON</label><input id="importFile" type="file" accept=".json,application/json" ><button id="resetProgress">Reset local progress</button></div><div id="importMsg" class="mt-sm"></div>`;
 }
 
 function assess() {
@@ -805,8 +869,12 @@ async function route() {
         if (current !== generation) return;
         main.innerHTML = html;
         $('copySqlBtn').onclick = async () => {
-          const txt = $('rawSqlCode').textContent;
-          try { await navigator.clipboard.writeText(txt); $('copySqlBtn').textContent = '✓ Copied'; setTimeout(() => { if ($('copySqlBtn')) $('copySqlBtn').textContent = 'Copy SQL'; }, 1500); } catch {}
+          const btn = $('copySqlBtn'), txt = $('rawSqlCode').textContent;
+          try {
+            await navigator.clipboard.writeText(txt);
+            btn.innerHTML = `${ICON_CHECK}<span>Copied</span>`;
+            setTimeout(() => { if ($('copySqlBtn')) $('copySqlBtn').innerHTML = `${ICON_COPY}<span>Copy SQL</span>`; }, 1500);
+          } catch {}
         };
         $('dlSqlBtn').onclick = () => {
           const txt = $('rawSqlCode').textContent;
@@ -842,7 +910,7 @@ async function route() {
         }
         const wireSql = () => {
           const curLesson = lessons.find(x => x.id === $('sqlExample').value);
-          if ($('checkSQL')) $('checkSQL').style.display = curLesson ? 'inline-block' : 'none';
+          if ($('checkSQL')) $('checkSQL').classList.toggle('is-hidden', !curLesson);
         };
         $('sqlExample').onchange = e => {
           const l = lessons.find(x => x.id === e.target.value);
@@ -964,6 +1032,7 @@ async function route() {
     }
     if (current === generation) {
       if (r === 'module' && workshops.some(w => w.module === id)) main.insertAdjacentHTML('afterbegin','<p class="workshop-link">' + A('workshop/' + U(id),'Open the module workshop') + '</p>');
+      enhanceCodeBlocks(main);
       const ref = $('refSearch');
       if (ref) ref.onsubmit = e => { e.preventDefault(); location.hash = 'search/' + U($('refQ').value); };
       document.title = (main.querySelector('h1')?.textContent || 'Learning') + ' · EAM Academy';
@@ -1028,8 +1097,16 @@ $('menu').onclick = () => { $('side').classList.toggle('open'); $('menu').setAtt
 $('theme').onclick = () => { const v = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = v; write('theme', v); syncTheme(); };
 const systemTheme = matchMedia('(prefers-color-scheme: dark)');
 function syncTheme() {
-  document.documentElement.dataset.theme = read('theme', systemTheme.matches ? 'dark' : 'light');
-  $('theme').setAttribute('aria-pressed', document.documentElement.dataset.theme === 'dark');
+  const isDark = read('theme', systemTheme.matches ? 'dark' : 'light') === 'dark';
+  document.documentElement.dataset.theme = isDark ? 'dark' : 'light';
+  const btn = $('theme');
+  if (btn) {
+    btn.setAttribute('aria-pressed', isDark);
+    btn.setAttribute('aria-label', isDark ? 'Switch to light mode' : 'Switch to dark mode');
+    btn.innerHTML = isDark ? ICON_SUN : ICON_MOON;
+  }
+  const meta = $('metaThemeColor');
+  if (meta) meta.content = isDark ? '#181818' : '#ffffff';
 }
 systemTheme.addEventListener('change', syncTheme);
 syncTheme();
