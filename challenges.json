@@ -5,7 +5,7 @@
       "level": "Easy",
       "title": "Asset directory",
       "prompt": "List the OBJ_CODE and OBJ_DESC of every R5OBJECTS record.",
-      "sql": "SELECT OBJ_CODE,\n       OBJ_DESC\nFROM R5OBJECTS",
+      "sql": "SELECT OBJ_CODE,\n       OBJ_DESC\nFROM R5OBJECTS WHERE OBJ_OBTYPE='A'",
       "reason": "Name only the columns a reader needs; each R5OBJECTS row describes one asset.",
       "tables": [
         "R5OBJECTS"
@@ -76,7 +76,7 @@
       "level": "Easy",
       "title": "Where work happens",
       "prompt": "List the distinct OBJ_LOCATION names in R5OBJECTS.",
-      "sql": "SELECT DISTINCT OBJ_LOCATION\nFROM R5OBJECTS",
+      "sql": "SELECT DISTINCT OBJ_LOCATION\nFROM R5OBJECTS WHERE OBJ_OBTYPE='A'",
       "reason": "DISTINCT collapses repeated output values after selecting the location.",
       "tables": [
         "R5OBJECTS"
@@ -171,7 +171,7 @@
       "level": "Easy",
       "title": "High priority in Utilities",
       "prompt": "Return asset codes that are both High OBJ_CRITICALITY and in Utilities.",
-      "sql": "SELECT OBJ_CODE\nFROM R5OBJECTS\nWHERE OBJ_CRITICALITY='High'\n  AND OBJ_LOCATION='Utilities'",
+      "sql": "SELECT OBJ_CODE\nFROM R5OBJECTS\nWHERE OBJ_OBTYPE='A' AND OBJ_CRITICALITY='High'\n  AND OBJ_LOCATION='Utilities'",
       "reason": "Combine both tests with AND so an asset must satisfy each condition.",
       "tables": [
         "R5OBJECTS"
@@ -202,7 +202,7 @@
       "level": "Easy",
       "title": "Two status bands",
       "prompt": "List codes for assets whose OBJ_CRITICALITY is either High or Medium.",
-      "sql": "SELECT OBJ_CODE\nFROM R5OBJECTS\nWHERE OBJ_CRITICALITY IN ('High',\n                      'Medium')",
+      "sql": "SELECT OBJ_CODE\nFROM R5OBJECTS\nWHERE OBJ_OBTYPE='A' AND OBJ_CRITICALITY IN ('High',\n                      'Medium')",
       "reason": "IN expresses a choice between a small set of allowed values.",
       "tables": [
         "R5OBJECTS"
@@ -248,10 +248,10 @@
       "level": "Easy",
       "title": "Midrange costs",
       "prompt": "Return order ID and cost for orders costing 300 through 600 inclusive.",
-      "sql": "SELECT EVT_CODE,\n       EVT_UDFNUM01\nFROM R5EVENTS\nWHERE EVT_UDFNUM01 BETWEEN 300 AND 600",
+      "sql": "SELECT EVO_EVENT,\n       EVO_TOTAL\nFROM R5EVENTCOST\nWHERE EVO_TOTAL BETWEEN 300 AND 600",
       "reason": "BETWEEN includes both boundary amounts.",
       "tables": [
-        "R5EVENTS"
+        "R5EVENTCOST"
       ],
       "expected": [
         [
@@ -303,7 +303,7 @@
       "level": "Easy",
       "title": "Pump codes",
       "prompt": "List R5OBJECTS codes beginning with PUMP. Match the prefix regardless of suffix.",
-      "sql": "SELECT OBJ_CODE\nFROM R5OBJECTS\nWHERE OBJ_CODE LIKE 'PUMP%'",
+      "sql": "SELECT OBJ_CODE\nFROM R5OBJECTS\nWHERE OBJ_OBTYPE='A' AND OBJ_CODE LIKE 'PUMP%'",
       "reason": "The trailing wildcard permits any remaining characters after the prefix.",
       "tables": [
         "R5OBJECTS"
@@ -331,7 +331,7 @@
       "level": "Easy",
       "title": "Outside Production",
       "prompt": "Return OBJ_CODE and OBJ_LOCATION for assets outside Production.",
-      "sql": "SELECT OBJ_CODE,\n       OBJ_LOCATION\nFROM R5OBJECTS\nWHERE OBJ_LOCATION <> 'Production'",
+      "sql": "SELECT OBJ_CODE,\n       OBJ_LOCATION\nFROM R5OBJECTS\nWHERE OBJ_OBTYPE='A' AND OBJ_LOCATION <> 'Production'",
       "reason": "Use an inequality comparison on location.",
       "tables": [
         "R5OBJECTS"
@@ -385,11 +385,11 @@
       "id": 9,
       "level": "Easy",
       "title": "Two costliest orders",
-      "prompt": "List the two highest-cost orders as EVT_CODE and cost. Break ties with smaller IDs first. Preserve this order.",
-      "sql": "SELECT EVT_CODE,\n       EVT_UDFNUM01\nFROM R5EVENTS\nORDER BY EVT_UDFNUM01 DESC,\n         EVT_CODE\nLIMIT 2",
+      "prompt": "List the two highest-cost orders as EVO_EVENT and cost. Break ties with smaller IDs first. Preserve this order.",
+      "sql": "SELECT EVO_EVENT,\n       EVO_TOTAL\nFROM R5EVENTCOST\nORDER BY EVO_TOTAL DESC,\n         EVO_EVENT\nLIMIT 2",
       "reason": "Sort before limiting. The ID tie-breaker makes the selection repeatable.",
       "tables": [
-        "R5EVENTS"
+        "R5EVENTCOST"
       ],
       "expected": [
         [
@@ -471,10 +471,10 @@
       "level": "Easy",
       "title": "Typical order cost",
       "prompt": "Return average work-order cost rounded to two decimals.",
-      "sql": "SELECT ROUND(AVG(EVT_UDFNUM01), 2)\nFROM R5EVENTS",
+      "sql": "SELECT ROUND(AVG(EVO_TOTAL), 2)\nFROM R5EVENTCOST",
       "reason": "Round the aggregate once to avoid intermediate rounding errors.",
       "tables": [
-        "R5EVENTS"
+        "R5EVENTCOST"
       ],
       "expected": [
         [
@@ -496,10 +496,10 @@
       "level": "Easy",
       "title": "Cost extremes",
       "prompt": "Return one row with the minimum and maximum work-order cost, in that order.",
-      "sql": "SELECT MIN(EVT_UDFNUM01),\n       MAX(EVT_UDFNUM01)\nFROM R5EVENTS",
+      "sql": "SELECT MIN(EVO_TOTAL),\n       MAX(EVO_TOTAL)\nFROM R5EVENTCOST",
       "reason": "Two aggregates without grouping describe the same whole set.",
       "tables": [
-        "R5EVENTS"
+        "R5EVENTCOST"
       ],
       "expected": [
         [
@@ -651,7 +651,7 @@
       "level": "Easy",
       "title": "Description length",
       "prompt": "Return each asset OBJ_CODE and the number of characters in its description.",
-      "sql": "SELECT OBJ_CODE,\n       LENGTH(OBJ_DESC)\nFROM R5OBJECTS",
+      "sql": "SELECT OBJ_CODE,\n       LENGTH(OBJ_DESC)\nFROM R5OBJECTS WHERE OBJ_OBTYPE='A'",
       "reason": "LENGTH counts text characters in SQLite.",
       "tables": [
         "R5OBJECTS"
@@ -997,11 +997,11 @@
       "id": 21,
       "level": "Easy",
       "title": "Cost bands",
-      "prompt": "Return EVT_CODE and the label Large for orders costing at least 500, otherwise Standard.",
-      "sql": "SELECT EVT_CODE,\n       CASE\n           WHEN EVT_UDFNUM01>=500 THEN 'Large'\n           ELSE 'Standard'\n       END\nFROM R5EVENTS",
+      "prompt": "Return EVO_EVENT and the label Large for orders costing at least 500, otherwise Standard.",
+      "sql": "SELECT EVO_EVENT,\n       CASE\n           WHEN EVO_TOTAL>=500 THEN 'Large'\n           ELSE 'Standard'\n       END\nFROM R5EVENTCOST",
       "reason": "CASE maps a numeric rule to a readable category.",
       "tables": [
-        "R5EVENTS"
+        "R5EVENTCOST"
       ],
       "expected": [
         [
@@ -1253,11 +1253,11 @@
       "level": "Medium",
       "title": "Name the equipment",
       "prompt": "For each work order return order id, R5OBJECTS description and status.",
-      "sql": "SELECT w.EVT_CODE,\n       e.OBJ_DESC,\n       w.EVT_STATUS\nFROM R5EVENTS w\nJOIN R5OBJECTS e ON e.OBJ_CODE=w.EVT_OBJECT",
+      "sql": "SELECT w.EVT_CODE,\n       e.OBJ_DESC,\n       w.EVT_STATUS\nFROM R5EVENTS w\nJOIN R5OBJECTS e ON e.OBJ_CODE=w.EVT_OBJECT WHERE e.OBJ_OBTYPE='A'",
       "reason": "Attach the R5OBJECTS description using the asset primary key.",
       "tables": [
-        "R5OBJECTS",
-        "R5EVENTS"
+        "R5EVENTS",
+        "R5OBJECTS"
       ],
       "expected": [
         [
@@ -1392,8 +1392,8 @@
       "sql": "SELECT e.PER_TRADE,\n       SUM(l.BOO_HOURS)\nFROM R5BOOKEDHOURS l\nJOIN R5PERSONNEL e ON e.PER_CODE=l.BOO_PERSON\nGROUP BY e.PER_TRADE",
       "reason": "Join the employee for classification, then aggregate the booking rows.",
       "tables": [
-        "R5PERSONNEL",
-        "R5BOOKEDHOURS"
+        "R5BOOKEDHOURS",
+        "R5PERSONNEL"
       ],
       "expected": [
         [
@@ -1461,11 +1461,11 @@
       "level": "Medium",
       "title": "Include idle assets",
       "prompt": "Return every asset code and its count of work orders, including zero.",
-      "sql": "SELECT e.OBJ_CODE,\n       COUNT(w.EVT_CODE)\nFROM R5OBJECTS e\nLEFT JOIN R5EVENTS w ON w.EVT_OBJECT=e.OBJ_CODE\nGROUP BY e.OBJ_CODE",
+      "sql": "SELECT e.OBJ_CODE,\n       COUNT(w.EVT_CODE)\nFROM R5OBJECTS e\nLEFT JOIN R5EVENTS w ON w.EVT_OBJECT=e.OBJ_CODE\nWHERE e.OBJ_OBTYPE='A' GROUP BY e.OBJ_CODE",
       "reason": "Count a matched order ID so the preserved empty asset contributes zero.",
       "tables": [
-        "R5OBJECTS",
-        "R5EVENTS"
+        "R5EVENTS",
+        "R5OBJECTS"
       ],
       "expected": [
         [
@@ -1533,11 +1533,11 @@
       "level": "Medium",
       "title": "Uninspected equipment",
       "prompt": "Return codes of assets with no inspection record.",
-      "sql": "SELECT e.OBJ_CODE\nFROM R5OBJECTS e\nWHERE NOT EXISTS\n    (SELECT 1\n     FROM R5ACTCHECKLISTS i\n     WHERE i.ACK_OBJECT=e.OBJ_CODE)",
+      "sql": "SELECT e.OBJ_CODE\nFROM R5OBJECTS e\nWHERE e.OBJ_OBTYPE='A' AND NOT EXISTS\n    (SELECT 1\n     FROM R5ACTCHECKLISTS i\n     WHERE i.ACK_OBJECT=e.OBJ_CODE)",
       "reason": "An anti-join keeps an asset when the correlated lookup finds no inspection.",
       "tables": [
-        "R5OBJECTS",
-        "R5ACTCHECKLISTS"
+        "R5ACTCHECKLISTS",
+        "R5OBJECTS"
       ],
       "expected": [
         [
@@ -1545,10 +1545,10 @@
             "COMP-001"
           ],
           [
-            "FAN-001"
+            "SPARE-001"
           ],
           [
-            "SPARE-001"
+            "FAN-001"
           ]
         ],
         [
@@ -1556,10 +1556,10 @@
             "COMP-001"
           ],
           [
-            "FAN-001"
+            "SPARE-001"
           ],
           [
-            "SPARE-001"
+            "FAN-001"
           ]
         ]
       ],
@@ -1574,8 +1574,8 @@
       "sql": "SELECT w.EVT_CODE\nFROM R5EVENTS w\nWHERE EXISTS\n    (SELECT 1\n     FROM R5ISSUES m\n     WHERE m.ISS_EVENT=w.EVT_CODE)",
       "reason": "EXISTS tests membership without multiplying an order by its issue count.",
       "tables": [
-        "R5ISSUES",
-        "R5EVENTS"
+        "R5EVENTS",
+        "R5ISSUES"
       ],
       "expected": [
         [
@@ -1608,11 +1608,11 @@
       "id": 33,
       "level": "Medium",
       "title": "Above the mean",
-      "prompt": "Return EVT_CODE and cost for orders costing strictly more than the overall order average.",
-      "sql": "SELECT EVT_CODE,\n       EVT_UDFNUM01\nFROM R5EVENTS\nWHERE EVT_UDFNUM01>\n    (SELECT AVG(EVT_UDFNUM01)\n     FROM R5EVENTS)",
+      "prompt": "Return EVO_EVENT and cost for orders costing strictly more than the overall order average.",
+      "sql": "SELECT EVO_EVENT,\n       EVO_TOTAL\nFROM R5EVENTCOST\nWHERE EVO_TOTAL>\n    (SELECT AVG(EVO_TOTAL)\n     FROM R5EVENTCOST)",
       "reason": "A scalar subquery supplies one threshold to every outer row.",
       "tables": [
-        "R5EVENTS"
+        "R5EVENTCOST"
       ],
       "expected": [
         [
@@ -1780,8 +1780,8 @@
       "sql": "SELECT l.ORL_ORDER,\n       l.ORL_ORDLINE,\n       l.ORL_ORDQTY-COALESCE(SUM(r.DKL_RECVQTY), 0)\nFROM R5ORDERLINES l\nLEFT JOIN R5DOCKLINES r ON r.DKL_ORDER=l.ORL_ORDER\nAND r.DKL_ORDLINE=l.ORL_ORDLINE\nGROUP BY l.ORL_ORDER,\n         l.ORL_ORDLINE,\n         l.ORL_ORDQTY",
       "reason": "Use the two-part line identity; an absent receipt contributes zero.",
       "tables": [
-        "R5ORDERLINES",
-        "R5DOCKLINES"
+        "R5DOCKLINES",
+        "R5ORDERLINES"
       ],
       "expected": [
         [
@@ -1906,10 +1906,11 @@
       "level": "Medium",
       "title": "Unreserved stock lines",
       "prompt": "List part and store combinations in R5STOCK with no matching reservation.",
-      "sql": "SELECT STO_PART,\n       STO_STORE\nFROM R5STOCK\nEXCEPT\nSELECT MLP_PART,\n       MLP_LINE\nFROM R5MATLPARTS",
+      "sql": "SELECT STO_PART,\n       STO_STORE\nFROM R5STOCK\nEXCEPT\nSELECT PIP_PART,\n       pl.PIC_STORE\nFROM R5PICKLISTS pl JOIN R5PICKLISTPARTS pp ON pp.PIP_PICKLIST = pl.PIC_CODE",
       "reason": "EXCEPT compares complete two-column keys.",
       "tables": [
-        "R5MATLPARTS",
+        "R5PICKLISTPARTS",
+        "R5PICKLISTS",
         "R5STOCK"
       ],
       "expected": [
@@ -1979,12 +1980,13 @@
       "id": 40,
       "level": "Medium",
       "title": "All part demand",
-      "prompt": "List distinct part codes found in R5REQUISLINES or R5MATLPARTS.",
-      "sql": "SELECT RQL_PART\nFROM R5REQUISLINES\nUNION\nSELECT MLP_PART\nFROM R5MATLPARTS",
+      "prompt": "List distinct part codes found in R5REQUISLINES or R5PICKLISTS / R5PICKLISTPARTS.",
+      "sql": "SELECT RQL_PART\nFROM R5REQUISLINES\nUNION\nSELECT PIP_PART\nFROM R5PICKLISTS pl JOIN R5PICKLISTPARTS pp ON pp.PIP_PICKLIST = pl.PIC_CODE",
       "reason": "UNION removes duplicates both within and between inputs.",
       "tables": [
-        "R5REQUISLINES",
-        "R5MATLPARTS"
+        "R5PICKLISTPARTS",
+        "R5PICKLISTS",
+        "R5REQUISLINES"
       ],
       "expected": [
         [
@@ -2015,9 +2017,9 @@
       "sql": "SELECT ORL_PART,\n       SUM(delta)\nFROM\n  (SELECT l.ORL_PART,\n          r.DKL_RECVQTY AS delta\n   FROM R5DOCKLINES r\n   JOIN R5ORDERLINES l ON l.ORL_ORDER=r.DKL_ORDER\n   AND l.ORL_ORDLINE=r.DKL_ORDLINE\n   UNION ALL SELECT ISS_PART,-ISS_QTY\n   FROM R5ISSUES)\nGROUP BY ORL_PART",
       "reason": "UNION ALL preserves distinct transactions that happen to carry equal quantities.",
       "tables": [
+        "R5DOCKLINES",
         "R5ISSUES",
-        "R5ORDERLINES",
-        "R5DOCKLINES"
+        "R5ORDERLINES"
       ],
       "expected": [
         [
@@ -2100,12 +2102,12 @@
       "level": "Medium",
       "title": "Nominal versus booked rate",
       "prompt": "For each booking return id, recorded rate and nominal trade rate of the employee.",
-      "sql": "SELECT l.BOO_CODE,\n       l.BOO_RATE,\n       t.TRD_UDFNUM01\nFROM R5BOOKEDHOURS l\nJOIN R5PERSONNEL e ON e.PER_CODE=l.BOO_PERSON\nJOIN R5TRADES t ON t.TRD_CODE=e.PER_TRADE",
+      "sql": "SELECT l.BOO_CODE,\n       l.BOO_RATE,\n       t.TRR_NTRATE\nFROM R5BOOKEDHOURS l\nJOIN R5PERSONNEL e ON e.PER_CODE=l.BOO_PERSON\nJOIN R5TRADERATES t ON t.TRR_TRADE=e.PER_TRADE",
       "reason": "Two joins connect the booking to its assigned trade without rewriting the historical rate.",
       "tables": [
-        "R5PERSONNEL",
         "R5BOOKEDHOURS",
-        "R5TRADES"
+        "R5PERSONNEL",
+        "R5TRADERATES"
       ],
       "expected": [
         [
@@ -2166,11 +2168,12 @@
       "level": "Medium",
       "title": "Material share of cost",
       "prompt": "For orders with issues return order ID and issued value as a percentage of order cost rounded to one decimal. Use NULL for zero cost.",
-      "sql": "SELECT w.EVT_CODE,\n       ROUND(100.0*SUM(m.ISS_QTY*m.ISS_PRICE)/NULLIF(w.EVT_UDFNUM01, 0), 1)\nFROM R5EVENTS w\nJOIN R5ISSUES m ON m.ISS_EVENT=w.EVT_CODE\nGROUP BY w.EVT_CODE,\n         w.EVT_UDFNUM01",
+      "sql": "SELECT w.EVT_CODE,\n       ROUND(100.0*SUM(m.ISS_QTY*m.ISS_PRICE)/NULLIF(ec.EVO_TOTAL, 0), 1)\nFROM R5EVENTS w JOIN R5EVENTCOST ec ON ec.EVO_EVENT = w.EVT_CODE\nJOIN R5ISSUES m ON m.ISS_EVENT=w.EVT_CODE\nGROUP BY w.EVT_CODE,\n         ec.EVO_TOTAL",
       "reason": "A decimal numerator avoids integer division and NULLIF protects a zero denominator.",
       "tables": [
-        "R5ISSUES",
-        "R5EVENTS"
+        "R5EVENTCOST",
+        "R5EVENTS",
+        "R5ISSUES"
       ],
       "expected": [
         [
@@ -2210,11 +2213,11 @@
       "level": "Medium",
       "title": "Equipment status summary",
       "prompt": "Return each location and the number of distinct assets there with at least one open order. Include R5FACILITIES represented in R5OBJECTS with zero open orders.",
-      "sql": "SELECT e.OBJ_LOCATION,\n       COUNT(DISTINCT w.EVT_OBJECT)\nFROM R5OBJECTS e\nLEFT JOIN R5EVENTS w ON w.EVT_OBJECT=e.OBJ_CODE\nAND w.EVT_STATUS='Open'\nGROUP BY e.OBJ_LOCATION",
+      "sql": "SELECT e.OBJ_LOCATION,\n       COUNT(DISTINCT w.EVT_OBJECT)\nFROM R5OBJECTS e\nLEFT JOIN R5EVENTS w ON w.EVT_OBJECT=e.OBJ_CODE\nAND w.EVT_STATUS='Open'\nWHERE e.OBJ_OBTYPE='A' GROUP BY e.OBJ_LOCATION",
       "reason": "Put the status test in the join so R5FACILITIES without open orders survive.",
       "tables": [
-        "R5OBJECTS",
-        "R5EVENTS"
+        "R5EVENTS",
+        "R5OBJECTS"
       ],
       "expected": [
         [
@@ -2261,8 +2264,8 @@
       "sql": "SELECT i.ACK_OBJECT,\n       i.ACK_FINDING\nFROM R5ACTCHECKLISTS i\nWHERE i.ACK_CODE=\n    (SELECT MAX(j.ACK_CODE)\n     FROM R5ACTCHECKLISTS j\n     WHERE j.ACK_OBJECT=i.ACK_OBJECT)",
       "reason": "Find the highest ID for the same asset before retrieving the corresponding result.",
       "tables": [
-        "R5OBJECTS",
-        "R5ACTCHECKLISTS"
+        "R5ACTCHECKLISTS",
+        "R5OBJECTS"
       ],
       "expected": [
         [
@@ -2309,8 +2312,8 @@
       "sql": "SELECT s.COM_CODE\nFROM R5COMPANIES s\nLEFT JOIN R5ORDERS p ON p.ORD_SUPPLIER=s.COM_CODE\nWHERE p.ORD_CODE IS NULL",
       "reason": "A missing right-side primary key identifies the unmatched supplier.",
       "tables": [
-        "R5ORDERS",
-        "R5COMPANIES"
+        "R5COMPANIES",
+        "R5ORDERS"
       ],
       "expected": [
         [
@@ -2490,7 +2493,7 @@
       "level": "Medium",
       "title": "Asset comparison pairs",
       "prompt": "Return each pair of different assets sharing a location as smaller code, larger code. Include each pair once.",
-      "sql": "SELECT a.OBJ_CODE,\n       b.OBJ_CODE\nFROM R5OBJECTS a\nJOIN R5OBJECTS b ON a.OBJ_LOCATION=b.OBJ_LOCATION\nAND a.OBJ_CODE<b.OBJ_CODE",
+      "sql": "SELECT a.OBJ_CODE,\n       b.OBJ_CODE\nFROM R5OBJECTS a\nJOIN R5OBJECTS b ON a.OBJ_LOCATION=b.OBJ_LOCATION\nAND a.OBJ_CODE<b.OBJ_CODE WHERE a.OBJ_OBTYPE='A'",
       "reason": "The strict ordering excludes self-pairs and reversed duplicates in one condition.",
       "tables": [
         "R5OBJECTS"
@@ -2541,10 +2544,11 @@
       "level": "Hard",
       "title": "Net available inventory",
       "prompt": "For every R5STOCK row return part, store and quantity less reserved units at that same part and store.",
-      "sql": "WITH r AS\n  (SELECT MLP_PART,\n          MLP_LINE,\n          SUM(MLP_QTY) n\n   FROM R5MATLPARTS\n   GROUP BY MLP_PART,\n            MLP_LINE)\nSELECT s.STO_PART,\n       s.STO_STORE,\n       s.STO_QTY-COALESCE(r.n, 0)\nFROM R5STOCK s\nLEFT JOIN r ON r.MLP_PART=s.STO_PART\nAND r.MLP_LINE=s.STO_STORE",
-      "reason": "Reduce R5MATLPARTS to the R5STOCK grain before attaching their total.",
+      "sql": "WITH r AS\n  (SELECT PIP_PART,\n          pl.PIC_STORE,\n          SUM(PIP_QTY) n\n   FROM R5PICKLISTS pl JOIN R5PICKLISTPARTS pp ON pp.PIP_PICKLIST = pl.PIC_CODE\n   GROUP BY PIP_PART,\n            pl.PIC_STORE)\nSELECT s.STO_PART,\n       s.STO_STORE,\n       s.STO_QTY-COALESCE(r.n, 0)\nFROM R5STOCK s\nLEFT JOIN r ON r.PIP_PART=s.STO_PART\nAND r.PIC_STORE=s.STO_STORE",
+      "reason": "Reduce R5PICKLISTS / R5PICKLISTPARTS to the R5STOCK grain before attaching their total.",
       "tables": [
-        "R5MATLPARTS",
+        "R5PICKLISTPARTS",
+        "R5PICKLISTS",
         "R5STOCK"
       ],
       "expected": [
@@ -2610,8 +2614,8 @@
       "reason": "Aggregate each detail stream first. Joining raw bookings to raw issues creates a cross product.",
       "tables": [
         "R5BOOKEDHOURS",
-        "R5ISSUES",
-        "R5EVENTS"
+        "R5EVENTS",
+        "R5ISSUES"
       ],
       "expected": [
         [
@@ -2767,9 +2771,10 @@
       "level": "Hard",
       "title": "Cost rank within status",
       "prompt": "Return EVT_CODE, status and dense cost rank within status, highest cost first. Ties share a rank.",
-      "sql": "SELECT EVT_CODE,\n       EVT_STATUS,\n       DENSE_RANK() OVER(PARTITION BY EVT_STATUS\n                         ORDER BY EVT_UDFNUM01 DESC)\nFROM R5EVENTS",
+      "sql": "SELECT EVT_CODE,\n       EVT_STATUS,\n       DENSE_RANK() OVER(PARTITION BY EVT_STATUS\n                         ORDER BY ec.EVO_TOTAL DESC)\nFROM R5EVENTS e JOIN R5EVENTCOST ec ON ec.EVO_EVENT = e.EVT_CODE",
       "reason": "Partitioning restarts the ranking and dense ranks advance without gaps.",
       "tables": [
+        "R5EVENTCOST",
         "R5EVENTS"
       ],
       "expected": [
@@ -2866,11 +2871,12 @@
       "level": "Hard",
       "title": "Top two per location",
       "prompt": "Return location, order ID and cost for at most two highest-cost orders per location. Break ties by lower ID.",
-      "sql": "WITH x AS\n  (SELECT e.OBJ_LOCATION,\n          w.EVT_CODE,\n          w.EVT_UDFNUM01,\n          ROW_NUMBER() OVER(PARTITION BY e.OBJ_LOCATION\n                            ORDER BY w.EVT_UDFNUM01 DESC, w.EVT_CODE) n\n   FROM R5EVENTS w\n   JOIN R5OBJECTS e ON e.OBJ_CODE=w.EVT_OBJECT)\nSELECT OBJ_LOCATION,\n       EVT_CODE,\n       EVT_UDFNUM01\nFROM x\nWHERE n<=2",
+      "sql": "WITH x AS (SELECT e.OBJ_LOCATION, w.EVT_CODE, ec.EVO_TOTAL, ROW_NUMBER() OVER(PARTITION BY e.OBJ_LOCATION ORDER BY ec.EVO_TOTAL DESC, w.EVT_CODE) n FROM R5EVENTS w JOIN R5EVENTCOST ec ON ec.EVO_EVENT = w.EVT_CODE JOIN R5OBJECTS e ON e.OBJ_CODE = w.EVT_OBJECT WHERE e.OBJ_OBTYPE = 'A') SELECT OBJ_LOCATION, EVT_CODE, EVO_TOTAL FROM x WHERE n <= 2",
       "reason": "Assign deterministic positions within each location, then filter in an outer query.",
       "tables": [
-        "R5OBJECTS",
-        "R5EVENTS"
+        "R5EVENTCOST",
+        "R5EVENTS",
+        "R5OBJECTS"
       ],
       "expected": [
         [
@@ -3500,9 +3506,10 @@
       "level": "Hard",
       "title": "Category contribution",
       "prompt": "Return status and its percentage of total work-order cost rounded to two decimals. Return NULL when the total is zero.",
-      "sql": "SELECT EVT_STATUS,\n       ROUND(100.0*SUM(EVT_UDFNUM01)/NULLIF(SUM(SUM(EVT_UDFNUM01)) OVER(), 0), 2)\nFROM R5EVENTS\nGROUP BY EVT_STATUS",
+      "sql": "SELECT EVT_STATUS,\n       ROUND(100.0*SUM(ec.EVO_TOTAL)/NULLIF(SUM(SUM(ec.EVO_TOTAL)) OVER(), 0), 2)\nFROM R5EVENTS e JOIN R5EVENTCOST ec ON ec.EVO_EVENT = e.EVT_CODE\nGROUP BY EVT_STATUS",
       "reason": "Group first; the window sum then acts on group totals.",
       "tables": [
+        "R5EVENTCOST",
         "R5EVENTS"
       ],
       "expected": [
@@ -3535,11 +3542,12 @@
       "level": "Hard",
       "title": "Above location average",
       "prompt": "Return order id, location and cost for orders strictly above their own location\u2019s average order cost.",
-      "sql": "WITH x AS\n  (SELECT w.EVT_CODE,\n          e.OBJ_LOCATION,\n          w.EVT_UDFNUM01,\n          AVG(w.EVT_UDFNUM01) OVER(PARTITION BY e.OBJ_LOCATION) avg_cost\n   FROM R5EVENTS w\n   JOIN R5OBJECTS e ON e.OBJ_CODE=w.EVT_OBJECT)\nSELECT EVT_CODE,\n       OBJ_LOCATION,\n       EVT_UDFNUM01\nFROM x\nWHERE EVT_UDFNUM01>avg_cost",
+      "sql": "WITH x AS (SELECT w.EVT_CODE, e.OBJ_LOCATION, ec.EVO_TOTAL, AVG(ec.EVO_TOTAL) OVER(PARTITION BY e.OBJ_LOCATION) avg_cost FROM R5EVENTS w JOIN R5EVENTCOST ec ON ec.EVO_EVENT = w.EVT_CODE JOIN R5OBJECTS e ON e.OBJ_CODE = w.EVT_OBJECT WHERE e.OBJ_OBTYPE = 'A') SELECT EVT_CODE, OBJ_LOCATION, EVO_TOTAL FROM x WHERE EVO_TOTAL > avg_cost",
       "reason": "A partition average annotates every order without collapsing it into a group.",
       "tables": [
-        "R5OBJECTS",
-        "R5EVENTS"
+        "R5EVENTCOST",
+        "R5EVENTS",
+        "R5OBJECTS"
       ],
       "expected": [
         [
@@ -3595,13 +3603,19 @@
       "level": "Hard",
       "title": "Maximum-cost ties",
       "prompt": "Return EVT_OBJECT, EVT_CODE and cost for every order tied for highest cost on its own asset.",
-      "sql": "SELECT EVT_OBJECT,\n       EVT_CODE,\n       EVT_UDFNUM01\nFROM R5EVENTS w\nWHERE NOT EXISTS\n    (SELECT 1\n     FROM R5EVENTS v\n     WHERE v.EVT_OBJECT=w.EVT_OBJECT\n       AND v.EVT_UDFNUM01>w.EVT_UDFNUM01)",
+      "sql": "SELECT EVT_OBJECT,\n       EVT_CODE,\n       ec.EVO_TOTAL\nFROM R5EVENTS w JOIN R5EVENTCOST ec ON ec.EVO_EVENT = w.EVT_CODE\nWHERE NOT EXISTS\n    (SELECT 1\n     FROM R5EVENTS v\n     WHERE v.EVT_OBJECT=w.EVT_OBJECT\n       AND ec.EVO_TOTAL>ec.EVO_TOTAL)",
       "reason": "A maximum has no strictly larger peer, which retains every tie.",
       "tables": [
+        "R5EVENTCOST",
         "R5EVENTS"
       ],
       "expected": [
         [
+          [
+            "PUMP-001",
+            101,
+            450.0
+          ],
           [
             "MOTOR-001",
             102,
@@ -3635,6 +3649,11 @@
         ],
         [
           [
+            "PUMP-001",
+            101,
+            480.0
+          ],
+          [
             "MOTOR-001",
             102,
             750.0
@@ -3653,6 +3672,11 @@
             "VALVE-001",
             105,
             100.0
+          ],
+          [
+            "FAN-001",
+            106,
+            0.0
           ],
           [
             "PUMP-001",
@@ -3709,9 +3733,9 @@
       "sql": "WITH r AS\n  (SELECT DKL_ORDER,\n          DKL_ORDLINE,\n          SUM(DKL_RECVQTY) qty\n   FROM R5DOCKLINES\n   GROUP BY DKL_ORDER,\n            DKL_ORDLINE)\nSELECT p.ORD_SUPPLIER,\n       SUM(CASE\n               WHEN l.ORL_ORDQTY>COALESCE(r.qty, 0) THEN 1\n               ELSE 0\n           END)\nFROM R5ORDERS p\nJOIN R5ORDERLINES l ON l.ORL_ORDER=p.ORD_CODE\nLEFT JOIN r ON r.DKL_ORDER=l.ORL_ORDER\nAND r.DKL_ORDLINE=l.ORL_ORDLINE\nGROUP BY p.ORD_SUPPLIER",
       "reason": "Compute the received amount once per line before counting exceptions.",
       "tables": [
+        "R5DOCKLINES",
         "R5ORDERLINES",
-        "R5ORDERS",
-        "R5DOCKLINES"
+        "R5ORDERS"
       ],
       "expected": [
         [
@@ -3742,11 +3766,12 @@
       "id": 67,
       "level": "Hard",
       "title": "Current stock coverage",
-      "prompt": "For every part in R5STOCK return part and count of R5STORES where on-hand less R5MATLPARTS meets or exceeds reorder level.",
-      "sql": "WITH r AS\n  (SELECT MLP_PART,\n          MLP_LINE,\n          SUM(MLP_QTY) q\n   FROM R5MATLPARTS\n   GROUP BY MLP_PART,\n            MLP_LINE)\nSELECT s.STO_PART,\n       SUM(CASE\n               WHEN s.STO_QTY-COALESCE(r.q, 0)>=s.STO_ORDLEV THEN 1\n               ELSE 0\n           END)\nFROM R5STOCK s\nLEFT JOIN r ON r.MLP_PART=s.STO_PART\nAND r.MLP_LINE=s.STO_STORE\nGROUP BY s.STO_PART",
+      "prompt": "For every part in R5STOCK return part and count of R5STORES where on-hand less R5PICKLISTS / R5PICKLISTPARTS meets or exceeds reorder level.",
+      "sql": "WITH r AS\n  (SELECT PIP_PART,\n          pl.PIC_STORE,\n          SUM(PIP_QTY) q\n   FROM R5PICKLISTS pl JOIN R5PICKLISTPARTS pp ON pp.PIP_PICKLIST = pl.PIC_CODE\n   GROUP BY PIP_PART,\n            pl.PIC_STORE)\nSELECT s.STO_PART,\n       SUM(CASE\n               WHEN s.STO_QTY-COALESCE(r.q, 0)>=s.STO_ORDLEV THEN 1\n               ELSE 0\n           END)\nFROM R5STOCK s\nLEFT JOIN r ON r.PIP_PART=s.STO_PART\nAND r.PIC_STORE=s.STO_STORE\nGROUP BY s.STO_PART",
       "reason": "Evaluate coverage independently at each store before summing successes.",
       "tables": [
-        "R5MATLPARTS",
+        "R5PICKLISTPARTS",
+        "R5PICKLISTS",
         "R5STOCK"
       ],
       "expected": [
@@ -3790,8 +3815,8 @@
       "sql": "SELECT l.ORL_PART,\n       ROUND(SUM(l.ORL_PRICE*r.DKL_RECVQTY)*1.0/NULLIF(SUM(r.DKL_RECVQTY), 0), 2)\nFROM R5DOCKLINES r\nJOIN R5ORDERLINES l ON l.ORL_ORDER=r.DKL_ORDER\nAND l.ORL_ORDLINE=r.DKL_ORDLINE\nGROUP BY l.ORL_PART",
       "reason": "Weight the agreed line price by units actually received.",
       "tables": [
-        "R5ORDERLINES",
-        "R5DOCKLINES"
+        "R5DOCKLINES",
+        "R5ORDERLINES"
       ],
       "expected": [
         [
@@ -3974,11 +3999,11 @@
       "level": "Hard",
       "title": "Locations with complete inspection coverage",
       "prompt": "Return R5FACILITIES where every asset has at least one inspection.",
-      "sql": "SELECT OBJ_LOCATION\nFROM R5OBJECTS e\nGROUP BY OBJ_LOCATION\nHAVING COUNT(*)=SUM(CASE\n                        WHEN EXISTS\n                               (SELECT 1\n                                FROM R5ACTCHECKLISTS i\n                                WHERE i.ACK_OBJECT=e.OBJ_CODE) THEN 1\n                        ELSE 0\n                    END)",
+      "sql": "SELECT OBJ_LOCATION\nFROM R5OBJECTS e\nGROUP BY OBJ_LOCATION\nHAVING COUNT(*)=SUM(CASE\n                        WHEN EXISTS\n                               (SELECT 1\n                                FROM R5ACTCHECKLISTS i\n                                WHERE e.OBJ_OBTYPE='A' AND i.ACK_OBJECT=e.OBJ_CODE) THEN 1\n                        ELSE 0\n                    END)",
       "reason": "Compare the asset count with the number of assets having evidence; multiple R5ACTCHECKLISTS still count once.",
       "tables": [
-        "R5OBJECTS",
-        "R5ACTCHECKLISTS"
+        "R5ACTCHECKLISTS",
+        "R5OBJECTS"
       ],
       "expected": [
         [
@@ -4062,12 +4087,12 @@
       "level": "Hard",
       "title": "Project utilization",
       "prompt": "For every project return code, budget and percent of budget represented by its linked work-order costs, rounded to two decimals. Use zero spend for R5PROJECTS without work and NULL for zero budgets.",
-      "sql": "SELECT p.PRJ_CODE,\n       p.PRJ_ORIGBUD,\n       ROUND(100.0*COALESCE(SUM(w.EVT_UDFNUM01), 0)/NULLIF(p.PRJ_ORIGBUD, 0), 2)\nFROM R5PROJECTS p\nLEFT JOIN R5PROJBUDCLASSES x ON x.PCL_PROJECT=p.PRJ_CODE\nLEFT JOIN R5EVENTS w ON w.EVT_CODE=x.PCL_PROJBUD\nGROUP BY p.PRJ_CODE,\n         p.PRJ_ORIGBUD",
+      "sql": "SELECT p.PRJ_CODE, p.PRJ_ORIGBUD, ROUND(100.0*COALESCE(SUM(ec.EVO_TOTAL), 0)/NULLIF(p.PRJ_ORIGBUD, 0), 2) FROM R5PROJECTS p LEFT JOIN R5EVENTS w ON w.EVT_PROJECT = p.PRJ_CODE LEFT JOIN R5EVENTCOST ec ON ec.EVO_EVENT = w.EVT_CODE GROUP BY p.PRJ_CODE, p.PRJ_ORIGBUD",
       "reason": "Start from R5PROJECTS so an empty project survives both joins.",
       "tables": [
-        "R5PROJECTS",
+        "R5EVENTCOST",
         "R5EVENTS",
-        "R5PROJBUDCLASSES"
+        "R5PROJECTS"
       ],
       "expected": [
         [
@@ -4084,7 +4109,7 @@
           [
             "SHUT01",
             5000.0,
-            24.0
+            15.0
           ]
         ],
         [
@@ -4101,7 +4126,7 @@
           [
             "SHUT01",
             5000.0,
-            24.6
+            15.0
           ]
         ]
       ],
@@ -4707,9 +4732,10 @@
       "level": "Very Hard",
       "title": "Median order cost",
       "prompt": "Return status and median order cost per status, averaging the two middle costs when the count is even.",
-      "sql": "WITH x AS\n  (SELECT *,\n          ROW_NUMBER() OVER(PARTITION BY EVT_STATUS\n                            ORDER BY EVT_UDFNUM01, EVT_CODE) n,\n                       COUNT(*) OVER(PARTITION BY EVT_STATUS) cnt\n   FROM R5EVENTS)\nSELECT EVT_STATUS,\n       AVG(EVT_UDFNUM01)\nFROM x\nWHERE n IN ((cnt+1)/2,\n            (cnt+2)/2)\nGROUP BY EVT_STATUS",
+      "sql": "WITH x AS (SELECT e.EVT_STATUS, ec.EVO_TOTAL, ROW_NUMBER() OVER(PARTITION BY e.EVT_STATUS ORDER BY ec.EVO_TOTAL, e.EVT_CODE) n, COUNT(*) OVER(PARTITION BY e.EVT_STATUS) cnt FROM R5EVENTS e JOIN R5EVENTCOST ec ON ec.EVO_EVENT = e.EVT_CODE) SELECT EVT_STATUS, AVG(EVO_TOTAL) FROM x WHERE n IN ((cnt+1)/2, (cnt+2)/2) GROUP BY EVT_STATUS",
       "reason": "SQLite integer division yields the middle positions for odd and even groups.",
       "tables": [
+        "R5EVENTCOST",
         "R5EVENTS"
       ],
       "expected": [
@@ -4742,9 +4768,10 @@
       "level": "Very Hard",
       "title": "Pareto cutoff",
       "prompt": "Return R5OBJECTS code and total cost for the smallest prefix of assets with work that reaches at least 80 percent of total cost. Sort by descending asset total then code to resolve ties. Assume positive overall cost.",
-      "sql": "WITH a AS\n  (SELECT EVT_OBJECT,\n          SUM(EVT_UDFNUM01) v\n   FROM R5EVENTS\n   GROUP BY EVT_OBJECT),\n     b AS\n  (SELECT *,\n          SUM(v) OVER(\n                      ORDER BY v DESC, EVT_OBJECT) running,\n                 SUM(v) OVER() total\n   FROM a)\nSELECT EVT_OBJECT,\n       v\nFROM b\nWHERE running-v<0.8*total",
+      "sql": "WITH a AS\n  (SELECT EVT_OBJECT,\n          SUM(ec.EVO_TOTAL) v\n   FROM R5EVENTS e JOIN R5EVENTCOST ec ON ec.EVO_EVENT = e.EVT_CODE\n   GROUP BY EVT_OBJECT),\n     b AS\n  (SELECT *,\n          SUM(v) OVER(\n                      ORDER BY v DESC, EVT_OBJECT) running,\n                 SUM(v) OVER() total\n   FROM a)\nSELECT EVT_OBJECT,\n       v\nFROM b\nWHERE running-v<0.8*total",
       "reason": "Test the total before adding the current asset. This includes the asset that crosses the threshold.",
       "tables": [
+        "R5EVENTCOST",
         "R5EVENTS"
       ],
       "expected": [
@@ -4781,9 +4808,10 @@
       "level": "Very Hard",
       "title": "Exclude the current order",
       "prompt": "For orders having another order on the same asset, return ID and average cost of all other orders on that asset rounded to two decimals.",
-      "sql": "WITH x AS\n  (SELECT *,\n          SUM(EVT_UDFNUM01) OVER(PARTITION BY EVT_OBJECT) total,\n                    COUNT(*) OVER(PARTITION BY EVT_OBJECT) n\n   FROM R5EVENTS)\nSELECT EVT_CODE,\n       ROUND((total-EVT_UDFNUM01)*1.0/(n-1), 2)\nFROM x\nWHERE n>1",
+      "sql": "WITH x AS (SELECT e.EVT_CODE, ec.EVO_TOTAL, SUM(ec.EVO_TOTAL) OVER(PARTITION BY e.EVT_OBJECT) total, COUNT(*) OVER(PARTITION BY e.EVT_OBJECT) n FROM R5EVENTS e JOIN R5EVENTCOST ec ON ec.EVO_EVENT = e.EVT_CODE) SELECT EVT_CODE, ROUND((total-EVO_TOTAL)*1.0/(n-1), 2) FROM x WHERE n>1",
       "reason": "Remove one value and one observation from the partition totals; singletons have no comparison.",
       "tables": [
+        "R5EVENTCOST",
         "R5EVENTS"
       ],
       "expected": [
@@ -5143,11 +5171,12 @@
       "level": "Very Hard",
       "title": "Roll costs up the hierarchy",
       "prompt": "Return one total cost across work orders on all descendants of COOL-SYS. Count each descendant\u2019s orders once, even if two paths reach it. Exclude the root.",
-      "sql": "WITH RECURSIVE x(node) AS\n  (SELECT STC_CHILD\n   FROM R5STRUCTURES\n   WHERE STC_PARENT='COOL-SYS'\n   UNION SELECT l.STC_CHILD\n   FROM R5STRUCTURES l\n   JOIN x ON l.STC_PARENT=x.node)\nSELECT COALESCE(SUM(EVT_UDFNUM01), 0)\nFROM R5EVENTS\nWHERE EVT_OBJECT IN\n    (SELECT node\n     FROM x)",
+      "sql": "WITH RECURSIVE x(node) AS\n  (SELECT STC_CHILD\n   FROM R5STRUCTURES\n   WHERE STC_PARENT='COOL-SYS'\n   UNION SELECT l.STC_CHILD\n   FROM R5STRUCTURES l\n   JOIN x ON l.STC_PARENT=x.node)\nSELECT COALESCE(SUM(ec.EVO_TOTAL), 0)\nFROM R5EVENTS e JOIN R5EVENTCOST ec ON ec.EVO_EVENT = e.EVT_CODE\nWHERE EVT_OBJECT IN\n    (SELECT node\n     FROM x)",
       "reason": "UNION collapses duplicate node identities before the financial aggregation.",
       "tables": [
-        "R5STRUCTURES",
-        "R5EVENTS"
+        "R5EVENTCOST",
+        "R5EVENTS",
+        "R5STRUCTURES"
       ],
       "expected": [
         [
@@ -5177,10 +5206,10 @@
       "expected": [
         [
           [
-            "PUMP-001"
+            "MOTOR-001"
           ],
           [
-            "MOTOR-001"
+            "PUMP-001"
           ],
           [
             "FAN-001"
@@ -5188,10 +5217,10 @@
         ],
         [
           [
-            "PUMP-001"
+            "MOTOR-001"
           ],
           [
-            "MOTOR-001"
+            "PUMP-001"
           ],
           [
             "PUMP-099"
@@ -5209,8 +5238,8 @@
       "sql": "WITH r AS\n  (SELECT DKL_ORDER,\n          DKL_ORDLINE,\n          SUM(DKL_RECVQTY) q\n   FROM R5DOCKLINES\n   GROUP BY DKL_ORDER,\n            DKL_ORDLINE),\n     a AS\n  (SELECT l.ORL_ORDER,\n          l.ORL_ORDQTY,\n          COALESCE(r.q, 0) q\n   FROM R5ORDERLINES l\n   LEFT JOIN r ON r.DKL_ORDER=l.ORL_ORDER\n   AND r.DKL_ORDLINE=l.ORL_ORDLINE)\nSELECT ORL_ORDER,\n       CASE\n           WHEN MAX(q>ORL_ORDQTY)=1 THEN 'Over'\n           WHEN MIN(q=ORL_ORDQTY)=1 THEN 'Complete'\n           WHEN SUM(q)=0 THEN 'None'\n           ELSE 'Partial'\n       END\nFROM a\nGROUP BY ORL_ORDER",
       "reason": "Compare at line level before classifying an order. Over-delivery on one line cannot cancel a shortage on another.",
       "tables": [
-        "R5ORDERLINES",
-        "R5DOCKLINES"
+        "R5DOCKLINES",
+        "R5ORDERLINES"
       ],
       "expected": [
         [
@@ -5258,10 +5287,11 @@
       "level": "Very Hard",
       "title": "FIFO reservation allocation",
       "prompt": "For each reservation return ID and units that can be filled from its part-store on-hand R5STOCK. Allocate to smaller reservation IDs first. Missing R5STOCK means zero and partial allocation is allowed.",
-      "sql": "WITH x AS\n  (SELECT r.*,\n          SUM(r.MLP_QTY) OVER(PARTITION BY r.MLP_PART, r.MLP_LINE\n                               ORDER BY r.MLP_MATLIST ROWS UNBOUNDED PRECEDING)-r.MLP_QTY\n   PRIOR\n   FROM R5MATLPARTS r)\nSELECT x.MLP_MATLIST,\n       MAX(0, MIN(x.MLP_QTY, COALESCE(s.STO_QTY, 0)-x.prior))\nFROM x\nLEFT JOIN R5STOCK s ON s.STO_PART=x.MLP_PART\nAND s.STO_STORE=x.MLP_LINE",
+      "sql": "WITH x AS (SELECT pl.PIC_CODE, pl.PIC_STORE, pp.PIP_PART, pp.PIP_QTY, SUM(pp.PIP_QTY) OVER(PARTITION BY pp.PIP_PART, pl.PIC_STORE ORDER BY pl.PIC_CODE ROWS UNBOUNDED PRECEDING) - pp.PIP_QTY AS prior FROM R5PICKLISTS pl JOIN R5PICKLISTPARTS pp ON pp.PIP_PICKLIST = pl.PIC_CODE) SELECT x.PIC_CODE, MAX(0, MIN(x.PIP_QTY, COALESCE(s.STO_QTY, 0) - x.prior)) FROM x LEFT JOIN R5STOCK s ON s.STO_PART = x.PIP_PART AND s.STO_STORE = x.PIC_STORE",
       "reason": "Subtract earlier demand from starting R5STOCK, then clamp the available amount between zero and this request.",
       "tables": [
-        "R5MATLPARTS",
+        "R5PICKLISTPARTS",
+        "R5PICKLISTS",
         "R5STOCK"
       ],
       "expected": [
@@ -5345,12 +5375,12 @@
       "level": "Very Hard",
       "title": "Allocate shared project cost",
       "prompt": "Split each linked work order\u2019s cost equally across its linked R5PROJECTS. Return every project code and allocated cost rounded to two decimals, including zero.",
-      "sql": "WITH a AS\n  (SELECT x.PCL_PROJECT,\n          w.EVT_UDFNUM01*1.0/COUNT(*) OVER(PARTITION BY x.PCL_PROJBUD) SHARE\n   FROM R5PROJBUDCLASSES x\n   JOIN R5EVENTS w ON w.EVT_CODE=x.PCL_PROJBUD)\nSELECT p.PRJ_CODE,\n       ROUND(COALESCE(SUM(a.share), 0), 2)\nFROM R5PROJECTS p\nLEFT JOIN a ON a.PCL_PROJECT=p.PRJ_CODE\nGROUP BY p.PRJ_CODE",
+      "sql": "WITH a AS (SELECT w.EVT_PROJECT, ec.EVO_TOTAL * 1.0 / COUNT(*) OVER (PARTITION BY w.EVT_CODE) AS share FROM R5EVENTS w JOIN R5EVENTCOST ec ON ec.EVO_EVENT = w.EVT_CODE WHERE w.EVT_PROJECT IS NOT NULL) SELECT p.PRJ_CODE, ROUND(COALESCE(SUM(a.share), 0), 2) FROM R5PROJECTS p LEFT JOIN a ON a.EVT_PROJECT = p.PRJ_CODE GROUP BY p.PRJ_CODE",
       "reason": "Divide at work-order grain before summing shares by project to conserve total cost.",
       "tables": [
-        "R5PROJECTS",
+        "R5EVENTCOST",
         "R5EVENTS",
-        "R5PROJBUDCLASSES"
+        "R5PROJECTS"
       ],
       "expected": [
         [
@@ -5360,11 +5390,11 @@
           ],
           [
             "REPAIR",
-            825.0
+            1050.0
           ],
           [
             "SHUT01",
-            975.0
+            750.0
           ]
         ],
         [
@@ -5374,11 +5404,11 @@
           ],
           [
             "REPAIR",
-            1590.0
+            1830.0
           ],
           [
             "SHUT01",
-            990.0
+            750.0
           ]
         ]
       ],
@@ -5390,12 +5420,13 @@
       "level": "Very Hard",
       "title": "Largest cost component",
       "prompt": "For each work order return id and largest of Labor, Material and Other. Other equals order cost less booked labor and issued material. Break ties in the listed order. Missing detail totals are zero.",
-      "sql": "WITH l AS\n  (SELECT BOO_EVENT,\n          SUM(BOO_HOURS*BOO_RATE) v\n   FROM R5BOOKEDHOURS\n   GROUP BY BOO_EVENT),\n     m AS\n  (SELECT ISS_EVENT,\n          SUM(ISS_QTY*ISS_PRICE) v\n   FROM R5ISSUES\n   GROUP BY ISS_EVENT),\n     a AS\n  (SELECT w.EVT_CODE,\n          w.EVT_UDFNUM01,\n          COALESCE(l.v, 0) labor,\n          COALESCE(m.v, 0) mat\n   FROM R5EVENTS w\n   LEFT JOIN l ON l.BOO_EVENT=w.EVT_CODE\n   LEFT JOIN m ON m.ISS_EVENT=w.EVT_CODE)\nSELECT EVT_CODE,\n       CASE\n           WHEN labor>=mat\n                AND labor>=EVT_UDFNUM01-labor-mat THEN 'Labor'\n           WHEN mat>=EVT_UDFNUM01-labor-mat THEN 'Material'\n           ELSE 'Other'\n       END\nFROM a",
+      "sql": "WITH l AS (SELECT BOO_EVENT, SUM(BOO_HOURS*BOO_RATE) v FROM R5BOOKEDHOURS GROUP BY BOO_EVENT), m AS (SELECT ISS_EVENT, SUM(ISS_QTY*ISS_PRICE) v FROM R5ISSUES GROUP BY ISS_EVENT), a AS (SELECT w.EVT_CODE, ec.EVO_TOTAL, COALESCE(l.v, 0) labor, COALESCE(m.v, 0) mat FROM R5EVENTS w JOIN R5EVENTCOST ec ON ec.EVO_EVENT = w.EVT_CODE LEFT JOIN l ON l.BOO_EVENT=w.EVT_CODE LEFT JOIN m ON m.ISS_EVENT=w.EVT_CODE) SELECT EVT_CODE, CASE WHEN labor>=mat AND labor>=EVO_TOTAL-labor-mat THEN 'Labor' WHEN mat>=EVO_TOTAL-labor-mat THEN 'Material' ELSE 'Other' END FROM a",
       "reason": "Reconcile independent detail totals first. The order of CASE conditions implements the tie rule.",
       "tables": [
         "R5BOOKEDHOURS",
-        "R5ISSUES",
-        "R5EVENTS"
+        "R5EVENTCOST",
+        "R5EVENTS",
+        "R5ISSUES"
       ],
       "expected": [
         [
@@ -5475,12 +5506,12 @@
       "level": "Very Hard",
       "title": "First crossing of budget",
       "prompt": "For R5PROJECTS with a crossing, return project code and first work-order ID where cumulative linked order costs in ID order strictly exceed budget. Use full cost per linked order.",
-      "sql": "WITH a AS\n  (SELECT p.PRJ_CODE,\n          p.PRJ_ORIGBUD,\n          x.PCL_PROJBUD,\n          SUM(w.EVT_UDFNUM01) OVER(PARTITION BY p.PRJ_CODE\n                           ORDER BY x.PCL_PROJBUD) total\n   FROM R5PROJECTS p\n   JOIN R5PROJBUDCLASSES x ON x.PCL_PROJECT=p.PRJ_CODE\n   JOIN R5EVENTS w ON w.EVT_CODE=x.PCL_PROJBUD)\nSELECT PRJ_CODE,\n       MIN(PCL_PROJBUD)\nFROM a\nWHERE total>PRJ_ORIGBUD\nGROUP BY PRJ_CODE",
+      "sql": "WITH a AS (SELECT p.PRJ_CODE, p.PRJ_ORIGBUD, w.EVT_CODE, SUM(ec.EVO_TOTAL) OVER(PARTITION BY p.PRJ_CODE ORDER BY w.EVT_CODE) total FROM R5PROJECTS p JOIN R5EVENTS w ON w.EVT_PROJECT = p.PRJ_CODE JOIN R5EVENTCOST ec ON ec.EVO_EVENT = w.EVT_CODE) SELECT PRJ_CODE, MIN(EVT_CODE) FROM a WHERE total > PRJ_ORIGBUD GROUP BY PRJ_CODE",
       "reason": "Window the ordered costs per project before locating the first qualifying order.",
       "tables": [
-        "R5PROJECTS",
+        "R5EVENTCOST",
         "R5EVENTS",
-        "R5PROJBUDCLASSES"
+        "R5PROJECTS"
       ],
       "expected": [
         [
@@ -5507,8 +5538,8 @@
       "sql": "WITH r AS\n  (SELECT DKL_ORDER,\n          DKL_ORDLINE,\n          SUM(DKL_RECVQTY) q\n   FROM R5DOCKLINES\n   GROUP BY DKL_ORDER,\n            DKL_ORDLINE),\n     a AS\n  (SELECT l.ORL_PART,\n          l.ORL_ORDQTY,\n          COALESCE(r.q, 0) received\n   FROM R5ORDERLINES l\n   LEFT JOIN r ON l.ORL_ORDER=r.DKL_ORDER\n   AND l.ORL_ORDLINE=r.DKL_ORDLINE)\nSELECT ORL_PART\nFROM a\nGROUP BY ORL_PART\nHAVING MAX(received>=ORL_ORDQTY)=0",
       "reason": "Express the universal rule by ruling out any complete or over-received line.",
       "tables": [
-        "R5ORDERLINES",
-        "R5DOCKLINES"
+        "R5DOCKLINES",
+        "R5ORDERLINES"
       ],
       "expected": [
         [
@@ -5525,20 +5556,20 @@
       "id": 99,
       "level": "Very Hard",
       "title": "Status at inspection dates",
-      "prompt": "For each dated inspection in R5OBJECTSURVEY return visit id and count of orders on that R5OBJECTS whose latest event status by visit day was Open. Highest event ID breaks date ties.",
-      "sql": "SELECT v.OBS_SQLIDENTITY,\n  (SELECT COUNT(*)\n   FROM R5EVENTS w\n   WHERE w.EVT_OBJECT=v.OBS_OBJECT\n     AND\n       (SELECT AVA_TO\n        FROM R5AUDVALUES e\n        WHERE e.AVA_PRIMARYID=w.EVT_CODE\n          AND e.AVA_CHANGED<=v.OBS_DATELASTCALCULATED\n        ORDER BY AVA_CHANGED DESC,\n                 AVA_SQLIDENTITY DESC\n        LIMIT 1)='Open')\nFROM R5OBJECTSURVEY v",
+      "prompt": "For each dated inspection in R5ACTCHECKLISTS return visit id and count of orders on that R5OBJECTS whose latest event status by visit day was Open. Highest event ID breaks date ties.",
+      "sql": "SELECT v.ACK_CODE,\n  (SELECT COUNT(*)\n   FROM R5EVENTS w\n   WHERE w.EVT_OBJECT=v.ACK_OBJECT\n     AND\n       (SELECT AVA_TO\n        FROM R5AUDVALUES e\n        WHERE e.AVA_PRIMARYID=w.EVT_CODE\n          AND e.AVA_CHANGED<=v.ACK_UPDATED\n        ORDER BY AVA_CHANGED DESC,\n                 AVA_SQLIDENTITY DESC\n        LIMIT 1)='Open')\nFROM R5ACTCHECKLISTS v",
       "reason": "Correlate on both the asset and the visit cutoff; current order status can differ from historical status.",
       "tables": [
-        "R5OBJECTS",
-        "R5OBJECTSURVEY",
+        "R5ACTCHECKLISTS",
         "R5AUDVALUES",
-        "R5EVENTS"
+        "R5EVENTS",
+        "R5OBJECTS"
       ],
       "expected": [
         [
           [
             1,
-            1
+            2
           ],
           [
             2,
@@ -5549,14 +5580,14 @@
             2
           ],
           [
-            4,
+            5,
             0
           ]
         ],
         [
           [
             1,
-            1
+            2
           ],
           [
             2,
@@ -5568,11 +5599,11 @@
           ],
           [
             4,
-            0
+            1
           ],
           [
             5,
-            1
+            0
           ]
         ]
       ],
@@ -5584,12 +5615,12 @@
       "level": "Very Hard",
       "title": "Reconcile three reporting grains",
       "prompt": "For each R5OBJECTS location return location, distinct asset count, open order count and booked labor value on open orders. Include R5FACILITIES with no open work. Return zero for missing measures.",
-      "sql": "WITH l AS\n  (SELECT BOO_EVENT,\n          SUM(BOO_HOURS*BOO_RATE) v\n   FROM R5BOOKEDHOURS\n   GROUP BY BOO_EVENT),\n     a AS\n  (SELECT w.EVT_OBJECT,\n          COUNT(*) n,\n          SUM(COALESCE(l.v, 0)) v\n   FROM R5EVENTS w\n   LEFT JOIN l ON l.BOO_EVENT=w.EVT_CODE\n   WHERE w.EVT_STATUS='Open'\n   GROUP BY w.EVT_OBJECT)\nSELECT e.OBJ_LOCATION,\n       COUNT(*),\n       SUM(COALESCE(a.n, 0)),\n       SUM(COALESCE(a.v, 0))\nFROM R5OBJECTS e\nLEFT JOIN a ON a.EVT_OBJECT=e.OBJ_CODE\nGROUP BY e.OBJ_LOCATION",
+      "sql": "WITH l AS (SELECT BOO_EVENT, SUM(BOO_HOURS*BOO_RATE) v FROM R5BOOKEDHOURS GROUP BY BOO_EVENT), a AS (SELECT w.EVT_OBJECT, COUNT(*) n, SUM(COALESCE(l.v, 0)) v FROM R5EVENTS w LEFT JOIN l ON l.BOO_EVENT=w.EVT_CODE WHERE w.EVT_STATUS='Open' GROUP BY w.EVT_OBJECT) SELECT e.OBJ_LOCATION, COUNT(*), SUM(COALESCE(a.n, 0)), SUM(COALESCE(a.v, 0)) FROM R5OBJECTS e LEFT JOIN a ON a.EVT_OBJECT=e.OBJ_CODE WHERE e.OBJ_OBTYPE='A' GROUP BY e.OBJ_LOCATION",
       "reason": "Reduce labor to orders, then orders to assets. The final location group can safely add the measures without multiplying assets.",
       "tables": [
-        "R5OBJECTS",
         "R5BOOKEDHOURS",
-        "R5EVENTS"
+        "R5EVENTS",
+        "R5OBJECTS"
       ],
       "expected": [
         [
@@ -5647,7 +5678,7 @@
       "level": "Easy",
       "title": "Asset locations",
       "prompt": "List OBJ_LOCATION and asset code ordered by OBJ_LOCATION then code.",
-      "sql": "SELECT OBJ_LOCATION, OBJ_CODE FROM R5OBJECTS ORDER BY OBJ_LOCATION, OBJ_CODE",
+      "sql": "SELECT OBJ_LOCATION, OBJ_CODE FROM R5OBJECTS WHERE OBJ_OBTYPE='A' ORDER BY OBJ_LOCATION, OBJ_CODE",
       "reason": "Use both requested sort keys.",
       "tables": [
         "R5OBJECTS"
@@ -5821,9 +5852,10 @@
       "level": "Medium",
       "title": "Order cost range",
       "prompt": "Show status, lowest cost and highest cost by status, sorted by status.",
-      "sql": "SELECT EVT_STATUS, MIN(EVT_UDFNUM01), MAX(EVT_UDFNUM01) FROM R5EVENTS GROUP BY EVT_STATUS ORDER BY EVT_STATUS",
+      "sql": "SELECT EVT_STATUS, MIN(ec.EVO_TOTAL), MAX(ec.EVO_TOTAL) FROM R5EVENTS e JOIN R5EVENTCOST ec ON ec.EVO_EVENT = e.EVT_CODE GROUP BY EVT_STATUS ORDER BY EVT_STATUS",
       "reason": "Group by the workflow status.",
       "tables": [
+        "R5EVENTCOST",
         "R5EVENTS"
       ],
       "expected": [
@@ -5896,7 +5928,7 @@
       "level": "Medium",
       "title": "PM coverage by asset",
       "prompt": "Show asset code and number of associated schedules for every asset ordered by code.",
-      "sql": "SELECT e.OBJ_CODE, COUNT(p.PPO_PPM) FROM R5OBJECTS e LEFT JOIN R5PPMOBJECTS p ON p.PPO_OBJECT=e.OBJ_CODE GROUP BY e.OBJ_CODE ORDER BY e.OBJ_CODE",
+      "sql": "SELECT e.OBJ_CODE, COUNT(p.PPO_PPM) FROM R5OBJECTS e LEFT JOIN R5PPMOBJECTS p ON p.PPO_OBJECT=e.OBJ_CODE WHERE e.OBJ_OBTYPE='A' GROUP BY e.OBJ_CODE ORDER BY e.OBJ_CODE",
       "reason": "Preserve R5OBJECTS with no schedule.",
       "tables": [
         "R5OBJECTS",
@@ -6039,12 +6071,13 @@
       "id": 109,
       "level": "Hard",
       "title": "Unissued reservations",
-      "prompt": "Return distinct work order, part and store for R5MATLPARTS with no matching material issue on all three keys. Sort by those keys.",
-      "sql": "SELECT DISTINCT r.MLP_CODE,r.MLP_PART,r.MLP_LINE FROM R5MATLPARTS r WHERE NOT EXISTS (SELECT 1 FROM R5ISSUES i WHERE i.ISS_EVENT=r.MLP_CODE AND i.ISS_PART=r.MLP_PART AND i.ISS_STORE=r.MLP_LINE) ORDER BY r.MLP_CODE,r.MLP_PART,r.MLP_LINE",
+      "prompt": "Return distinct work order, part and store for R5PICKLISTS / R5PICKLISTPARTS with no matching material issue on all three keys. Sort by those keys.",
+      "sql": "SELECT DISTINCT pl.PIC_EVENT, pp.PIP_PART, pl.PIC_STORE FROM R5PICKLISTS pl JOIN R5PICKLISTPARTS pp ON pp.PIP_PICKLIST = pl.PIC_CODE WHERE NOT EXISTS (SELECT 1 FROM R5ISSUES i WHERE i.ISS_EVENT = pl.PIC_EVENT AND i.ISS_PART = pp.PIP_PART AND i.ISS_STORE = pl.PIC_STORE) ORDER BY pl.PIC_EVENT, pp.PIP_PART, pl.PIC_STORE",
       "reason": "Test absence using the full reservation context.",
       "tables": [
-        "R5MATLPARTS",
-        "R5ISSUES"
+        "R5ISSUES",
+        "R5PICKLISTPARTS",
+        "R5PICKLISTS"
       ],
       "expected": [
         [
@@ -6085,9 +6118,10 @@
       "level": "Very Hard",
       "title": "Cumulative asset cost",
       "prompt": "For each order return asset, order ID and cumulative cost for that asset through that ID. Sort by asset then ID.",
-      "sql": "SELECT EVT_OBJECT,EVT_CODE,SUM(EVT_UDFNUM01) OVER(PARTITION BY EVT_OBJECT ORDER BY EVT_CODE ROWS UNBOUNDED PRECEDING) FROM R5EVENTS ORDER BY EVT_OBJECT,EVT_CODE",
+      "sql": "SELECT EVT_OBJECT,EVT_CODE,SUM(ec.EVO_TOTAL) OVER(PARTITION BY EVT_OBJECT ORDER BY EVT_CODE ROWS UNBOUNDED PRECEDING) FROM R5EVENTS e JOIN R5EVENTCOST ec ON ec.EVO_EVENT = e.EVT_CODE ORDER BY EVT_OBJECT,EVT_CODE",
       "reason": "Partition by asset and order the window by order ID.",
       "tables": [
+        "R5EVENTCOST",
         "R5EVENTS"
       ],
       "expected": [
@@ -6181,78 +6215,18 @@
     }
   ],
   "schema": {
+    "R5ACTCHECKLISTS": [
+      "ACK_CODE",
+      "ACK_EVENT",
+      "ACK_OBJECT",
+      "ACK_FINDING",
+      "ACK_UPDATED"
+    ],
     "R5ACTIVITIES": [
       "ACT_EVENT",
       "ACT_ACT",
       "ACT_TRADE",
       "ACT_EST"
-    ],
-    "R5BINS": [
-      "BIN_STORE",
-      "BIN_CODE"
-    ],
-    "R5MRCS": [
-      "MRC_CODE",
-      "MRC_ORG",
-      "MRC_DESC"
-    ],
-    "R5PERSONNEL": [
-      "PER_CODE",
-      "PER_DESC",
-      "PER_TRADE"
-    ],
-    "R5OBJECTS": [
-      "OBJ_CODE",
-      "OBJ_DESC",
-      "OBJ_LOCATION",
-      "OBJ_CRITICALITY"
-    ],
-    "R5STRUCTURES": [
-      "STC_PARENT",
-      "STC_CHILD",
-      "STC_PARENTTYPE"
-    ],
-    "R5OBJECTSURVEY": [
-      "OBS_SQLIDENTITY",
-      "OBS_OBJECT",
-      "OBS_DATELASTCALCULATED"
-    ],
-    "R5ACTCHECKLISTS": [
-      "ACK_CODE",
-      "ACK_OBJECT",
-      "ACK_FINDING"
-    ],
-    "R5BOOKEDHOURS": [
-      "BOO_CODE",
-      "BOO_EVENT",
-      "BOO_ACT",
-      "BOO_PERSON",
-      "BOO_HOURS",
-      "BOO_RATE"
-    ],
-    "R5FACILITIES": [
-      "FAC_CODE",
-      "FAC_ORG",
-      "FAC_DESC"
-    ],
-    "R5ISSUES": [
-      "ISS_PK",
-      "ISS_EVENT",
-      "ISS_PART",
-      "ISS_STORE",
-      "ISS_QTY",
-      "ISS_PRICE"
-    ],
-    "R5READINGS": [
-      "REA_CODE",
-      "REA_METER",
-      "REA_DATE",
-      "REA_READING"
-    ],
-    "R5METERS": [
-      "MET_CODE",
-      "MET_OBJECT",
-      "MET_UOM"
     ],
     "R5AUDVALUES": [
       "AVA_SQLIDENTITY",
@@ -6261,6 +6235,99 @@
       "AVA_TO",
       "AVA_MODIFIEDBY"
     ],
+    "R5BINS": [
+      "BIN_STORE",
+      "BIN_CODE",
+      "BIN_DESC"
+    ],
+    "R5BOOKEDHOURS": [
+      "BOO_CODE",
+      "BOO_EVENT",
+      "BOO_ACT",
+      "BOO_PERSON",
+      "BOO_TRADE",
+      "BOO_HOURS",
+      "BOO_RATE",
+      "BOO_COST"
+    ],
+    "R5COMPANIES": [
+      "COM_CODE",
+      "COM_ORG",
+      "COM_DESC"
+    ],
+    "R5DOCKLINES": [
+      "DKL_DCKCODE",
+      "DKL_LINE",
+      "DKL_ORDER",
+      "DKL_ORDER_ORG",
+      "DKL_ORDLINE",
+      "DKL_PART",
+      "DKL_RECVQTY"
+    ],
+    "R5EVENTCOST": [
+      "EVO_EVENT",
+      "EVO_LABOR",
+      "EVO_MATERIAL",
+      "EVO_TOTAL",
+      "EVO_HOURS"
+    ],
+    "R5EVENTS": [
+      "EVT_CODE",
+      "EVT_ORG",
+      "EVT_OBJECT",
+      "EVT_OBJECT_ORG",
+      "EVT_STATUS",
+      "EVT_RSTATUS",
+      "EVT_TYPE",
+      "EVT_DURATION",
+      "EVT_PROJECT",
+      "EVT_PPM"
+    ],
+    "R5ISSUES": [
+      "ISS_PK",
+      "ISS_EVENT",
+      "ISS_ACT",
+      "ISS_PART",
+      "ISS_PART_ORG",
+      "ISS_STORE",
+      "ISS_QTY",
+      "ISS_PRICE"
+    ],
+    "R5METERS": [
+      "MET_CODE",
+      "MET_OBJECT",
+      "MET_OBJECT_ORG",
+      "MET_UOM"
+    ],
+    "R5MRCS": [
+      "MRC_CODE",
+      "MRC_ORG",
+      "MRC_DESC"
+    ],
+    "R5OBJECTS": [
+      "OBJ_CODE",
+      "OBJ_ORG",
+      "OBJ_DESC",
+      "OBJ_OBTYPE",
+      "OBJ_LOCATION",
+      "OBJ_CRITICALITY"
+    ],
+    "R5ORDERLINES": [
+      "ORL_ORDER",
+      "ORL_ORDER_ORG",
+      "ORL_ORDLINE",
+      "ORL_PART",
+      "ORL_PART_ORG",
+      "ORL_ORDQTY",
+      "ORL_PRICE"
+    ],
+    "R5ORDERS": [
+      "ORD_CODE",
+      "ORD_ORG",
+      "ORD_SUPPLIER",
+      "ORD_SUPPLIER_ORG",
+      "ORD_STATUS"
+    ],
     "R5ORGANIZATION": [
       "ORG_CODE",
       "ORG_DESC",
@@ -6268,12 +6335,36 @@
     ],
     "R5PARTS": [
       "PAR_CODE",
+      "PAR_ORG",
       "PAR_DESC",
       "PAR_UOM"
     ],
+    "R5PERSONNEL": [
+      "PER_CODE",
+      "PER_DESC",
+      "PER_TRADE",
+      "PER_MRC",
+      "PER_ORG"
+    ],
+    "R5PICKLISTPARTS": [
+      "PIP_PICKLIST",
+      "PIP_PART",
+      "PIP_PART_ORG",
+      "PIP_QTY",
+      "PIP_ISSUEQTY"
+    ],
+    "R5PICKLISTS": [
+      "PIC_CODE",
+      "PIC_EVENT",
+      "PIC_ACT",
+      "PIC_STORE",
+      "PIC_STATUS"
+    ],
     "R5PPMOBJECTS": [
+      "PPO_PK",
       "PPO_PPM",
       "PPO_OBJECT",
+      "PPO_OBJECT_ORG",
       "PPO_FREQ",
       "PPO_ISSTYPE"
     ],
@@ -6282,71 +6373,54 @@
       "PRJ_DESC",
       "PRJ_ORIGBUD"
     ],
-    "R5ORDERLINES": [
-      "ORL_ORDER",
-      "ORL_ORDLINE",
-      "ORL_PART",
-      "ORL_ORDQTY",
-      "ORL_PRICE"
-    ],
-    "R5ORDERS": [
-      "ORD_CODE",
-      "ORD_SUPPLIER",
-      "ORD_ORG",
-      "ORD_STATUS"
-    ],
-    "R5DOCKLINES": [
-      "DKL_DCKCODE",
-      "DKL_ORDER",
-      "DKL_ORDLINE",
-      "DKL_RECVQTY"
-    ],
-    "R5REQUISLINES": [
-      "RQL_REQ",
-      "RQL_REQLINE",
-      "RQL_PART",
-      "RQL_QTY"
+    "R5READINGS": [
+      "REA_CODE",
+      "REA_METER",
+      "REA_OBJECT",
+      "REA_DATE",
+      "REA_READING"
     ],
     "R5REQUISITIONS": [
       "REQ_CODE",
       "REQ_ORG",
       "REQ_STATUS"
     ],
-    "R5MATLPARTS": [
-      "MLP_MATLIST",
-      "MLP_CODE",
-      "MLP_PART",
-      "MLP_LINE",
-      "MLP_QTY"
+    "R5REQUISLINES": [
+      "RQL_REQ",
+      "RQL_REQLINE",
+      "RQL_PART",
+      "RQL_PART_ORG",
+      "RQL_QTY"
     ],
     "R5STOCK": [
       "STO_PART",
+      "STO_PART_ORG",
       "STO_STORE",
       "STO_QTY",
       "STO_ORDLEV"
     ],
     "R5STORES": [
       "STR_CODE",
-      "STR_ORG"
+      "STR_ORG",
+      "STR_DESC"
     ],
-    "R5COMPANIES": [
-      "COM_CODE",
-      "COM_DESC"
+    "R5STRUCTURES": [
+      "STC_PARENT",
+      "STC_PARENT_ORG",
+      "STC_CHILD",
+      "STC_CHILD_ORG",
+      "STC_PARENTTYPE"
+    ],
+    "R5TRADERATES": [
+      "TRR_MRC",
+      "TRR_TRADE",
+      "TRR_ORG",
+      "TRR_NTRATE",
+      "TRR_OTRATE"
     ],
     "R5TRADES": [
       "TRD_CODE",
-      "TRD_UDFNUM01"
-    ],
-    "R5EVENTS": [
-      "EVT_CODE",
-      "EVT_OBJECT",
-      "EVT_STATUS",
-      "EVT_DURATION",
-      "EVT_UDFNUM01"
-    ],
-    "R5PROJBUDCLASSES": [
-      "PCL_PROJBUD",
-      "PCL_PROJECT"
+      "TRD_DESC"
     ]
   }
 }
