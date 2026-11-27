@@ -368,16 +368,20 @@ function coveragePage(moduleName) {
     }).join('') + '</tbody></table></div>';
 }
 
-function introReading() {
-  return '<section class="panel"><h2>Introduction slides · pages 2 and 3</h2>' +
-    '<p>Read the two opening teaching slides from <cite>EAM Materials</cite>.</p>' +
-    '<p><a class="button primary" href="data/eam-introduction-pages-2-3.pdf#page=1">Page 2 · Introduction to Enterprise Asset Management</a></p>' +
-    '<p><a class="button" href="data/eam-introduction-pages-2-3.pdf#page=2">Page 3 · What is EAM and why does it matter?</a></p>' +
-    '<details><summary>Read the slide overview as text</summary><h3>What EAM manages</h3>' +
-    '<p>An asset can be a pump, a production line, a truck, a warehouse or a utility network. EAM connects the people responsible for operating, maintaining, purchasing and financing these resources.</p>' +
-    '<h3>What the system records</h3><p>The asset register records identity, hierarchy and location. Inspections track condition. Requests and orders document preventive and corrective work, labor and materials. Stores records track spare parts and replenishment. History and cost reports support decisions about reliability, productivity and investment.</p>' +
-    '<h3>Follow a pump through six stages</h3><ol><li>Acquire: select, receive and register the pump.</li><li>Install: commission it and hand it over to operations.</li><li>Operate: monitor output and condition.</li><li>Maintain: inspect, repair and record labor and parts.</li><li>Optimize: compare cost, risk and reliability to decide whether changes are worthwhile.</li><li>Retire: replace or decommission the unit and record its disposition.</li></ol>' +
-    '<p>This history helps teams limit downtime, control costs, extend service life and demonstrate which work was performed.</p></details></section>';
+function lessonFigure(diagram) {
+  if (!diagram) return '';
+  const {kind, question, labels} = diagram;
+  let drawing;
+  if (kind === 'pair') {
+    const pictogram = i => diagram.icons ? `<svg class="slide-icon" aria-hidden="true"><use href="data/lesson-illustrations.svg#${E(diagram.icons[i / 2])}"></use></svg>` : '';
+    drawing = [0, 2].map(i => `<div><dt>${E(labels[i])}</dt><dd>${pictogram(i)}${E(labels[i + 1])}</dd></div>`).join('');
+    drawing = `<dl class="slide-pair">${drawing}</dl>`;
+  } else if (kind === 'tree') {
+    drawing = `<div class="slide-tree"><strong>${E(labels[0])}</strong><ul>${labels.slice(1).map(label => `<li>${E(label)}</li>`).join('')}</ul></div>`;
+  } else {
+    drawing = `<ol class="slide-flow">${labels.map(label => `<li>${E(label)}</li>`).join('')}</ol>`;
+  }
+  return `<figure class="lesson-slide"><figcaption>${E(question)}</figcaption>${drawing}${diagram.answer ? `<p>${E(diagram.answer)}</p>` : ''}</figure>`;
 }
 
 function modulePage(m) {
@@ -385,7 +389,6 @@ function modulePage(m) {
   if (!ls) return H('Not found', 'Module not found');
   const comp = ls.filter(l => done.includes(l.id)).length;
   return H('Curriculum', m, `${ls.length} lessons · written walkthroughs and source references`)
-    + (m === 'Introduction to EAM' ? introReading() : '')
     + `<div class="panel"><div class="row between mb-sm"><strong class="tabular">${comp} of ${ls.length} completed</strong>${A('lesson/' + (ls.find(l => !done.includes(l.id)) || ls[0]).id, 'Continue', 'button primary')}</div>${progress(comp, ls.length)}<div class="lesson-list">${ls.map(l => `<div class="lesson-row"><div class="row between"><div class="lesson-row-title"><span class="pill tabular">${E(l.id)}</span>${lessonLink(l)}</div><span class="pill">${E(l.level)}</span></div><p class="muted">${E(l.concept)}</p></div>`).join('')}</div></div>`;
 }
 
@@ -423,15 +426,16 @@ function lessonPage(id) {
   const isMarked = marks.includes(id), isDone = done.includes(id);
   return `<div class="lesson-layout"><article class="lesson-content">${H(l.module, l.title, `${l.id} · ${l.level} · ${l.type === 'technical' ? 'Technical SQL lesson' : l.type === 'consulting' ? 'Consultant guidance' : 'Written functional tutorial'}`)}`
     + `<div class="lesson-toolbar"><div class="row lesson-meta"><span class="pill">${l.type === 'intro' ? 'Academy introduction' : 'HxGN primary'}</span>${s.infor ? '<span class="pill">Infor supporting</span>' : ''}</div><div class="row lesson-actions"><button data-mark="${id}" class="${isMarked ? 'is-active' : ''}">${isMarked ? `${ICON_BOOKMARK_FILL}<span>Bookmarked</span>` : `${ICON_BOOKMARK}<span>Bookmark</span>`}</button><button class="primary${isDone ? ' is-completed' : ''}" data-done="${id}">${isDone ? `${ICON_CHECK_CIRCLE}<span>Completed · undo</span>` : `${ICON_CHECK_CIRCLE}<span>Mark complete</span>`}</button></div></div>`
+    + lessonFigure(l.diagram)
     + (workshops.some(w => w.module === l.module) ? '<p class="mt-md">' + A('workshop/' + U(l.module),'Open module workshop') + '</p>' : '')
     + sqlStages.filter(stage => [stage.sql,stage.functional].includes(id)).map(stage => '<section class="section"><h2>' + E(stage.title) + '</h2>' + stageLinks(stage) + '</section>').join('')
-    + (id === 'INTRO01' ? introReading() : '')
     + (inPath ? '<p class="muted">' + A('path/' + U(activePath),activePath) + ' · Lesson ' + (i+1) + ' of ' + sequence.length + '</p>' : '')
     + (pumpSteps.some(([step]) => step === id) ? '<p class="note">' + A('pump','Case study · From pump to preventive work order') + '</p>' : '')
     + (sqlResults[id] ? '<details class="sql-output"><summary>Inspect the expected training output</summary>' + table(sqlResults[id].columns,sqlResults[id].rows) + '</details>' : '')
     + (sqlReading[id] ? '<section class="section"><h2>How to read this query</h2><div class="callout-panel"><strong>' + E(sqlReading[id][0]) + '</strong><p class="mt-sm">' + E(sqlReading[id][1]) + '</p><h3>Try a variation</h3><p class="mb-sm">' + E(sqlReading[id][2]) + '</p></div></section>' : '')
     + `<section class="section"><h2>What you will learn</h2><p>${E(l.concept)}</p><p>By the end, you should be able to explain the business purpose, describe the steps for the scenario, and identify how to check the result.</p></section>`
     + `<section class="section"><h2>Business scenario</h2><div class="scenario">${E(l.scenario)}</div><p class="muted">Fictional PLANT01 example for learning; not a live EAM transaction.</p></section>`
+    + (l.reading ? '<section class="section"><h2>Read the sources</h2><ul>' + l.reading.map(([label, url]) => '<li>' + ext(url, label) + '</li>').join('') + '</ul></section>' : '')
     + `${more.context && l.type === 'functional' ? `<section class="section"><h2>How it works</h2>${more.context.map(x => `<p>${E(x)}</p>`).join('')}${more.flow ? `<div class="diagram">${more.flow.map((v, idx) => `${idx ? `<span class="diagram-arrow" aria-hidden="true">${ICON_FLOW_ARROW}</span>` : ''}<span>${E(v)}</span>`).join('')}</div>` : ''}</section>` : ''}`
     + `<section class="section"><h2>${l.type === 'technical' ? 'Technical walkthrough' : 'Prerequisites and written walkthrough'}</h2>${l.type === 'technical' ? `<p>Use the local synthetic dataset, not a production database. ${A('sql', 'Open SQL lab')}</p><pre>${E(l.sql)}</pre>${A('sql/' + id, 'Open this query in SQL lab', 'button primary')}` : `<p>${l.type === 'intro' ? 'Follow the example in order.' : l.type === 'consulting' ? 'Agree the business scope, owners and test environment before applying the guidance.' : 'Before starting, confirm the relevant organization, authorized role, and referenced master data. Use the documented screen for your release.'}</p><ol class="steps">${l.walkthrough.map(x => `<li>${E(x)}</li>`).join('')}</ol>`}</section>`
     + `${more.example && l.type === 'functional' ? `<section class="section"><h2>Worked example</h2>${table(['Record / field', 'Training value or decision', 'Explanation'], more.example)}</section>` : ''}`
@@ -615,7 +619,7 @@ async function runCodeSearch(kind, offset = 0) {
     const html = j.items.map(it => {
       const tblLinks = (it.tables || '').split(',').map(x => x.trim()).filter(Boolean).slice(0, 8)
         .map(t => A('table/' + U(t), t, 'taglink')).join('');
-      return `<div class="list-item"><div class="row between code-item-head"><div>${A('code/' + it.id, it.name)} <span class="pill">${E(it.kind.toUpperCase())}</span> <small class="tabular">Candidate ${E(it.candidate)} · ${it.line_count} lines</small></div><a class="button" href="#code/${E(it.id)}"><span>View full SQL</span>${ICON_ARROW_RIGHT}</a></div>${tblLinks ? `<div class="mt-sm">${tblLinks}</div>` : ''}<pre class="code-excerpt">${HMark(it.excerpt)}</pre></div>`;
+      return `<div class="list-item"><div class="row between code-item-head"><div>${A('code/' + it.id, it.name)} <span class="pill">${E(it.kind.toUpperCase())}</span> <small class="tabular">Candidate ${E(it.candidate)} · ${it.line_count} lines</small></div><a class="button" href="#code/${E(it.id)}"><span>${['procedure','trigger'].includes(it.kind) ? 'Explanation and SQL' : 'View full SQL'}</span>${ICON_ARROW_RIGHT}</a></div>${tblLinks ? `<div class="mt-sm">${tblLinks}</div>` : ''}<pre class="code-excerpt">${HMark(it.excerpt)}</pre></div>`;
     }).join('');
     $('codeResults').innerHTML = offset ? $('codeResults').innerHTML + html : (html || '<p>No matching code objects.</p>');
     $('codeMore').innerHTML = j.more ? `<button id="codeLoadMore">Load more (${j.total - offset - j.items.length} remaining)</button>` : '';
@@ -674,6 +678,113 @@ function renderCodesTab(tab) {
   }
 }
 
+function explainRecoveredSql(item) {
+  if (!['trigger', 'procedure'].includes(item.kind)) return '';
+  const body = item.body || '';
+  // Preserve offsets so each observation points to the matching line in the viewer.
+  const mask = fragment => fragment.replace(/[^\n]/g, ' ');
+  const sql = body.replace(/--[^\n]*|\/\*[\s\S]*?(?:\*\/|$)|N?'(?:''|[^'])*(?:'|$)/gi, mask);
+  const observations = [];
+  const seen = new Set();
+  const lineStarts = [0];
+  for (let i = 0; i < sql.length; i++) if (sql[i] === '\n') lineStarts.push(i + 1);
+  function restOfLine(at) {
+    const end = body.indexOf('\n', at);
+    return body.slice(at, end < 0 ? body.length : end).trimEnd();
+  }
+  function note(at, description) {
+    if (seen.has(description)) return;
+    seen.add(description);
+    let lo = 0, hi = lineStarts.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (lineStarts[mid] <= at) lo = mid + 1;
+      else hi = mid;
+    }
+    observations.push({line: lo, description});
+  }
+  const header = sql.match(/\b(?:create(?:\s+or\s+alter)?|alter)\s+(?:trigger|proc(?:edure)?)\s+([\w.\[\]]+)/i);
+  const dynamicHeader = /\bcreate\s+(?:trigger|procedure)\s*'/i.test(body);
+  let opening;
+  let parameterPanel = '';
+  if (dynamicHeader || !header) {
+    opening = 'The recovered text contains a generated or incomplete definition. Its final object name and behavior need confirmation from the complete definition.';
+  } else if (item.kind === 'trigger') {
+    const event = sql.slice(header.index).match(/\bon\s+([\w.\[\]]+)\s+(for|after|instead\s+of)\s+((?:insert|delete|update)(?:\s*,\s*(?:insert|delete|update))*)/i);
+    opening = event ? `When a statement targets ${event[1]} for ${event[3].toUpperCase().replace(/\s*,\s*/g, ', ')}, this trigger runs ${/^instead/i.test(event[2]) ? 'in place of' : 'after'} that operation.` : 'This trigger runs automatically. The recovered header does not establish its full firing condition.';
+  } else {
+    const signature = sql.slice(header.index + header[0].length).split(/\bas\b/i)[0];
+    const params = [...signature.matchAll(/(@\w+)\s+([\w.\[\]]+(?:\s*\([^)]*\))?)([^,@]*)/gi)];
+    opening = `${item.name} runs when called.`;
+    if (params.length) {
+      const rows = params.map(p => [p[1],p[2],/\bOUT(?:PUT)?\b/i.test(p[3]) ? 'May return a value to its caller' : 'Input supplied by its caller or default']);
+      parameterPanel = '<details><summary>Parameters and outputs (' + rows.length + ')</summary>' + table(['Parameter','SQL type','Role'],rows) + '</details>';
+      const outputs = new Set(params.filter(p => /\bOUT(?:PUT)?\b/i.test(p[3])).map(p => p[1].toLowerCase()));
+      for (const assignment of sql.matchAll(/\b(?:set|select)\s+(@\w+)\s*=/gi)) {
+        if (!outputs.has(assignment[1].toLowerCase())) continue;
+        const rhs = restOfLine(assignment.index + assignment[0].length).trim().match(/^(NULL|-?\d+(?:\.\d+)?|N?'(?:''|[^'])*'|@\w+)\s*;?\s*(?:--.*)?$/i);
+        note(assignment.index, 'Assigns ' + (rhs ? rhs[1] + ' to ' : 'a value to ') + 'output parameter ' + assignment[1] + '.');
+      }
+    }
+  }
+  const parts = item.name.match(/^(POS|PRE)(INS|UPD|DEL)(\d*)_(\w+)$/i);
+  if (parts && item.kind === 'trigger') {
+    const operation = {INS:'insert', UPD:'update', DEL:'delete'}[parts[2].toUpperCase()];
+    opening += ' In this identifier, ' + parts[2] + ' abbreviates ' + operation +
+      '. The SQL header above determines when it fires. The number and suffix are preserved as catalog identifiers.';
+  }
+  const tables = new Set((item.tables || '').toUpperCase().split(',').map(t => t.trim()));
+  const statements = /\b(insert\s+(?:into\s+)?|delete\s+(?:from\s+)?|update\s+|merge\s+(?:into\s+)?|from\s+|join\s+)([\w.\[\]]+)/gi;
+  for (const m of sql.matchAll(statements)) {
+    const table = m[2].replace(/[\[\]]/g, '').split('.').pop().toUpperCase();
+    if (!tables.has(table)) continue;
+    const verb = m[1].trim().split(/\s/)[0].toLowerCase();
+    const action = {insert:'Adds rows to', delete:'Removes rows from', update:'Changes existing rows in', merge:'Reconciles rows in', from:'Reads rows from', join:'Matches rows against'}[verb];
+    note(m.index, action + ' ' + table + '.');
+  }
+  for (const m of sql.matchAll(/\bexec(?:ute)?\s+(?:@\w+\s*=\s*)?((?:\[?\w+\]?\.)*\[?[a-z_]\w*\]?)/gi)) {
+    if (/^(as|at|with)$/i.test(m[1])) continue;
+    note(m.index, /^o7mobile_sync_event$/i.test(m[1]) ? 'Passes the affected record to the mobile synchronization routine.' : 'Delegates part of the work to ' + m[1] + '.');
+  }
+  for (const m of sql.matchAll(/\b(?:from|join)\s+(inserted|deleted)\b/gi))
+    note(m.index, m[1].toLowerCase() === 'inserted' ? 'Uses the new row values supplied by the triggering statement.' : 'Uses the previous row values supplied by the triggering statement.');
+  const plainTests = {
+    '=': 'equals', '<>': 'differs from', '!=': 'differs from', '>': 'is greater than',
+    '<': 'is less than', '>=': 'is at least', '<=': 'is at most'
+  };
+  for (const test of sql.matchAll(/^\s*if\s+(?:\(\s*)?(@@?\w+)\s*(<>|!=|>=|<=|=|>|<)\s*/gim)) {
+    const start = test.index + test[0].toLowerCase().indexOf('if');
+    const expression = restOfLine(start);
+    const value = expression.match(/^if\s+\(?\s*@@?\w+\s*(?:<>|!=|>=|<=|=|>|<)\s*(N?'(?:''|[^'])*'|[-+]?\d+(?:\.\d+)?|@@?\w+)\s*\)?\s*(?:begin\s*)?(?:--.*)?$/i);
+    if (!value) continue;
+    const subject = { '@@rowcount':'the number of rows affected by the preceding statement',
+      '@@fetch_status':'the cursor fetch status', '@@error':'the preceding statement’s SQL error code' }[test[1].toLowerCase()] || test[1];
+    note(start, 'Enters this branch when ' + subject + ' ' + plainTests[test[2]] + ' ' + value[1] + '.');
+  }
+  for (const test of sql.matchAll(/\bif\s+(@\w+)\s+is\s+(not\s+)?null\b/gi))
+    note(test.index, 'Tests whether ' + test[1] + (test[2] ? ' has a value.' : ' is NULL.'));
+  for (const loop of sql.matchAll(/\bwhile\s+@@fetch_status\s*=\s*0\b/gi))
+    note(loop.index, 'Repeats the loop while the cursor successfully fetches another row.');
+  for (const ret of sql.matchAll(/^\s*return\s+(@\w+|-?\d+)\s*;?\s*$/gim))
+    note(ret.index + ret[0].toLowerCase().indexOf('return'), 'Returns control with status ' + ret[1] + '.');
+  const revision = /\b(\w+_updatecount)\s*=\s*isnull\([^)]*\)\s*\+\s*1/i.exec(sql);
+  if (revision) note(revision.index, 'Advances the row revision counter in ' + revision[1] + ' so later work can distinguish this version.');
+  const saved = /\b(\w+_lastsaved)\s*=\s*getdate\s*\(/i.exec(sql);
+  if (saved) note(saved.index, 'Records the save time in ' + saved[1] + '.');
+  const dynamic = /\bexec(?:ute)?\s*\(\s*@/i.exec(sql);
+  if (dynamic) note(dynamic.index, 'Runs SQL assembled at runtime. Its final operations depend on the generated text.');
+  const rollback = /\brollback\s+tran(?:saction)?\b/i.exec(sql);
+  if (rollback) note(rollback.index, 'Can roll back the transaction when execution reaches this branch.');
+  if (item.id == 52) opening += ' For a user other than SYS, it takes the point code from each deleted row and sends a DELETE event to mobile synchronization.';
+  if (item.id == 2457) opening += ' It checks the trace-enabled setting. When enabled, it builds a message from the supplied trace position and sends it to the output-log routine.';
+  if (item.id == 3206) opening += ' This recovered Flex hook sets the check output to zero and the message to NULL. The body contains no custom validation.';
+  observations.sort((a,b) => a.line - b.line);
+  const detail = observations.map(o => `<li><small>Line ${o.line}</small> · ${E(o.description)}</li>`).join('');
+  return `<section class="panel mt-md"><h2>What this ${E(item.kind)} does</h2><p>${E(opening)}</p>` +
+    parameterPanel + (detail ? `<details open><summary>Operations visible in this candidate</summary><ul>${detail}</ul></details>` : '<p>The excerpt does not establish a specific table operation or named routine call.</p>') +
+    '<small>Line references describe statements in the recovered SQL. Conditions and loops determine which statements execute for a particular record.</small></section>';
+}
+
 async function codeItemPage(id) {
   const item = await api('/api/code/item?id=' + U(id));
   const backRoute = item.kind === 'trigger' ? 'triggers' : item.kind === 'procedure' ? 'procedures' : 'codes';
@@ -688,6 +799,7 @@ async function codeItemPage(id) {
     + `<div class="note warn">${ICON_ALERT}<span>RECOVERY REFERENCE ONLY — NOT A VERIFIED OR DEPLOYABLE SCRIPT. Never run against production or training SQLite.</span></div>`
     + `<div class="row"><a class="button" href="#${backRoute}">${ICON_ARROW_LEFT}<span>${backLabel}</span></a><button type="button" id="copySqlBtn" class="primary">${ICON_COPY}<span>Copy SQL</span></button><button type="button" id="dlSqlBtn">${ICON_DOWNLOAD}<span>Download .sql</span></button></div>`
     + sibs
+    + explainRecoveredSql(item)
     + (tblLinks ? `<div class="panel mt-md mb-md"><strong>Referenced R5 tables:</strong><div class="mt-sm">${tblLinks}</div></div>` : '')
     + `<div class="code-viewer mt-md"><div class="code-viewer-head"><span>T-SQL · ${lineCount} lines</span><span class="tabular">Candidate ${E(item.candidate)}</span></div><div class="code-viewer-body"><div class="code-gutter" aria-hidden="true">${gutter}</div><pre class="code-view" id="rawSqlCode">${E(item.body)}</pre></div></div>`;
 }
@@ -958,7 +1070,6 @@ async function route() {
       case 'learn':
         main.innerHTML = H('Curriculum', 'Tutorials', `${lessons.length} written lessons across ${Object.keys(groups).length} modules.`)
           + '<div class="row footer-links">' + A('lesson/INTRO01','Start here · What is EAM?','button primary') + A('paths','Learning paths','button') + A('assess','Assessments','button') + A('coverage','Lesson coverage','button') + '</div>'
-          + introReading()
           + '<div class="grid">' + Object.entries(groups).map(([m, ls]) => {
             const comp = ls.filter(l => done.includes(l.id)).length;
             return `<a class="tile" href="#module/${U(m)}"><div class="row between mb-sm"><h3>${E(m)}</h3><span class="pill tabular">${comp}/${ls.length}</span></div><p class="mb-sm">${ls.length} lessons</p>${progress(comp, ls.length)}</a>`;
@@ -1328,13 +1439,16 @@ $('mobileNavBackdrop')?.addEventListener('click', () => setMobileNav(false));
 $('topnav')?.addEventListener('click', e => { if (e.target.closest('a')) setMobileNav(false); });
 window.addEventListener('hashchange', route);
 
-Promise.all(['curriculum.json', 'catalog.json', 'extended.json', 'enrichment.json', 'code_meta.json', 'quizzes.json', 'introduction.json'].map(p => fetch(p).then(r => { if (!r.ok) throw Error('Unable to load ' + p); return r.json(); })))
-  .then(([l, c, x, en, cm, qz, intro]) => {
+Promise.all(['curriculum.json', 'catalog.json', 'extended.json', 'enrichment.json', 'code_meta.json', 'quizzes.json', 'introduction.json', 'lesson-diagrams.json'].map(p => fetch(p).then(r => { if (!r.ok) throw Error('Unable to load ' + p); return r.json(); })))
+  .then(([l, c, x, en, cm, qz, intro, diagrams]) => {
     lessons = [...intro.map(item => ({
       ...item, module: 'Introduction to EAM', level: 'Beginner', type: 'intro',
       source: l.find(lesson => lesson.id === item.reference).source
     })), ...l]; catalog = c; extended = x; enrichment = en; codeMeta = cm; quizzes = qz;
-    for (const a of lessons) (groups[a.module] ??= []).push(a);
+    for (const lesson of lessons) {
+      lesson.diagram = diagrams[lesson.id];
+      (groups[lesson.module] ??= []).push(lesson);
+    }
     // Remove loading placeholder before first route render
     const ls = $('loadingState');
     if (ls) ls.remove();

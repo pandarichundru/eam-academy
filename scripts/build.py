@@ -73,6 +73,13 @@ def load_all():
 
     lessons = intro_lessons + curriculum
 
+    diagrams = load_json(CONTENT / 'lesson-diagrams.json')
+    expected = {l['id'] for l in lessons if l['type'] in ('functional', 'intro')}
+    if set(diagrams) != expected:
+        raise ValueError('Provide exactly one diagram for each functional and introductory lesson')
+    for lesson in lessons:
+        lesson['diagram'] = diagrams.get(lesson['id'])
+
     # Build groups
     groups = {}
     for l in lessons:
@@ -404,6 +411,32 @@ def render_lesson_body(l, enrichment, groups):
     issue_title = f'Content error: {lesson_id} – {title}'
     issue_url = f'https://github.com/pandarichundru/eam-academy/issues/new?template=bug_report.md&title={issue_title.replace(" ", "+")}'
 
+    figure_html = ''
+    if diagram := l.get('diagram'):
+        labels = [e(label) for label in diagram['labels']]
+        if diagram['kind'] == 'pair':
+            def pictogram(i):
+                if 'icons' not in diagram:
+                    return ''
+                icon = e(diagram['icons'][i // 2])
+                return f'<svg class="slide-icon" aria-hidden="true"><use href="/eam-academy/data/lesson-illustrations.svg#{icon}"></use></svg>'
+            pairs = ''.join(f'<div><dt>{labels[i]}</dt><dd>{pictogram(i)}{labels[i+1]}</dd></div>' for i in (0, 2))
+            drawing = f'<dl class="slide-pair">{pairs}</dl>'
+        elif diagram['kind'] == 'tree':
+            leaves = ''.join(f'<li>{label}</li>' for label in labels[1:])
+            drawing = f'<div class="slide-tree"><strong>{labels[0]}</strong><ul>{leaves}</ul></div>'
+        elif diagram['kind'] == 'flow':
+            steps = ''.join(f'<li>{label}</li>' for label in labels)
+            drawing = f'<ol class="slide-flow">{steps}</ol>'
+        else:
+            raise ValueError(f'Unknown diagram kind for {lesson_id}')
+        answer = f'<p>{e(diagram["answer"])}</p>' if diagram.get('answer') else ''
+        figure_html = f'<figure class="lesson-slide"><figcaption>{e(diagram["question"])}</figcaption>{drawing}{answer}</figure>'
+    reading_html = ''
+    if reading := l.get('reading'):
+        links = ''.join(f'<li><a href="{e(url)}">{e(label)}</a></li>' for label, url in reading)
+        reading_html = f'<section class="section"><h2>Read the sources</h2><ul>{links}</ul></section>'
+
     return f'''
     <article class="lesson-content">
       <div class="eyebrow">{e(module)}</div>
@@ -421,6 +454,7 @@ def render_lesson_body(l, enrichment, groups):
         </div>
       </div>
 
+      {figure_html}
       <section class="section">
         <h2>What you will learn</h2>
         <p>{e(concept)}</p>
@@ -433,6 +467,7 @@ def render_lesson_body(l, enrichment, groups):
         <p class="muted">Fictional PLANT01 example for learning; not a live EAM transaction.</p>
       </section>
 
+      {reading_html}
       {context_html}
       {procedure_html}
       {example_html}
@@ -601,6 +636,7 @@ def copy_assets():
         'manifest.webmanifest',
         'curriculum.json',
         'introduction.json',
+        'lesson-diagrams.json',
         'enrichment.json',
         'quizzes.json',
         'challenges.json',
