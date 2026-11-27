@@ -153,7 +153,7 @@ const A = (route, label, cls = '') => `<a ${cls ? `class="${cls}"` : ''} href="#
 const ext = (url, label) => `<a href="${E(url)}" target="_blank" rel="noopener noreferrer">${E(label)} ↗</a>`;
 const table = (headers, rows) => `<div class="scroll"><table><thead><tr>${headers.map(v => `<th scope="col">${E(v)}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(v => `<td>${E(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 const tiles = items => `<div class="grid">${items.map(([r, t, d]) => `<a class="tile" href="#${r}"><h3>${E(t)}</h3><p>${E(d)}</p></a>`).join('')}</div>`;
-const progress = (n, total) => `<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${n}"><i style="width:${total ? n / total * 100 : 0}%"></i></div>`;
+const progress = (n, total) => `<div class="bar" role="progressbar" aria-label="Completion" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${n}"><i style="width:${total ? n / total * 100 : 0}%"></i></div>`;
 const lessonLink = l => A('lesson/' + l.id, `${done.includes(l.id) ? '✓ ' : ''}${l.title}`);
 const metric = (n, t) => `<div class="metric"><strong>${E(n)}</strong><span>${E(t)}</span></div>`;
 const sourceLink = (id, label) => A('doc/' + id, label);
@@ -168,6 +168,7 @@ function renderNav(route, id) {
       : route === 'sql' || route === 'tables' || route === 'table' || route === 'er' || route === 'triggers' || route === 'procedures' || route === 'codes' || route === 'code' ? 'technical'
         : route === 'path' ? 'paths' : route;
   $('topnav').innerHTML = nav.map(([r, t]) => A(r, t, (r === active || (r === 'workshops' && ['workshop','pump','flows'].includes(route)) || (r === 'sql-course' && route === 'sql') || (r === 'practice' && route === 'exercise') || (r === 'reference' && active === 'technical') || (r === 'learn' && ['paths','path','assess','coverage'].includes(route))) ? 'active' : '')).join('');
+  $('topnav').querySelector('.active')?.setAttribute('aria-current', 'page');
   const selected = lessons.find(l => l.id === id);
   const c = codeMeta.counts || {};
   $('side').innerHTML = '<div class="eyebrow">Course curriculum</div>'
@@ -630,7 +631,7 @@ function progressPage() {
     + Object.entries(groups).map(([m, ls]) => `<div class="list-item"><div class="row between">${A('module/' + U(m), m)}<small>${ls.filter(l => done.includes(l.id)).length}/${ls.length}</small></div>${progress(ls.filter(l => done.includes(l.id)).length, ls.length)}</div>`).join('')
     + `<h2>Bookmarks</h2>${lessons.filter(l => marks.includes(l.id)).map(l => `<div class="list-item">${lessonLink(l)}</div>`).join('') || '<p>No bookmarks yet.</p>'}`
     + `<h2>Revision notes</h2>${lessons.filter(l => notes[l.id]).map(l => `<div class="list-item">${lessonLink(l)}<p>${E(notes[l.id])}</p></div>`).join('') || '<p>No notes yet.</p>'}`
-    + `<div class="row" style="margin-top:18px"><button id="exportProgress" class="primary">Export progress JSON</button><label class="button" for="importFile">Import progress JSON</label><input id="importFile" type="file" accept=".json,application/json" style="display:none"><button id="resetProgress">Reset local progress</button></div><div id="importMsg" style="margin-top:8px"></div>`;
+    + `<div class="row" style="margin-top:18px"><button id="exportProgress" class="primary">Export progress JSON</button><label class="button" for="importFile">Import progress JSON</label><input id="importFile" type="file" accept=".json,application/json" ><button id="resetProgress">Reset local progress</button></div><div id="importMsg" style="margin-top:8px"></div>`;
 }
 
 function assess() {
@@ -913,8 +914,14 @@ document.addEventListener('keydown', e => {
   }
 });
 $('menu').onclick = () => { $('side').classList.toggle('open'); $('menu').setAttribute('aria-expanded', $('side').classList.contains('open')); };
-$('theme').onclick = () => { const v = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = v; write('theme', v); };
-document.documentElement.dataset.theme = read('theme', 'light');
+$('theme').onclick = () => { const v = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = v; write('theme', v); syncTheme(); };
+const systemTheme = matchMedia('(prefers-color-scheme: dark)');
+function syncTheme() {
+  document.documentElement.dataset.theme = read('theme', systemTheme.matches ? 'dark' : 'light');
+  $('theme').setAttribute('aria-pressed', document.documentElement.dataset.theme === 'dark');
+}
+systemTheme.addEventListener('change', syncTheme);
+syncTheme();
 window.addEventListener('hashchange', route);
 
 Promise.all(['curriculum.json', 'catalog.json', 'extended.json', 'enrichment.json', 'code_meta.json', 'quizzes.json'].map(p => fetch(p).then(r => { if (!r.ok) throw Error('Unable to load ' + p); return r.json(); })))
