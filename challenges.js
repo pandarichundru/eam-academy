@@ -39,6 +39,7 @@ function practiceTask(x,bank) {
   const solved = read('practiceSolved',[]).includes(x.id);
   return '<div class="challenge-reader">' + A('practice/' + U(x.level),'Back to ' + x.level + ' exercises') + H(x.level + ' · Exercise ' + x.id + ' of ' + bank.exercises.length,x.title,x.prompt)
     + '<div class="section practice-schema"><h2>Tables for this question</h2><p>Choose a table to inspect up to five sample rows.</p><div class="row">' + x.tables.map(t => '<button data-sample="' + E(t) + '">' + E(t) + '</button>').join('') + '</div><div id="sampleRows" aria-live="polite"></div><details><summary>Column names</summary>' + x.tables.map(t => '<p><b>' + E(t) + '</b><br><code>' + E(bank.schema[t].join(', ')) + '</code></p>').join('') + '</details></div>'
+    + (x.id === 30 ? '<details><summary>Fix this query</summary><p>This query reports one work order for an idle asset. Run it, inspect the outer join and change the count.</p><pre id="brokenQuery">SELECT e.code, COUNT(*) FROM equipment e LEFT JOIN work_orders w ON w.equipment_code = e.code GROUP BY e.code</pre><button id="loadBroken">Load debugging example</button></details>' : '')
     + '<label for="answerSQL"><strong>Your SQL query</strong></label><textarea id="answerSQL" spellcheck="false" placeholder="SELECT …">' + E(draft) + '</textarea><div class="row"><button id="runPractice">Run query</button><button id="gradePractice" class="primary">Check answer</button><small id="practiceState">' + (solved ? 'Previously solved' : 'SQLite · read-only practice data') + '</small></div><div id="practiceFeedback" aria-live="polite"></div><div id="practiceOutput"></div>'
     + '<details class="challenge-aid"><summary>Hint</summary><p>' + E(x.reason) + '</p></details><details class="challenge-aid"><summary>Show worked solution</summary><pre>' + E(x.sql) + '</pre><p>' + E(x.reason) + '</p><p>On the practice data this returns ' + x.expected[0].length + ' row(s) and ' + x.cols + ' column(s).</p></details>'
     + '<div class="row footer-links">' + (x.id>1 ? A('exercise/' + (x.id-1),'Previous exercise','button') : '') + (x.id<bank.exercises.length ? A('exercise/' + (x.id+1),'Next exercise','button') : A('practice','Review your progress','button')) + '</div></div>';
@@ -47,23 +48,35 @@ function comparePractice(result,x,index) {
   const expected = x.expected[index];
   if (result.truncated) return 'Your query returned more than 200 rows. Check the joins and filters.';
   if (result.columns.length !== x.cols) return 'Expected ' + x.cols + ' columns; your query returned ' + result.columns.length + '. Follow the requested column sequence.';
-  if (result.rows.length !== expected.length) return 'Expected ' + expected.length + ' rows; your query returned ' + result.rows.length + '. Check missing records or duplicates.';
   const key = row => JSON.stringify(row.map(v => typeof v === 'number' ? Number(v.toPrecision(12)) : v));
   const actual = result.rows.map(key), target = expected.map(key);
-  if (!x.ordered) { actual.sort(); target.sort(); }
-  const i = target.findIndex((r,n) => r !== actual[n]);
-  if (i<0) return '';
-  if (x.ordered) return 'Row ' + (i+1) + ' should be ' + target[i] + '. Check values, sorting and tie-breakers.';
-  const counts = new Map();
-  for (const r of actual) counts.set(r,(counts.get(r)||0)+1);
-  const missing = target.find(r => { const n=counts.get(r)||0; counts.set(r,n-1); return n===0; });
-  return 'The row count matches. An expected row is missing or has different values: ' + missing + '.';
+  const balance = new Map();
+  for (const row of target) balance.set(row,(balance.get(row) || 0)+1);
+  for (const row of actual) balance.set(row,(balance.get(row) || 0)-1);
+  for (const [row,count] of balance) {
+    if (count < 0 && target.includes(row)) return 'Extra duplicate: ' + row + '. Check whether a join repeated this row.';
+  }
+  if (actual.length === target.length && x.cols > 1 && actual.every((row,i) => {
+    const cells = value => JSON.stringify(JSON.parse(value).sort((a,b) => JSON.stringify(a).localeCompare(JSON.stringify(b))));
+    return cells(row) === cells(target[i]);
+  }) && actual.some((row,i) => row !== target[i])) return 'The values match in each row. Check the order of columns in SELECT.';
+  for (const [row,count] of balance) {
+    if (count > 0) return 'Missing expected row: ' + row + '. Check values, filters and join keys.';
+    if (count < 0) return 'Unexpected row: ' + row + '. Check filters and join keys.';
+  }
+  const first = target.findIndex((row,i) => row !== actual[i]);
+  if (x.ordered && first >= 0) return 'The values match. Check ORDER BY and tie-breakers: row ' + (first+1) + ' should be ' + target[first] + '.';
+  return '';
 }
 function wirePracticeTask(x) {
   const editor = $('answerSQL'), output = $('practiceOutput'), feedback = $('practiceFeedback');
   const run = $('runPractice'), grade = $('gradePractice');
   const render = result => table(result.columns,result.rows.map(row => row.map(v => v === null ? 'NULL' : v)));
   editor.oninput = () => { const drafts=read('practiceDrafts',{}); drafts[x.id]=editor.value; write('practiceDrafts',drafts); feedback.textContent=''; output.textContent=''; };
+  if ($('loadBroken')) $('loadBroken').onclick = () => {
+    if (editor.value.trim() && !confirm('Replace the current draft with the debugging example?')) return;
+    editor.value = $('brokenQuery').textContent; editor.oninput(); editor.focus();
+  };
   let sampleSequence = 0;
   document.querySelectorAll('[data-sample]').forEach(btn => {
     btn.onclick = async () => {

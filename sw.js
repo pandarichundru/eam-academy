@@ -6,6 +6,7 @@ const files = [
   "challenges.json",
   "code_meta.json",
   "curriculum.json",
+  "introduction.json",
   "data/code-0.json",
   "data/code-1.json",
   "data/code-10.json",

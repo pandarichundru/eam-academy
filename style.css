@@ -399,3 +399,11 @@ header :focus-visible { outline-color: white; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+.sql-workspace { display: grid; align-items: start; gap: 1rem; }
+.sql-workspace > * { min-width: 0; }
+.sql-browser h2 { margin-top: 0; }
+.sql-browser details { overflow-wrap: anywhere; }
+@media (min-width: 1050px) {
+  .sql-workspace { grid-template-columns: minmax(0, 3fr) minmax(16rem, 2fr); }
+  .sql-browser { max-height: 38rem; overflow: auto; }
+}
