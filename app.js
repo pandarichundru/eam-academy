@@ -607,6 +607,18 @@ function erPage(t = 'R5EVENTS') {
     + `<p class="note">Multiple links may belong to one composite key. Verify actual constraints before writing production joins.</p>`;
 }
 
+function downloadCsv(result) {
+  function cell(value) {
+    let text = String(value ?? '');
+    if (typeof value === 'string' && /^[=+@\-\t\r]/.test(text)) text = "'" + text;
+    return '"' + text.replaceAll('"','""') + '"';
+  }
+  const csv = [result.columns, ...result.rows].map(row => row.map(cell).join(',')).join('\r\n');
+  const url = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
+  const link = document.createElement('a');
+  link.href = url; link.download = 'eam-query.csv'; link.click();
+  setTimeout(() => URL.revokeObjectURL(url),1000);
+}
 function sqlPage(id) {
   const l = lessons.find(x => x.id === id && x.type === 'technical');
   return H('SQL practice · technical only', 'Read-only SQL lab', 'All records are fictional and the SQLite schema is not the production R5 schema. Click schema columns to insert them, or use Check my output on lesson challenges.')
@@ -784,7 +796,8 @@ async function route() {
             if (current !== generation) return;
             sqlHist = [q, ...sqlHist.filter(x => x !== q)].slice(0, 10);
             write('sqlhist', sqlHist);
-            $('sqlResult').innerHTML = `<p>${v.rows.length} rows${v.truncated ? ' (truncated)' : ''}</p>` + table(v.columns, v.rows.map(row => row.map(x => x === null ? 'NULL' : x)));
+            $('sqlResult').innerHTML = `<p>${v.rows.length} rows${v.truncated ? ' (truncated)' : ''}</p>` + table(v.columns, v.rows.map(row => row.map(x => x === null ? 'NULL' : x))) + '<button id="saveCsv">Export displayed rows as CSV</button>';
+            $('saveCsv').onclick = () => downloadCsv(v);
           } catch (e) {
             if (current === generation) $('sqlResult').textContent = 'Query rejected or failed: ' + e.message;
           } finally { b.disabled = false; }
@@ -808,7 +821,7 @@ async function route() {
         };
         api('/api/schema').then(v => {
           if (current !== generation) return;
-          $('sqlSchema').innerHTML = v.tables.map(t => `<details><summary><span class="schema-col" data-ins="${E(t.name)}">${E(t.name)}</span> (${t.columns.length} columns)</summary><div style="margin-top:8px">${t.columns.map(c => `<span class="schema-col" title="Click to insert column" data-ins="${E(c.name)}">${E(c.name)} <small>${E(c.type)}${c.pk ? ' PK' : ''}</small></span>`).join('')}</div></details>`).join('');
+          $('sqlSchema').innerHTML = v.tables.map(t => `<details><summary><span class="schema-col" data-ins="${E(t.name)}">${E(t.name)}</span> (${t.columns.length} columns)</summary><div style="margin-top:8px">${t.columns.map(c => `<button type="button" class="schema-col" title="Insert column" data-ins="${E(c.name)}">${E(c.name)} <small>${E(c.type)}${c.pk ? ' PK' : ''}</small></button>`).join('')}</div></details>`).join('');
           $('sqlSchema').querySelectorAll('[data-ins]').forEach(el => {
             el.onclick = ev => {
               ev.preventDefault(); ev.stopPropagation();
