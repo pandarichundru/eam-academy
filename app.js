@@ -368,11 +368,20 @@ function coveragePage(moduleName) {
     }).join('') + '</tbody></table></div>';
 }
 
-function lessonFigure(figure) {
-  if (!figure) return '';
-  return '<figure class="record-map"><figcaption>' + E(figure.title) + '</figcaption><dl>' +
-    figure.cards.map(([term, detail]) => '<div><dt>' + E(term) + '</dt><dd>' + E(detail) + '</dd></div>').join('') +
-    '</dl></figure>';
+function lessonFigure(diagram) {
+  if (!diagram) return '';
+  const {kind, question, labels} = diagram;
+  let drawing;
+  if (kind === 'pair') {
+    const pictogram = i => diagram.icons ? `<svg class="slide-icon" aria-hidden="true"><use href="data/lesson-illustrations.svg#${E(diagram.icons[i / 2])}"></use></svg>` : '';
+    drawing = [0, 2].map(i => `<div><dt>${E(labels[i])}</dt><dd>${pictogram(i)}${E(labels[i + 1])}</dd></div>`).join('');
+    drawing = `<dl class="slide-pair">${drawing}</dl>`;
+  } else if (kind === 'tree') {
+    drawing = `<div class="slide-tree"><strong>${E(labels[0])}</strong><ul>${labels.slice(1).map(label => `<li>${E(label)}</li>`).join('')}</ul></div>`;
+  } else {
+    drawing = `<ol class="slide-flow">${labels.map(label => `<li>${E(label)}</li>`).join('')}</ol>`;
+  }
+  return `<figure class="lesson-slide"><figcaption>${E(question)}</figcaption>${drawing}${diagram.answer ? `<p>${E(diagram.answer)}</p>` : ''}</figure>`;
 }
 
 function modulePage(m) {
@@ -417,6 +426,7 @@ function lessonPage(id) {
   const isMarked = marks.includes(id), isDone = done.includes(id);
   return `<div class="lesson-layout"><article class="lesson-content">${H(l.module, l.title, `${l.id} · ${l.level} · ${l.type === 'technical' ? 'Technical SQL lesson' : l.type === 'consulting' ? 'Consultant guidance' : 'Written functional tutorial'}`)}`
     + `<div class="lesson-toolbar"><div class="row lesson-meta"><span class="pill">${l.type === 'intro' ? 'Academy introduction' : 'HxGN primary'}</span>${s.infor ? '<span class="pill">Infor supporting</span>' : ''}</div><div class="row lesson-actions"><button data-mark="${id}" class="${isMarked ? 'is-active' : ''}">${isMarked ? `${ICON_BOOKMARK_FILL}<span>Bookmarked</span>` : `${ICON_BOOKMARK}<span>Bookmark</span>`}</button><button class="primary${isDone ? ' is-completed' : ''}" data-done="${id}">${isDone ? `${ICON_CHECK_CIRCLE}<span>Completed · undo</span>` : `${ICON_CHECK_CIRCLE}<span>Mark complete</span>`}</button></div></div>`
+    + lessonFigure(l.diagram)
     + (workshops.some(w => w.module === l.module) ? '<p class="mt-md">' + A('workshop/' + U(l.module),'Open module workshop') + '</p>' : '')
     + sqlStages.filter(stage => [stage.sql,stage.functional].includes(id)).map(stage => '<section class="section"><h2>' + E(stage.title) + '</h2>' + stageLinks(stage) + '</section>').join('')
     + (inPath ? '<p class="muted">' + A('path/' + U(activePath),activePath) + ' · Lesson ' + (i+1) + ' of ' + sequence.length + '</p>' : '')
@@ -425,7 +435,6 @@ function lessonPage(id) {
     + (sqlReading[id] ? '<section class="section"><h2>How to read this query</h2><div class="callout-panel"><strong>' + E(sqlReading[id][0]) + '</strong><p class="mt-sm">' + E(sqlReading[id][1]) + '</p><h3>Try a variation</h3><p class="mb-sm">' + E(sqlReading[id][2]) + '</p></div></section>' : '')
     + `<section class="section"><h2>What you will learn</h2><p>${E(l.concept)}</p><p>By the end, you should be able to explain the business purpose, describe the steps for the scenario, and identify how to check the result.</p></section>`
     + `<section class="section"><h2>Business scenario</h2><div class="scenario">${E(l.scenario)}</div><p class="muted">Fictional PLANT01 example for learning; not a live EAM transaction.</p></section>`
-    + lessonFigure(l.figure)
     + (l.reading ? '<section class="section"><h2>Read the sources</h2><ul>' + l.reading.map(([label, url]) => '<li>' + ext(url, label) + '</li>').join('') + '</ul></section>' : '')
     + `${more.context && l.type === 'functional' ? `<section class="section"><h2>How it works</h2>${more.context.map(x => `<p>${E(x)}</p>`).join('')}${more.flow ? `<div class="diagram">${more.flow.map((v, idx) => `${idx ? `<span class="diagram-arrow" aria-hidden="true">${ICON_FLOW_ARROW}</span>` : ''}<span>${E(v)}</span>`).join('')}</div>` : ''}</section>` : ''}`
     + `<section class="section"><h2>${l.type === 'technical' ? 'Technical walkthrough' : 'Prerequisites and written walkthrough'}</h2>${l.type === 'technical' ? `<p>Use the local synthetic dataset, not a production database. ${A('sql', 'Open SQL lab')}</p><pre>${E(l.sql)}</pre>${A('sql/' + id, 'Open this query in SQL lab', 'button primary')}` : `<p>${l.type === 'intro' ? 'Follow the example in order.' : l.type === 'consulting' ? 'Agree the business scope, owners and test environment before applying the guidance.' : 'Before starting, confirm the relevant organization, authorized role, and referenced master data. Use the documented screen for your release.'}</p><ol class="steps">${l.walkthrough.map(x => `<li>${E(x)}</li>`).join('')}</ol>`}</section>`
@@ -1230,13 +1239,16 @@ $('mobileNavBackdrop')?.addEventListener('click', () => setMobileNav(false));
 $('topnav')?.addEventListener('click', e => { if (e.target.closest('a')) setMobileNav(false); });
 window.addEventListener('hashchange', route);
 
-Promise.all(['curriculum.json', 'catalog.json', 'extended.json', 'enrichment.json', 'code_meta.json', 'quizzes.json', 'introduction.json'].map(p => fetch(p).then(r => { if (!r.ok) throw Error('Unable to load ' + p); return r.json(); })))
-  .then(([l, c, x, en, cm, qz, intro]) => {
+Promise.all(['curriculum.json', 'catalog.json', 'extended.json', 'enrichment.json', 'code_meta.json', 'quizzes.json', 'introduction.json', 'lesson-diagrams.json'].map(p => fetch(p).then(r => { if (!r.ok) throw Error('Unable to load ' + p); return r.json(); })))
+  .then(([l, c, x, en, cm, qz, intro, diagrams]) => {
     lessons = [...intro.map(item => ({
       ...item, module: 'Introduction to EAM', level: 'Beginner', type: 'intro',
       source: l.find(lesson => lesson.id === item.reference).source
     })), ...l]; catalog = c; extended = x; enrichment = en; codeMeta = cm; quizzes = qz;
-    for (const a of lessons) (groups[a.module] ??= []).push(a);
+    for (const lesson of lessons) {
+      lesson.diagram = diagrams[lesson.id];
+      (groups[lesson.module] ??= []).push(lesson);
+    }
     // Remove loading placeholder before first route render
     const ls = $('loadingState');
     if (ls) ls.remove();

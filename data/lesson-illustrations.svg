@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg">
+  <symbol id="pump" viewBox="0 0 100 52">
+    <g fill="#dcebf4" stroke="#355f7a" stroke-width="2.5" stroke-linejoin="round">
+      <path d="M6 25h22v10H6zM37 17V5h20v7H46v7M27 44l6-11h11l7 11z"/>
+      <circle cx="38" cy="28" r="13"/><circle cx="38" cy="28" r="5"/>
+      <path d="M51 25h8v7h-8zM59 18h27l7 7v12H59zM64 22v10m6-10v10m6-10v10M17 45h78"/>
+    </g>
+  </symbol>
+  <symbol id="stock" viewBox="0 0 100 52">
+    <g fill="#d9ebdf" stroke="#33634d" stroke-width="2"><path d="M12 20l15-7 15 7v18l-15 7-15-7zM12 20l15 7 15-7m-15 7v18M49 15l15-7 15 7v18l-15 7-15-7zM49 15l15 7 15-7m-15 7v18"/></g>
+  </symbol>
+  <symbol id="gauge" viewBox="0 0 100 52">
+    <path d="M25 41a25 25 0 1 1 50 0z" fill="#daeaf4" stroke="#355f7a" stroke-width="2.5"/>
+    <path d="M29 32l5 1m1-14 4 4m11-10v6m15 0-4 4m10 9-5 1M50 38l10-15" fill="none" stroke="#355f7a" stroke-width="2.5"/>
+    <circle cx="50" cy="38" r="3" fill="#355f7a"/>
+  </symbol>
+</svg>
