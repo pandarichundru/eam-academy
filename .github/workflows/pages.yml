@@ -30,7 +30,7 @@ jobs:
       # Inject build hash into service worker + style link
       - name: Stamp build hash
         run: |
-          sed -i "s/const version = prefix + '1';/const version = prefix + '$GITHUB_SHA';/" dist/sw.js
+          sed -i "s/const version = prefix + '[^']*';/const version = prefix + '$GITHUB_SHA';/" dist/sw.js
           sed -i "s/style.css?v=BUILD_HASH/style.css?v=${{ github.sha }}/g" dist/*.html dist/learn/**/index.html 2>/dev/null || true
           sed -i "s/style.css?v=436551215215/style.css?v=${{ github.sha }}/g" dist/*.html 2>/dev/null || true
 
