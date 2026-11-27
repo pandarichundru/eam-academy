@@ -10,11 +10,6 @@ let lessons = [], catalog = {}, extended = {}, enrichment = {}, codeMeta = {}, q
 let done = read('done', []), marks = read('marks', []), notes = read('notes', {}), quizState = read('quiz', {}), sqlHist = read('sqlhist', []);
 let generation = 0;
 
-const nav = [
-  ['home','Home'], ['learn','Curriculum'], ['practice','SQL Exercises'], ['workshops','Workshops'], ['sql-course','SQL lab'],
-  ['reference','Reference'], ['progress','My learning']
-];
-
 const roles = {
   'Beginner': ['Introduction to EAM', 'Fundamentals', 'Equipment management', 'Work management'],
   'Maintenance technician': ['Fundamentals', 'Equipment management', 'Work management', 'Inspection, safety and calibration'],
@@ -163,15 +158,19 @@ function findLessonByTitle(t) {
 }
 
 function renderNav(route, id) {
-  const active = route === 'lesson' || route === 'module' ? 'learn'
-    : route === 'doc' || route === 'search' || route === 'glossary' || route === 'fields' || route === 'topics' ? 'reference'
-      : route === 'sql' ? 'sql-course' : route === 'crosswalk' || route === 'tables' || route === 'table' || route === 'er' || route === 'triggers' || route === 'procedures' || route === 'codes' || route === 'code' ? 'technical'
-        : route === 'path' ? 'paths' : route;
-  $('technicalNav').classList.toggle('active', active === 'technical');
-  if (active === 'technical') $('technicalNav').setAttribute('aria-current','page');
-  else $('technicalNav').removeAttribute('aria-current');
-  $('navLinks').innerHTML = nav.map(([r, t]) => A(r, t, (r === active || (r === 'workshops' && ['workshop','pump','flows'].includes(route)) || (r === 'sql-course' && route === 'sql') || (r === 'practice' && route === 'exercise') || (r === 'learn' && ['paths','path','assess','coverage'].includes(route))) ? 'active' : '')).join('');
-  $('topnav').querySelector('.active')?.setAttribute('aria-current', 'page');
+  const sections = {
+    learn: ['lesson','module','paths','path','assess','coverage'],
+    workshops: ['workshop','pump','flows'],
+    reference: ['doc','search','glossary','fields','topics'],
+    'sql-course': ['sql'],
+    technical: ['crosswalk','tables','table','er','triggers','procedures','codes','code'],
+    practice: ['exercise']
+  };
+  const section = Object.keys(sections).find(key => sections[key].includes(route)) || route;
+  for (const link of $('topnav').querySelectorAll('a')) {
+    if (link.hash === '#' + section) link.setAttribute('aria-current','page');
+    else link.removeAttribute('aria-current');
+  }
   const selected = lessons.find(l => l.id === id);
   const c = codeMeta.counts || {};
   $('side').innerHTML = '<div class="eyebrow">Course curriculum</div>'
