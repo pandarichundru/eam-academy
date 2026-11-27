@@ -2947,78 +2947,29 @@ footer {
   margin-top: 1.5rem;
 }
 
-.record-map {
-  margin: var(--s-4) 0;
+/* Enhanced Table Dictionary & Key/FK Explanations */
+.table-sub {
+  font-size: 12px;
+  line-height: 1.35;
+  margin-top: 2px;
 }
-.record-map figcaption {
-  font-weight: 600;
-  margin-bottom: var(--s-3);
+.fk-item {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
 }
-.record-map dl {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
-  gap: var(--s-2);
-  margin: 0;
+.fk-item:last-child {
+  border-bottom: 0;
 }
-.record-map dl > div {
-  padding: var(--s-4);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-top: 3px solid var(--text-secondary);
-  border-radius: var(--r-xs);
+.fk-explain {
+  font-size: 12.5px;
+  line-height: 1.4;
+  margin-top: 3px;
 }
-.record-map dt { font-weight: 600; }
-.record-map dd { margin: var(--s-2) 0 0; }
-
-/* Lesson figures use arrows for sequence and plain connectors for membership. */
-.lesson-slide {
-  container-type: inline-size;
-  margin: 1.5rem 0;
-  padding: clamp(1rem, 3vw, 2rem);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  color: #192f47;
-  background: #f1f6fb;
-  --wire: #557fa2;
+.col-dict-table td, .col-dict-table th {
+  vertical-align: top;
 }
-.lesson-slide figcaption { font-size: 1.18rem; font-weight: 650; margin-bottom: 1.25rem; }
-.lesson-slide ol, .lesson-slide ul, .lesson-slide dl { margin: 0; padding: 0; list-style: none; }
-.slide-flow, .slide-pair { display: flex; align-items: stretch; gap: 1.65rem; }
-.slide-flow li, .slide-tree li, .slide-tree strong, .slide-pair > div {
-  position: relative; padding: .8rem; background: white; border: 1px solid #a9c2d6;
-  border-radius: 7px; text-align: center; overflow-wrap: anywhere;
+.col-explain {
+  font-size: 13px;
+  line-height: 1.45;
+  min-width: 240px;
 }
-.slide-flow li, .slide-pair > div { flex: 1 1 0; }
-.slide-flow li { display: grid; align-content: center; }
-.slide-flow li:not(:last-child)::after {
-  content: '→'; color: var(--wire); position: absolute; left: 100%; top: 50%;
-  width: 1.65rem; line-height: 1; transform: translateY(-50%);
-}
-.slide-tree { display: grid; grid-template-columns: 1fr 1.4fr; align-items: center; }
-.slide-tree strong { background: #dceaf5; margin-right: 1rem; }
-.slide-tree ul { display: grid; }
-.slide-tree li { margin: .25rem 0 .25rem 1rem; }
-.slide-tree strong::after, .slide-tree li::before {
-  content: ''; position: absolute; top: 50%; width: 1rem; border-top: 2px solid var(--wire);
-}
-.slide-tree strong::after { left: 100%; }
-.slide-tree li::before { right: 100%; }
-.slide-tree li::after {
-  content: ''; position: absolute; right: calc(100% + 1rem - 1px); top: -.4rem;
-  bottom: -.4rem; border-left: 2px solid var(--wire);
-}
-.slide-tree li:first-child::after { top: 50%; }
-.slide-tree li:last-child::after { bottom: 50%; }
-.slide-pair { gap: .8rem; }
-.slide-pair dt { color: #49637a; font-size: .9rem; }
-.slide-pair dd { margin: .4rem 0 0; font-weight: 650; font-size: 1.12rem; }
-.slide-pair > div:last-child { border-top: 3px solid #457496; }
-@container (max-width: 540px) {
-  .slide-flow { flex-direction: column; }
-  .slide-flow li:not(:last-child)::after {
-    content: '↓'; top: 100%; left: 50%; width: auto; height: 1.65rem;
-    display: grid; place-items: center; transform: translateX(-50%);
-  }
-}
-.slide-icon { display: block; width: 5.5rem; height: 3rem; margin: .35rem auto; }
-.lesson-slide > p { margin: 1rem 0 0; color: #324e65; font-size: .95rem; }

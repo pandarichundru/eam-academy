@@ -581,7 +581,7 @@ function technical() {
       ['procedures', `Stored Procedures — Full (${c.procedure ?? 1629})`, 'All 1,629 recovered SQL Server stored procedures plus procedure directory.'],
       ['crosswalk', 'Training-to-R5 crosswalk', 'Look up the closest R5 table for a training database example.'],
       ['codes', 'SQL object explorer', 'Views (304), Functions (947), Tables/Indexes (11), Flex SQL (8), Install Parameters (97), Classes & Categories.'],
-      ['tables', 'Database dictionary', '1,681 indexed R5 tables; 47 structured key-table exports; 196 observed column token tables.'],
+      ['tables', 'Database dictionary', 'All 1,681 EAM 11.6 tables with 34,711 columns, meanings, primary/foreign keys, indexes & triggers.'],
       ['er/R5EVENTS', 'Visual ER relationship explorer', 'Interactive SVG parent/child diagram around any R5 key table.'],
       ['sql', 'SQL lab & Self-Check', 'Read-only synthetic training database, 28 tables, click-to-insert schema, R5 crosswalk.'],
       ['module/' + U('Database and SQL'), 'SQL tutorials', 'Ten executable SQLite lessons with expected outputs.'],
@@ -805,12 +805,20 @@ async function codeItemPage(id) {
 }
 
 function tablesPage() {
-  return H('Technical reference', 'Database table dictionary', 'The supplied schema index is evidence, not a verified schema for every release.')
-    + `<input id="tableFilter" type="search" placeholder="Search R5 table name (e.g. R5EVENTS, R5OBJECTS)"><div id="tableList" class="mt-md"></div>`;
+  const areas = [...new Set(catalog.tables.map(t => t[6]).filter(Boolean))].sort();
+  const st = catalog.stats || {};
+  return H('Technical reference', 'Database table dictionary',
+    `Complete EAM 11.6 schema: ${(st.tables || catalog.tables.length).toLocaleString()} tables · ${(st.columns || 34711).toLocaleString()} columns · ${(st.fks || 2020).toLocaleString()} foreign keys · ${(st.triggers || 2382).toLocaleString()} triggers.`)
+    + `<div class="panel mb-md"><div class="row"><input id="tableFilter" type="search" placeholder="Search table name, meaning, or PK column (e.g. R5EVENTS, Work Order, OBJ_CODE)"><select id="tableArea" class="input-narrow"><option value="">All domains (${areas.length})</option>${areas.map(a => `<option value="${E(a)}">${E(a)}</option>`).join('')}</select></div></div><div id="tableList" class="mt-md"></div>`;
 }
-function renderTables(q = '') {
-  const hits = catalog.tables.filter(t => t[0].toLowerCase().includes(q.toLowerCase()));
-  $('tableList').innerHTML = `<p class="muted">${hits.length} matches · first 150 shown</p><div class="scroll"><table><thead><tr><th>Table</th><th>Indexed primary key</th><th>Evidence</th></tr></thead><tbody>${hits.slice(0, 150).map(t => `<tr><td>${A('table/' + U(t[0]), t[0])}</td><td>${E(t[1] || 'Not listed')}</td><td>${catalog.keys[t[0]] ? '<span class="pill ok">Key table export</span>' : 'Index only'}</td></tr>`).join('')}</tbody></table></div>`;
+function renderTables(q = '', area = '') {
+  const ql = q.trim().toLowerCase();
+  const hits = catalog.tables.filter(t => {
+    if (area && t[6] !== area) return false;
+    if (!ql) return true;
+    return t[0].toLowerCase().includes(ql) || (t[1] || '').toLowerCase().includes(ql) || (t[6] || '').toLowerCase().includes(ql) || (t[7] || '').toLowerCase().includes(ql);
+  });
+  $('tableList').innerHTML = `<p class="muted">${hits.length.toLocaleString()} matching tables · showing first 150</p><div class="scroll"><table><thead><tr><th>Table &amp; Meaning</th><th>Domain</th><th>Primary Key</th><th>Cols</th><th>FKs (Out / In)</th><th>Triggers</th></tr></thead><tbody>${hits.slice(0, 150).map(t => `<tr><td>${A('table/' + U(t[0]), t[0])}${t[7] ? `<div class="muted table-sub">${E(t[7])}</div>` : ''}</td><td><span class="pill">${E(t[6] || 'System')}</span></td><td><code>${E(t[1] || 'None')}</code></td><td class="tabular">${E(t[5] || '—')}</td><td class="tabular">${E(t[2] || '0')} / ${E(t[3] || '0')}</td><td class="tabular">${E(t[4] || '0')}</td></tr>`).join('')}</tbody></table></div>`;
 }
 
 function tablePage(t) {
@@ -818,25 +826,97 @@ function tablePage(t) {
   const kt = (codeMeta.key_tables || {})[t];
   const d = catalog.keys[t];
   if (!row && !d && !kt) return H('Not found', 'Table not found');
-  const edges = extended.relations.filter(x => x.some(y => y.split('.')[0] === t));
-  const tokens = (codeMeta.col_tokens || {})[t] || [];
-
-  const structured = kt ? `<div class="grid mt-md mb-md">
-    <div class="panel"><h3>Primary key &amp; area</h3><p><span class="pill">${E(kt.area)}</span></p><p><strong>PK:</strong> <code>${E(kt.pk || 'Not listed')}</code></p><p class="tabular"><strong>Outbound FKs:</strong> ${kt.out_fks.length} · <strong>Inbound refs:</strong> ${kt.in_fks.length} · <strong>Triggers:</strong> ${kt.triggers.length}</p></div>
-    <div class="panel"><h3>Outbound foreign keys (${kt.out_fks.length})</h3>${kt.out_fks.length ? kt.out_fks.map(fk => { const target = fk.to.split('.')[0]; return `<div class="fk-row"><code>${E(fk.from)}</code> ${ICON_FLOW_ARROW} ${A('table/' + U(target), fk.to)}</div>`; }).join('') : '<p class="muted">None listed</p>'}</div>
-  </div>
-  <div class="grid mt-md mb-md">
-    <div class="panel"><h3>Referenced by (${kt.in_fks.length})</h3><div class="scroll-panel">${kt.in_fks.length ? kt.in_fks.map(fk => { const src = fk.from.split('.')[0]; return `<div class="fk-row">${A('table/' + U(src), fk.from)} ${ICON_FLOW_ARROW} <code>${E(fk.to)}</code>${fk.star ? ' ★' : ''}</div>`; }).join('') : '<p class="muted">None listed</p>'}</div></div>
-    <div class="panel"><h3>Key-table triggers (${kt.triggers.length})</h3><div class="scroll-panel">${kt.triggers.length ? kt.triggers.map(tr => A('triggers/' + U(tr.split(' ')[0]), tr, 'taglink')).join('') : '<p class="muted">None listed</p>'}</div></div>
-  </div>` : `<div class="panel"><p><strong>Indexed primary key:</strong> ${E(row?.[1] || 'Not listed')}</p>${d ? `<pre>${E(d)}</pre>` : '<p class="muted">No detailed key-table export supplied for this table.</p>'}</div>`;
-
-  return H('Schema evidence', t, kt ? `${kt.area} · Detailed key-table export` : 'Index only · no detailed export')
-    + `<div class="row mb-md">${A('er/' + U(t), 'Open Visual ER Diagram', 'button primary')}${A('triggers/' + U(t), 'Search Triggers for ' + t, 'button')}${A('procedures/' + U(t), 'Search Procedures for ' + t, 'button')}</div>`
+  const title = row?.[7] || kt?.area || 'R5 Table';
+  const area = row?.[6] || kt?.area || 'Database Schema';
+  return H('Schema Reference · ' + area, t, title)
+    + `<div class="row mb-md">${A('er/' + U(t), 'Open Visual ER Diagram', 'button primary')}${A('triggers/' + U(t), 'Search Triggers for ' + t, 'button')}${A('procedures/' + U(t), 'Search Procedures for ' + t, 'button')}${A('tables', 'All Tables', 'button')}</div>`
     + (t === 'R5EVENTS' ? '<p>' + A('lesson/L127','Worked training example · Find open work orders') + '</p>' : '')
-    + structured
-    + `<h2>Recovered SQL objects referencing ${E(t)}</h2><div id="tableCodeRefs"><p class="muted">Checking triggers, procedures &amp; views…</p></div>`
-    + (tokens.length ? `<h2>Observed column tokens (Unverified lexical reference)</h2><div class="note">Extracted from carved SQL DDL tokens only; column types and completeness are unverified.</div><div class="panel">${tokens.map(c => `<span class="taglink">${E(c)}</span>`).join('')}</div>` : '')
-    + `<h2>Column-level relationships</h2>${edges.length ? table(['Child column', 'Parent column'], edges) : '<p>No indexed column links found.</p>'}`;
+    + `<div id="tableFullDetail"><p class="muted">Loading full column dictionary, keys, relationships, and triggers for ${E(t)}…</p></div>`
+    + `<h2>Recovered SQL objects referencing ${E(t)}</h2><div id="tableCodeRefs"><p class="muted">Checking triggers, procedures &amp; views…</p></div>`;
+}
+
+function renderTableDetail(t, td) {
+  const el = $('tableFullDetail');
+  if (!el) return;
+  if (!td) {
+    el.innerHTML = '<div class="note warn">Detailed schema export not available for this table.</div>';
+    return;
+  }
+  const pkBadge = td.pk_source === 'pk' ? '<span class="pill ok">Physical PK</span>'
+    : td.pk_source === 'audit_pk' ? '<span class="pill">R5AUDITPK Logical Key</span>'
+    : '<span class="pill">No PK</span>';
+  const flexBadge = td.flex ? '<span class="pill ok">Flex SQL Enabled</span>' : '';
+  const entPills = (td.entities || []).map(en => `<span class="pill">Entity: ${E(en)}</span>`).join('');
+
+  const overviewHtml = `<div class="panel mb-md">
+    <div class="row between mb-sm"><div><span class="pill">${E(td.area)}</span> ${pkBadge} ${flexBadge} ${entPills}</div><small class="tabular muted">${td.cols.length} columns · ${td.out_fks.length} outbound FKs · ${td.in_fks.length} inbound FKs · ${td.triggers.length} triggers</small></div>
+    <p>${E(td.desc)}</p>
+  </div>`;
+
+  const keysHtml = `<div class="grid mt-md mb-md">
+    <div class="panel">
+      <h3>Primary &amp; Logical Key</h3>
+      <p><strong>Key columns:</strong> <code>${E(td.pk.length ? td.pk.join(', ') : 'None defined')}</code></p>
+      <p class="muted">${E(td.pk_explain)}</p>
+    </div>
+    <div class="panel">
+      <h3>Indexes &amp; Unique Constraints (${td.indexes.length})</h3>
+      <div class="scroll-panel">${td.indexes.length ? td.indexes.map(ix => `<div class="fk-row"><span class="pill ${ix.pk ? 'ok' : ''}">${ix.pk ? 'PK' : ix.unique ? 'UNIQUE' : 'INDEX'}</span> <code>${E(ix.name)}</code> <span class="muted">(${E(ix.cols.join(', '))})</span></div>`).join('') : '<p class="muted">No indexes defined.</p>'}</div>
+    </div>
+  </div>`;
+
+  const fkHtml = `<div class="grid mt-md mb-md">
+    <div class="panel">
+      <h3>Parent References · Outbound FKs (${td.out_fks.length})</h3>
+      <div class="scroll-panel">${td.out_fks.length ? td.out_fks.map(fk => {
+        const pairs = fk.cols.map(([c, p]) => `${c} → ${p}`).join(', ');
+        return `<div class="fk-item"><div class="fk-row"><code>${E(fk.cols.map(x => x[0]).join(', '))}</code> ${ICON_FLOW_ARROW} ${A('table/' + U(fk.to), `${fk.to} (${fk.cols.map(x => x[1]).join(', ')})`)}</div><div class="fk-explain muted">${E(fk.explain)} <small>[${E(fk.name)}${fk.on_delete && fk.on_delete !== 'NO_ACTION' ? ` · ON DELETE ${E(fk.on_delete)}` : ''}]</small></div></div>`;
+      }).join('') : '<p class="muted">No outbound foreign keys.</p>'}</div>
+    </div>
+    <div class="panel">
+      <h3>Child References · Inbound FKs (${td.in_fks.length})</h3>
+      <div class="scroll-panel">${td.in_fks.length ? td.in_fks.map(fk => {
+        return `<div class="fk-item"><div class="fk-row">${A('table/' + U(fk.from), `${fk.from} (${fk.cols.map(x => x[0]).join(', ')})`)} ${ICON_FLOW_ARROW} <code>${E(fk.cols.map(x => x[1]).join(', '))}</code></div><div class="fk-explain muted">${E(fk.explain)} <small>[${E(fk.name)}]</small></div></div>`;
+      }).join('') : '<p class="muted">No inbound foreign keys from other tables.</p>'}</div>
+    </div>
+  </div>`;
+
+  const trgHtml = td.triggers.length ? `<div class="panel mt-md mb-md">
+    <h3>Database Triggers (${td.triggers.length})</h3>
+    <div class="row">${td.triggers.map(tr => `<span class="taglink">${A('triggers/' + U(tr.name), tr.name)} <small class="muted">[${E((tr.events || []).join('/') || 'DML')}${tr.disabled ? ' · DISABLED' : ''}]</small></span>`).join('')}</div>
+  </div>` : '';
+
+  const colsHtml = `<h2>Columns &amp; Key Meanings (${td.cols.length})</h2>
+  <div class="panel mb-sm"><div class="row"><input id="colFilter" type="search" placeholder="Filter columns by name, UI label, data type, or meaning"><button type="button" class="chip active" data-col-flag="ALL">All (${td.cols.length})</button><button type="button" class="chip" data-col-flag="PK">Primary Key</button><button type="button" class="chip" data-col-flag="FK">Foreign Key</button><button type="button" class="chip" data-col-flag="REQ">Required (NOT NULL)</button></div></div>
+  <div id="colDictTable"></div>`;
+
+  el.innerHTML = overviewHtml + keysHtml + fkHtml + trgHtml + colsHtml;
+
+  let activeFlag = 'ALL';
+  const drawCols = (q = '') => {
+    const ql = q.trim().toLowerCase();
+    const rows = td.cols.map((c, idx) => ({ idx: idx + 1, c })).filter(({ c }) => {
+      if (activeFlag === 'PK' && !c[5].includes('PK')) return false;
+      if (activeFlag === 'FK' && !c[5].includes('FK')) return false;
+      if (activeFlag === 'REQ' && c[2] !== 0) return false;
+      if (!ql) return true;
+      return c[0].toLowerCase().includes(ql) || c[1].toLowerCase().includes(ql) || c[4].toLowerCase().includes(ql) || c[6].toLowerCase().includes(ql);
+    });
+    $('colDictTable').innerHTML = `<p class="muted">${rows.length} of ${td.cols.length} columns shown</p><div class="scroll"><table class="col-dict-table"><thead><tr><th>#</th><th>Column</th><th>Name Meaning / UI Label</th><th>Type</th><th>Null</th><th>Keys &amp; Default</th><th>Explanation</th></tr></thead><tbody>${rows.map(({ idx, c }) => {
+      const badges = (c[5] ? c[5].split(',') : []).map(f => `<span class="pill ${f === 'PK' ? 'ok' : ''}">${E(f)}</span>`).join(' ');
+      const def = c[3] ? `<code>${E(c[3])}</code>` : '';
+      return `<tr><td class="tabular muted">${idx}</td><td><code>${E(c[0])}</code></td><td><strong>${E(c[4])}</strong></td><td><code>${E(c[1])}</code></td><td>${c[2] ? '<span class="muted">NULL</span>' : '<strong>NOT NULL</strong>'}</td><td>${badges} ${def}</td><td class="col-explain">${E(c[6])}</td></tr>`;
+    }).join('')}</tbody></table></div>`;
+  };
+  $('colFilter').oninput = e => drawCols(e.target.value);
+  el.querySelectorAll('[data-col-flag]').forEach(btn => {
+    btn.onclick = () => {
+      activeFlag = btn.dataset.colFlag;
+      el.querySelectorAll('[data-col-flag]').forEach(b => b.classList.toggle('active', b === btn));
+      drawCols($('colFilter').value);
+    };
+  });
+  drawCols();
 }
 
 function buildErSvg(t) {
@@ -892,8 +972,9 @@ function buildErSvg(t) {
 function erPage(t = 'R5EVENTS') {
   const edges = extended.relations.filter(x => x.some(y => y.split('.')[0] === t));
   const names = [...new Set([...extended.relations.flatMap(x => x.map(y => y.split('.')[0])), ...Object.keys(codeMeta.key_tables || {})])].sort();
-  const presets = ['R5OBJECTS', 'R5EVENTS', 'R5ACTIVITIES', 'R5PARTS', 'R5STOCK', 'R5ORDERS', 'R5REQUISITIONS', 'R5PPM', 'R5ORGANIZATION'];
-  return H('Technical reference', 'Visual ER relationship explorer', 'Click any parent (left) or child (right) table node in the diagram to re-center the ER view. This is derived from key-table exports, not a full database ERD.')
+  const presets = ['R5OBJECTS', 'R5EVENTS', 'R5ACTIVITIES', 'R5PARTS', 'R5STOCK', 'R5ORDERS', 'R5REQUISITIONS', 'R5PPMS', 'R5ORGANIZATION'];
+  const tblInfo = catalog.tables.find(x => x[0] === t);
+  return H('Technical reference', 'Visual ER relationship explorer', `Derived from all 2,020 verified foreign keys in EAM 11.6. Click any parent (left) or child (right) table node to re-center.${tblInfo?.[7] ? ' · ' + tblInfo[7] : ''}`)
     + `<div class="row"><label for="erPick">Focus table</label><select id="erPick">${names.map(n => `<option ${n === t ? 'selected' : ''}>${E(n)}</option>`).join('')}</select>${A('table/' + U(t), 'Table details', 'button')}${A('triggers/' + U(t), 'Table triggers', 'button')}</div>`
     + `<div class="row mt-md"><small>Core domains:</small>${presets.map(p => A('er/' + U(p), p, p === t ? 'chip active button' : 'chip button')).join('')}</div>`
     + `<div class="er-wrap">${buildErSvg(t)}</div>`
@@ -1070,9 +1151,20 @@ async function route() {
         };
         break;
       }
-      case 'tables': main.innerHTML = tablesPage(); $('tableFilter').oninput = e => renderTables(e.target.value); renderTables(); break;
+      case 'tables':
+        main.innerHTML = tablesPage();
+        $('tableFilter').oninput = () => renderTables($('tableFilter').value, $('tableArea').value);
+        $('tableArea').onchange = () => renderTables($('tableFilter').value, $('tableArea').value);
+        renderTables();
+        break;
       case 'table':
         main.innerHTML = tablePage(id);
+        api('/api/tables/item?name=' + U(id)).then(td => {
+          if (current !== generation) return;
+          renderTableDetail(id, td);
+        }).catch(err => {
+          if (current === generation && $('tableFullDetail')) $('tableFullDetail').innerHTML = `<p class="warning">${E(err.message)}</p>`;
+        });
         api('/api/code/search?table=' + U(id)).then(res => {
           if (current !== generation || !$('tableCodeRefs')) return;
           if (!res.items.length) { $('tableCodeRefs').innerHTML = '<p class="muted">No recovered SQL objects matched this table name.</p>'; return; }

@@ -1,4 +1,5 @@
 const collections = new Map();
+let tableMapPromise = null;
 async function asset(path) {
   const res = await fetch(path);
   if (!res.ok) throw new Error('Could not load ' + path);
@@ -14,11 +15,22 @@ function library(kind) {
   }
   return collections.get(kind);
 }
+function tableIndex() {
+  if (!tableMapPromise) {
+    tableMapPromise = library('tables').then(rows => new Map(rows.map(r => [r.name, r])))
+      .catch(err => { tableMapPromise = null; throw err; });
+  }
+  return tableMapPromise;
+}
 async function academyAPI(path, opts) {
   const url = new URL(path, location.href);
   const param = key => url.searchParams.get(key) || '';
   if (url.pathname === '/api/sql') return runTrainingQuery(JSON.parse(opts.body).sql);
   if (url.pathname === '/api/schema') return asset('data/schema.json');
+  if (url.pathname === '/api/tables/item') {
+    const map = await tableIndex();
+    return map.get(param('name').toUpperCase()) || null;
+  }
   const isCode = url.pathname.includes('/code/');
   const rows = await library(isCode ? 'code' : 'docs');
   if (url.pathname.endsWith('/item') || url.pathname.endsWith('/doc')) {
