@@ -5,7 +5,7 @@ onmessage = async ({data}) => {
   let db;
   try {
     if (typeof sql !== 'string' || sql.length > 20000 || !/^(?:\s|--[^\n]*(?:\n|$)|\/\*[\s\S]*?\*\/)*(select|with)\b/i.test(sql)) throw Error('Enter one SELECT or WITH query.');
-    const [engine,file] = await Promise.all([initSqlJs(),fetch('data/' + dataset + '.db')]);
+    const [engine,file] = await Promise.all([initSqlJs(),fetch('data/' + dataset + '.db', {cache: 'no-cache'})]);
     if (!file.ok) throw Error('Training data unavailable.');
     db = new engine.Database(new Uint8Array(await file.arrayBuffer()));
     db.run('PRAGMA query_only=ON');

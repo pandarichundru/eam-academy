@@ -1439,7 +1439,7 @@ $('mobileNavBackdrop')?.addEventListener('click', () => setMobileNav(false));
 $('topnav')?.addEventListener('click', e => { if (e.target.closest('a')) setMobileNav(false); });
 window.addEventListener('hashchange', route);
 
-Promise.all(['curriculum.json', 'catalog.json', 'extended.json', 'enrichment.json', 'code_meta.json', 'quizzes.json', 'introduction.json', 'lesson-diagrams.json'].map(p => fetch(p).then(r => { if (!r.ok) throw Error('Unable to load ' + p); return r.json(); })))
+Promise.all(['curriculum.json', 'catalog.json', 'extended.json', 'enrichment.json', 'code_meta.json', 'quizzes.json', 'introduction.json', 'lesson-diagrams.json'].map(p => fetch(p, {cache: 'no-cache'}).then(r => { if (!r.ok) throw Error('Unable to load ' + p); return r.json(); })))
   .then(([l, c, x, en, cm, qz, intro, diagrams]) => {
     lessons = [...intro.map(item => ({
       ...item, module: 'Introduction to EAM', level: 'Beginner', type: 'intro',
