@@ -799,7 +799,7 @@ async function route() {
               api('/api/sql', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sql: l.sql }) }),
             ]);
             const norm = r => JSON.stringify(r.rows);
-            const ok = got.columns.length === exp.columns.length && norm(got) === norm(exp);
+            const ok = !got.truncated && !exp.truncated && got.columns.length === exp.columns.length && norm(got) === norm(exp);
             msg.innerHTML = ok
               ? `<div class="note ok">✓ Output matches expected result (${exp.rows.length} rows, ${exp.columns.length} columns).</div>`
               : `<div class="note warn">Result differs: got ${got.rows.length} rows × ${got.columns.length} cols, expected ${exp.rows.length} rows × ${exp.columns.length} cols. Check joins, filters, or ORDER BY.</div>`;
@@ -846,7 +846,8 @@ async function route() {
         };
         $('resetProgress').onclick = () => {
           if (!confirm('Clear all local completion, bookmarks, notes, quiz scores, and SQL practice history?')) return;
-          done = []; marks = []; notes = {}; quizState = {};
+          done = []; marks = []; notes = {}; quizState = {}; sqlHist = [];
+          write('sqlhist', []);
           write('practiceSolved',[]); write('practiceDrafts',{}); write('activePath',''); write('lastLesson','');
           write('done', done); write('marks', marks); write('notes', notes); write('quiz', quizState);
           route();
@@ -856,7 +857,7 @@ async function route() {
         main.innerHTML = H('Not found', 'This page is no longer available', 'Functional simulator and old competition sections were removed.') + A('home', 'Return home', 'button');
     }
     if (current === generation) {
-      if (r === 'module') main.insertAdjacentHTML('afterbegin','<p class="workshop-link">' + A('workshop/' + U(id),'Open the module workshop') + '</p>');
+      if (r === 'module' && workshops.some(w => w.module === id)) main.insertAdjacentHTML('afterbegin','<p class="workshop-link">' + A('workshop/' + U(id),'Open the module workshop') + '</p>');
       const ref = $('refSearch');
       if (ref) ref.onsubmit = e => { e.preventDefault(); location.hash = 'search/' + U($('refQ').value); };
       document.title = (main.querySelector('h1')?.textContent || 'Learning') + ' · EAM Academy';
