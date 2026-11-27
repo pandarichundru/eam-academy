@@ -1,5 +1,6 @@
 const files = [
   "academy.svg",
+  "social-preview.png",
   "app.js",
   "catalog.json",
   "challenges.js",

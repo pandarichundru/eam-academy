@@ -3,18 +3,44 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Independent HxGN and Infor EAM learning academy">
+
+  <!-- Primary meta -->
+  <title>EAM Academy – Free HxGN &amp; Infor EAM Training, SQL Lab &amp; Reference</title>
+  <meta name="description" content="Free independent training for HxGN EAM and Infor EAM: 187 lessons, SQL exercises, technical library, quizzes and offline SQL lab. Not affiliated with Hexagon or Infor.">
   <meta name="theme-color" content="#ffffff">
+  <link rel="canonical" href="https://pandarichundru.github.io/eam-academy/">
+
+  <!-- Open Graph -->
+  <meta property="og:type"        content="website">
+  <meta property="og:url"         content="https://pandarichundru.github.io/eam-academy/">
+  <meta property="og:title"       content="EAM Academy – Free HxGN &amp; Infor EAM Training">
+  <meta property="og:description" content="187 lessons, SQL exercises, technical library, quizzes and an offline SQL lab for HxGN EAM and Infor EAM. Independent resource; not affiliated with Hexagon or Infor.">
+  <meta property="og:image"       content="https://pandarichundru.github.io/eam-academy/social-preview.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:site_name"   content="EAM Academy">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card"        content="summary_large_image">
+  <meta name="twitter:title"       content="EAM Academy – Free HxGN &amp; Infor EAM Training">
+  <meta name="twitter:description" content="187 lessons, SQL exercises, technical library, quizzes and an offline SQL lab for HxGN EAM and Infor EAM.">
+  <meta name="twitter:image"       content="https://pandarichundru.github.io/eam-academy/social-preview.png">
+
+  <!-- PWA + icons -->
   <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="academy.svg">
-  <title>EAM Academy</title>
+  <link rel="icon" href="academy.svg" type="image/svg+xml">
+
+  <!-- Fonts (self-hosted WOFF2 preferred; Google Fonts as fallback until Phase 3) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&display=swap">
+
   <link rel="stylesheet" href="style.css?v=436551215215">
 </head>
 <body>
+  <!-- Skip navigation -->
   <a class="skip" href="#main">Skip to content</a>
+
   <header class="site-header">
     <a class="brand" href="#home">
       <span class="brandmark" aria-hidden="true">
@@ -48,7 +74,9 @@
       <span>Menu</span>
     </button>
   </header>
+
   <div id="mobileNavBackdrop" class="mobile-nav-backdrop" aria-hidden="true"></div>
+
   <div class="subbar">
     <button id="menu" type="button" aria-controls="side" aria-label="Toggle curriculum" aria-expanded="false">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -69,17 +97,36 @@
       <button type="submit">Search</button>
     </form>
   </div>
+
   <div class="layout">
     <div id="sideBackdrop" class="side-backdrop" aria-hidden="true"></div>
     <aside id="side" aria-label="Curriculum"></aside>
-    <main id="main" tabindex="-1"><p class="muted">Loading academy…</p></main>
+    <main id="main" tabindex="-1">
+      <!-- JS-off fallback -->
+      <noscript>
+        <div style="max-width:48rem;margin:4rem auto;padding:2rem;font-family:system-ui,sans-serif;border:1px solid #e5e7eb;border-radius:8px;">
+          <h1 style="margin-top:0">EAM Academy requires JavaScript</h1>
+          <p>This site is an interactive learning tool that uses JavaScript for routing, search, the SQL lab, quizzes, and progress tracking. JavaScript is currently disabled in your browser.</p>
+          <p>Please enable JavaScript to access the full curriculum of 187 EAM lessons, 110 SQL exercises, and the technical reference library.</p>
+          <p><a href="https://github.com/pandarichundru/eam-academy" style="color:#2563eb">View the source on GitHub</a></p>
+        </div>
+      </noscript>
+      <!-- Loading state; replaced by JS -->
+      <div id="loadingState" aria-live="polite" aria-label="Academy status">
+        <p class="muted" id="loadingMsg">Loading academy…</p>
+      </div>
+    </main>
   </div>
+
   <footer>
     <div class="footer-inner">
       <span>Independent training resource · Local-first · Not affiliated with Hexagon or Infor</span>
+      <span class="footer-sep">·</span>
+      <span class="footer-trademark">HxGN EAM and Infor EAM are trademarks of their respective owners. This site is an independent educational resource with no commercial relationship to Hexagon or Infor.</span>
       <span class="footer-keys"><kbd>⌘K</kbd> Search <span class="sep">·</span> <kbd>/</kbd> Quick focus</span>
     </div>
   </footer>
+
   <nav id="mobileBottomNav" class="mobile-bottom-nav" aria-label="Mobile quick navigation">
     <a href="#home">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></svg>
@@ -102,6 +149,7 @@
       <span>More</span>
     </button>
   </nav>
+
   <script src="query-client.js"></script>
   <script src="challenges.js"></script>
   <script src="library.js"></script>

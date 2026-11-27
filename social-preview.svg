@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#0f172a"/>
+
+  <!-- Accent bar -->
+  <rect x="0" y="0" width="8" height="630" fill="#2563eb"/>
+
+  <!-- Grid pattern (subtle) -->
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#ffffff" stroke-width="0.3" stroke-opacity="0.06"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+
+  <!-- Logo icon -->
+  <g transform="translate(80, 80)">
+    <rect x="0" y="0" width="56" height="56" rx="10" fill="#2563eb" fill-opacity="0.15" stroke="#2563eb" stroke-width="1.5"/>
+    <rect x="10" y="10" width="36" height="36" rx="6" fill="none" stroke="#93c5fd" stroke-width="1.5"/>
+    <line x1="17" y1="21" x2="39" y2="21" stroke="#93c5fd" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="17" y1="27.5" x2="33" y2="27.5" stroke="#93c5fd" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="17" y1="34" x2="39" y2="34" stroke="#93c5fd" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+
+  <!-- Brand name -->
+  <text x="152" y="118" font-family="system-ui,-apple-system,sans-serif" font-size="28" font-weight="400" fill="#94a3b8" letter-spacing="0.05em">EAM ACADEMY</text>
+
+  <!-- Main headline -->
+  <text x="80" y="260" font-family="system-ui,-apple-system,sans-serif" font-size="72" font-weight="700" fill="#f8fafc" letter-spacing="-0.02em">Learn EAM</text>
+  <text x="80" y="345" font-family="system-ui,-apple-system,sans-serif" font-size="72" font-weight="700" fill="#f8fafc" letter-spacing="-0.02em">in practice.</text>
+
+  <!-- Sub-headline -->
+  <text x="80" y="415" font-family="system-ui,-apple-system,sans-serif" font-size="28" font-weight="400" fill="#94a3b8">Free independent HxGN &amp; Infor EAM training</text>
+
+  <!-- Stats row -->
+  <g transform="translate(80, 470)">
+    <!-- Stat 1 -->
+    <rect width="200" height="80" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="20" y="30" font-family="system-ui,-apple-system,sans-serif" font-size="30" font-weight="700" fill="#f1f5f9">187</text>
+    <text x="20" y="58" font-family="system-ui,-apple-system,sans-serif" font-size="14" fill="#64748b">Lessons</text>
+
+    <!-- Stat 2 -->
+    <rect x="220" width="200" height="80" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="240" y="30" font-family="system-ui,-apple-system,sans-serif" font-size="30" font-weight="700" fill="#f1f5f9">110</text>
+    <text x="240" y="58" font-family="system-ui,-apple-system,sans-serif" font-size="14" fill="#64748b">SQL Exercises</text>
+
+    <!-- Stat 3 -->
+    <rect x="440" width="200" height="80" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="460" y="30" font-family="system-ui,-apple-system,sans-serif" font-size="30" font-weight="700" fill="#f1f5f9">1,681</text>
+    <text x="460" y="58" font-family="system-ui,-apple-system,sans-serif" font-size="14" fill="#64748b">R5 Tables</text>
+
+    <!-- Stat 4 -->
+    <rect x="660" width="200" height="80" rx="8" fill="#1e293b" stroke="#334155" stroke-width="1"/>
+    <text x="680" y="30" font-family="system-ui,-apple-system,sans-serif" font-size="30" font-weight="700" fill="#2563eb">Free</text>
+    <text x="680" y="58" font-family="system-ui,-apple-system,sans-serif" font-size="14" fill="#64748b">Always</text>
+  </g>
+
+  <!-- URL watermark -->
+  <text x="1120" y="590" text-anchor="end" font-family="system-ui,-apple-system,sans-serif" font-size="18" fill="#475569">pandarichundru.github.io/eam-academy</text>
+</svg>

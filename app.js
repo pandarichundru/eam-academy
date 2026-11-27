@@ -1243,8 +1243,24 @@ Promise.all(['curriculum.json', 'catalog.json', 'extended.json', 'enrichment.jso
       source: l.find(lesson => lesson.id === item.reference).source
     })), ...l]; catalog = c; extended = x; enrichment = en; codeMeta = cm; quizzes = qz;
     for (const a of lessons) (groups[a.module] ??= []).push(a);
+    // Remove loading placeholder before first route render
+    const ls = $('loadingState');
+    if (ls) ls.remove();
     route();
   })
-  .catch(e => { $('main').textContent = 'Unable to load academy. Start the local Python server. ' + e.message; });
+  .catch(e => {
+    const main = $('main');
+    const ls = $('loadingState');
+    if (ls) ls.remove();
+    main.innerHTML = `<div class="error-state" role="alert">
+      <h1>Unable to load EAM Academy</h1>
+      <p>The academy content could not be fetched. This usually means the page was opened directly from the filesystem rather than a local server.</p>
+      <h2>How to run locally</h2>
+      <pre>python3 -m http.server 8000</pre>
+      <p>Then open <a href="http://localhost:8000">localhost:8000</a>.</p>
+      <p class="muted">Technical detail: ${E(e.message)}</p>
+      <p><a class="button" href="https://github.com/pandarichundru/eam-academy/issues/new?template=bug_report.md">Report this issue on GitHub</a></p>
+    </div>`;
+  });
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(() => {});

@@ -11,22 +11,33 @@ concurrency:
   group: pages
   cancel-in-progress: false
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      - run: python3 scripts/check-content.py
-      - uses: actions/configure-pages@v5
-      - name: Stage static site
+
+      # Content validation (must pass before build)
+      - name: Validate content
+        run: python3 scripts/check-content.py
+
+      # Static build: generates /dist with pre-rendered HTML per lesson
+      - name: Build static site
+        run: python3 scripts/build.py
+
+      # Inject build hash into service worker + style link
+      - name: Stamp build hash
         run: |
-          mkdir _site
-          cp -R data *.html *.css *.js *.json *.svg *.webmanifest *.txt *.sql _site/
-          sed -i "s/const version = prefix + '1';/const version = prefix + '$GITHUB_SHA';/" _site/sw.js
+          sed -i "s/const version = prefix + '1';/const version = prefix + '$GITHUB_SHA';/" dist/sw.js
+          sed -i "s/style.css?v=BUILD_HASH/style.css?v=${{ github.sha }}/g" dist/*.html dist/learn/**/index.html 2>/dev/null || true
+          sed -i "s/style.css?v=436551215215/style.css?v=${{ github.sha }}/g" dist/*.html 2>/dev/null || true
+
+      # Upload /dist as the Pages artifact
+      - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: _site
+          path: dist
       - id: deploy
         uses: actions/deploy-pages@v4

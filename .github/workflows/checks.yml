@@ -7,5 +7,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: python3 scripts/check-content.py
-      - run: for file in app.js field-guide.js challenges.js training-worker.js sw.js; do node --check "$file"; done
+
+      # 1. Content integrity: lessons, quizzes, SQL results
+      - name: Validate content
+        run: python3 scripts/check-content.py
+
+      # 2. JSON schema validation
+      - name: Validate JSON structure
+        run: python3 scripts/validate-schemas.py
+
+      # 3. Build test (ensure build runs without error)
+      - name: Test build
+        run: python3 scripts/build.py
+
+      # 4. Link check on built dist
+      - name: Check internal links
+        run: python3 scripts/check-links.py
+
+  js-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Check JS syntax
+        run: |
+          for file in app.js field-guide.js challenges.js training-worker.js sw.js workshops.js library.js query-client.js; do
+            node --check "$file"
+          done
