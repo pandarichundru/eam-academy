@@ -89,6 +89,7 @@ function wirePracticeTask(x) {
       if (issue) { feedback.textContent='The first dataset passed. On a second dataset with changed records: ' + issue; return; }
       const solved=read('practiceSolved',[]);
       if (!solved.includes(x.id)) write('practiceSolved',[...solved,x.id]);
+      logActivity();
       feedback.textContent='Correct on both datasets.';
       if (editor.isConnected) $('practiceState').textContent='Solved';
     } catch(err) { feedback.textContent=err.message; }

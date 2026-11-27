@@ -259,7 +259,7 @@ function quizBlock(qList) {
 function lessonPage(id) {
   const l = lessons.find(v => v.id === id);
   if (!l) return H('Not found', 'Lesson not found');
-  write('lastLesson', l.id);
+  write('lastLesson', l.id); logActivity();
   const activePath = read('activePath','');
   const pathModules = roles[activePath];
   const inPath = Array.isArray(pathModules) && pathModules.includes(l.module);
@@ -828,7 +828,7 @@ async function route() {
       case 'progress':
         main.innerHTML = progressPage();
         $('exportProgress').onclick = () => {
-          const a = document.createElement('a'), url = URL.createObjectURL(new Blob([JSON.stringify({ done, marks, notes, quiz: quizState, practiceSolved: read('practiceSolved',[]), practiceDrafts:read('practiceDrafts',{}) }, null, 2)], { type: 'application/json' }));
+          const a = document.createElement('a'), url = URL.createObjectURL(new Blob([JSON.stringify({ activity: read('activity',[]), lastLesson: read('lastLesson',''), activePath: read('activePath',''), sqlHist, done, marks, notes, quiz: quizState, practiceSolved: read('practiceSolved',[]), practiceDrafts:read('practiceDrafts',{}) }, null, 2)], { type: 'application/json' }));
           a.href = url; a.download = 'eam-learning-progress.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
         };
         $('importFile').onchange = async e => {
@@ -836,6 +836,9 @@ async function route() {
           if (!f) return;
           try {
             const d = JSON.parse(await f.text());
+            if (Array.isArray(d.activity)) write('activity', d.activity.filter(v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)));
+            for (const key of ['lastLesson','activePath']) if (typeof d[key] === 'string') write(key,d[key]);
+            if (Array.isArray(d.sqlHist)) { sqlHist = d.sqlHist.filter(v => typeof v === 'string').slice(0,10); write('sqlhist',sqlHist); }
             if (Array.isArray(d.practiceSolved)) write('practiceSolved',[...new Set(d.practiceSolved.filter(id=>Number.isInteger(id) && id>=1 && id<=100))]);
             if (d.practiceDrafts && typeof d.practiceDrafts==='object') write('practiceDrafts',Object.fromEntries(Object.entries(d.practiceDrafts).filter(([id,sql])=>Number.isInteger(+id) && +id>=1 && +id<=100 && typeof sql==='string' && sql.length<=20000)));
             if (Array.isArray(d.done)) { done = d.done; write('done', done); }
@@ -848,7 +851,7 @@ async function route() {
         $('resetProgress').onclick = () => {
           if (!confirm('Clear all local completion, bookmarks, notes, quiz scores, and SQL practice history?')) return;
           done = []; marks = []; notes = {}; quizState = {}; sqlHist = [];
-          write('sqlhist', []);
+          write('sqlhist', []); write('activity', []);
           write('practiceSolved',[]); write('practiceDrafts',{}); write('activePath',''); write('lastLesson','');
           write('done', done); write('marks', marks); write('notes', notes); write('quiz', quizState);
           route();
@@ -893,7 +896,7 @@ $('main').addEventListener('click', e => {
     const fb = $('qf_' + qid);
     if (!sel) { fb.innerHTML = '<p class="warning">Select an option first.</p>'; return; }
     const ok = Number(sel.value) === q.answer;
-    quizState[qid] = ok;
+    quizState[qid] = ok; logActivity();
     write('quiz', quizState);
     fb.innerHTML = `<div class="note ${ok ? 'ok' : 'warn'}"><strong>${ok ? '✓ Correct.' : 'Not quite.'}</strong> ${E(q.explain)}</div>`;
   }
