@@ -45,15 +45,33 @@ const files = [
 ];
 const prefix = 'eam-academy:' + self.registration.scope + ':';
 const version = prefix + '1';
+const cacheName = version + ':navigation-v2';
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(version).then(cache => cache.addAll(files.map(file => new Request(file, {cache:'reload'})))));
+  event.waitUntil(caches.open(cacheName).then(cache => cache.addAll(files.map(file => new Request(file, {cache:'reload'})))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', event => {
-  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith(prefix) && key !== version).map(key => caches.delete(key)))).then(() => self.clients.claim()));
+  event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith(prefix) && key !== cacheName).map(key => caches.delete(key)))).then(() => self.clients.claim()));
 });
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || !url.href.startsWith(self.registration.scope)) return;
   const key = event.request.mode === 'navigate' ? new URL('index.html',self.registration.scope).href : event.request;
-  event.respondWith(caches.open(version).then(async cache => await cache.match(key) || fetch(event.request)));
+  const freshShell = event.request.mode === 'navigate' || /\.(html|js|css)$/.test(url.pathname);
+  event.respondWith(caches.open(cacheName).then(async cache => {
+    if (freshShell) {
+      try {
+        const response = await fetch(event.request, {cache: 'no-cache'});
+        if (response.ok) {
+          await cache.put(key, response.clone());
+          return response;
+        }
+        return await cache.match(key) || response;
+      } catch (error) {
+        const saved = await cache.match(key);
+        if (saved) return saved;
+        throw error;
+      }
+    }
+    return await cache.match(key) || fetch(event.request);
+  }));
 });
