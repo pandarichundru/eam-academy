@@ -4,17 +4,37 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Independent HxGN and Infor EAM learning academy">
+  <meta name="theme-color" content="#ffffff" id="metaThemeColor">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="academy.svg">
   <title>EAM Academy</title>
-  <link rel="stylesheet" href="style.css?v=eaeed5829969">
+  <script>
+    (function () {
+      try {
+        var stored = JSON.parse(localStorage.getItem('eam3:theme'));
+        var dark = stored ? stored === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        var meta = document.getElementById('metaThemeColor');
+        if (meta) meta.content = dark ? '#181818' : '#ffffff';
+      } catch (e) {}
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="style.css?v=11096f6840da">
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
-  <header>
+  <header class="site-header">
     <a class="brand" href="#home">
-      <span class="brandmark">EA</span>
-      <span>EAM <b>Academy</b><small>FIELD GUIDE</small></span>
+      <span class="brandmark" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="2" width="12" height="12" rx="2.5"></rect>
+          <path d="M5.5 6h5M5.5 8.2h3.5M5.5 10.4h5"></path>
+        </svg>
+      </span>
+      <span class="brand-text">EAM <b>Academy</b><small>Field Guide</small></span>
     </a>
     <nav id="topnav" aria-label="Primary">
       <a href="#home">Home</a>
@@ -26,19 +46,37 @@
       <a href="#reference">Reference</a>
       <a href="#progress">My Learning</a>
     </nav>
-    <button id="theme" title="Toggle color theme" aria-label="Dark mode">◐</button>
+    <button id="theme" type="button" class="icon-btn" title="Toggle color theme" aria-label="Switch to dark mode" aria-pressed="false">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
+      </svg>
+    </button>
   </header>
   <div class="subbar">
-    <button id="menu" aria-controls="side" aria-label="Toggle curriculum" aria-expanded="false">☰ Curriculum</button>
-    <span>HxGN EAM <span class="sep">/</span> Infor EAM</span>
+    <button id="menu" type="button" aria-controls="side" aria-label="Toggle curriculum" aria-expanded="false">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <line x1="4" y1="7" x2="20" y2="7"></line>
+        <line x1="4" y1="12" x2="20" y2="12"></line>
+        <line x1="4" y1="17" x2="20" y2="17"></line>
+      </svg>
+      <span>Curriculum</span>
+    </button>
+    <span class="subbar-context">HxGN EAM <span class="sep">/</span> Infor EAM</span>
     <form id="quick" role="search">
-      <input id="quickInput" aria-label="Search all learning content" placeholder="Search lessons, docs &amp; SQL (Ctrl+K)">
-      <button>Search</button>
+      <div class="search-field">
+        <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7.5"></circle>
+          <path d="m20 20-3.8-3.8"></path>
+        </svg>
+        <input id="quickInput" type="search" aria-label="Search all learning content" placeholder="Search lessons, docs &amp; SQL">
+        <kbd class="kbd-hint" aria-hidden="true">⌘K</kbd>
+      </div>
+      <button type="submit">Search</button>
     </form>
   </div>
   <div class="layout">
     <aside id="side" aria-label="Curriculum"></aside>
-    <main id="main" tabindex="-1"><p>Loading academy…</p></main>
+    <main id="main" tabindex="-1"><p class="muted">Loading academy…</p></main>
   </div>
   <footer>Independent training resource · Local-first · Not affiliated with Hexagon or Infor</footer>
   <script src="query-client.js"></script>
