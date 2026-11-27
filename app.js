@@ -157,6 +157,10 @@ const ICON_EXTERNAL = '<svg width="13" height="13" viewBox="0 0 24 24" fill="non
 const ICON_ALERT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>';
 const ICON_MOON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>';
 const ICON_SUN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>';
+const ICON_BOOK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path></svg>';
+const ICON_TERMINAL = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>';
+const ICON_COMPASS = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>';
+const ICON_DATABASE = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"></path><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"></path></svg>';
 
 function progressRing(n, total) {
   const pct = total ? Math.round((n / total) * 100) : 0;
@@ -226,7 +230,7 @@ function enhanceCodeBlocks(root) {
 const H = (tag, title, desc = '') => `<div class="eyebrow">${E(tag)}</div><h1>${E(title)}</h1>${desc ? `<p class="muted">${E(desc)}</p>` : ''}`;
 const A = (route, label, cls = '') => `<a ${cls ? `class="${cls}"` : ''} href="#${route}">${E(label)}</a>`;
 const ext = (url, label) => `<a class="ext-link" href="${E(url)}" target="_blank" rel="noopener noreferrer"><span>${E(label)}</span>${ICON_EXTERNAL}</a>`;
-const table = (headers, rows) => `<div class="scroll"><table><thead><tr>${headers.map(v => `<th scope="col">${E(v)}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(v => `<td>${E(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+const table = (headers, rows) => `<div class="scroll"><table><thead><tr>${headers.map(v => `<th scope="col">${E(v)}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(v => `<td>${v === null || v === undefined ? '<span class="null-val">NULL</span>' : E(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 const tiles = items => `<div class="grid">${items.map(([r, t, d]) => `<a class="tile" href="#${r}"><h3>${E(t)}</h3><p>${E(d)}</p></a>`).join('')}</div>`;
 const progress = (n, total) => `<div class="bar" role="progressbar" aria-label="Completion" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${n}"><i style="width:${total ? n / total * 100 : 0}%"></i></div>`;
 const lessonLink = l => `<a class="lesson-link${done.includes(l.id) ? ' is-done' : ''}" href="#lesson/${E(l.id)}">${done.includes(l.id) ? ICON_CHECK : ''}<span>${E(l.title)}</span></a>`;
@@ -254,7 +258,14 @@ function renderNav(route, id) {
   const selected = lessons.find(l => l.id === id);
   const c = codeMeta.counts || {};
   $('side').innerHTML = '<div class="eyebrow">Course curriculum</div>'
-    + Object.entries(groups).map(([m, ls]) => `<details class="module" ${selected?.module === m || (route === 'module' && id === m) ? 'open' : ''}><summary>${E(m)} <span>${ls.filter(l => done.includes(l.id)).length}/${ls.length}</span></summary>${A('module/' + U(m), 'Module overview')}${ls.map(l => A('lesson/' + l.id, (done.includes(l.id) ? '✓ ' : '') + l.title, l.id === id ? 'active' : '')).join('')}</details>`).join('')
+    + Object.entries(groups).map(([m, ls]) => {
+      const doneCnt = ls.filter(l => done.includes(l.id)).length;
+      return `<details class="module" ${selected?.module === m || (route === 'module' && id === m) ? 'open' : ''}><summary>${E(m)} <span class="${doneCnt === ls.length && ls.length ? 'mod-complete' : ''}">${doneCnt}/${ls.length}</span></summary>${A('module/' + U(m), 'Module overview')}${ls.map(l => {
+        const isDone = done.includes(l.id);
+        const cls = [l.id === id ? 'active' : '', isDone ? 'is-done' : ''].filter(Boolean).join(' ');
+        return `<a ${cls ? `class="${cls}"` : ''} href="#lesson/${E(l.id)}">${isDone ? ICON_CHECK : ''}<span>${E(l.title)}</span></a>`;
+      }).join('')}</details>`;
+    }).join('')
     + `<hr><div class="eyebrow">Code &amp; Schema</div>`
     + A('triggers', `Triggers — Full (${c.trigger ?? 2405})`, route === 'triggers' ? 'active' : '')
     + A('procedures', `Stored Procedures — Full (${c.procedure ?? 1629})`, route === 'procedures' ? 'active' : '')
@@ -262,6 +273,24 @@ function renderNav(route, id) {
     + A('tables', 'Database Dictionary (1,681)', route === 'tables' || route === 'table' ? 'active' : '')
     + A('er/R5EVENTS', 'Visual ER Explorer', route === 'er' ? 'active' : '')
     + A('sql', 'SQL Lab (28 tables)', route === 'sql' ? 'active' : '');
+  const activeSide = $('side').querySelector('a.active');
+  if (activeSide) activeSide.scrollIntoView({ block: 'nearest' });
+  const bc = $('subbarBreadcrumb');
+  if (bc) {
+    const sep = ' <span class="sep">/</span> ';
+    if (route === 'home') bc.innerHTML = `HxGN EAM${sep}Infor EAM`;
+    else if (route === 'lesson' && selected) bc.innerHTML = `${A('learn', 'Curriculum')}${sep}${A('module/' + U(selected.module), selected.module)}${sep}<span class="bc-cur">${E(selected.id)}</span>`;
+    else if (route === 'module' && id) bc.innerHTML = `${A('learn', 'Curriculum')}${sep}<span class="bc-cur">${E(id)}</span>`;
+    else if (route === 'er') bc.innerHTML = `${A('technical', 'Technical Library')}${sep}ER Explorer${id ? sep + `<span class="bc-cur">${E(id)}</span>` : ''}`;
+    else if (route === 'table' && id) bc.innerHTML = `${A('technical', 'Technical Library')}${sep}${A('tables', 'Dictionary')}${sep}<span class="bc-cur">${E(id)}</span>`;
+    else if (route === 'exercise' && id) bc.innerHTML = `${A('practice', 'SQL Exercises')}${sep}<span class="bc-cur">Exercise #${E(id)}</span>`;
+    else if (route === 'workshop' && id) bc.innerHTML = `${A('workshops', 'Workshops')}${sep}<span class="bc-cur">${E(id)}</span>`;
+    else if (route === 'path' && id) bc.innerHTML = `${A('paths', 'Role paths')}${sep}<span class="bc-cur">${E(id)}</span>`;
+    else {
+      const labels = { learn: 'Curriculum', workshops: 'Workshops', 'sql-course': 'SQL Lab', sql: 'SQL Lab', technical: 'Technical Library', triggers: 'Triggers', procedures: 'Stored Procedures', codes: 'All Codes', tables: 'Database Dictionary', practice: 'SQL Exercises', reference: 'Reference', search: 'Search', glossary: 'Glossary', fields: 'Field Dictionary', topics: 'Topic Index', progress: 'My Learning', assess: 'Assessments', coverage: 'Coverage', flows: 'Process Flows', pump: 'Pump Case Study', paths: 'Role Paths' };
+      bc.innerHTML = `<span class="bc-cur">${E(labels[route] || 'EAM Academy')}</span>`;
+    }
+  }
 }
 
 const pumpSteps = [
@@ -293,10 +322,12 @@ const sqlReading = {
 
 function pumpPage() {
   return H('Maintenance planning', 'From pump to preventive work order', 'Follow PUMP-001 from its asset record to a 30-day maintenance schedule. Use each linked lesson for the full procedure.')
+    + '<div class="reader">'
     + pumpSteps.map(([id,title,body],i) => {
       const l = lessons.find(x => x.id === id);
-      return '<section class="section"><small>Step ' + (i+1) + ' of 4</small><h2>' + E(title) + '</h2><p>' + E(body) + '</p><div class="row">' + lessonLink(l) + sourceLink(l.source.hex.id,'HxGN guide · p. ' + l.source.hex.page) + '</div></section>';
-    }).join('') + '<h2>Verify with SQL</h2><p>Use the fictional SQLite training records below. Predict each result before opening the explanation.</p>'
+      return '<section class="decision"><small>Step ' + String(i+1).padStart(2,'0') + ' of 04</small><h2>' + E(title) + '</h2><p>' + E(body) + '</p><div class="row">' + lessonLink(l) + sourceLink(l.source.hex.id,'HxGN guide · p. ' + l.source.hex.page) + '</div></section>';
+    }).join('')
+    + '</div><h2>Verify with SQL</h2><p class="muted">Use the fictional SQLite training records below. Predict each result before opening the explanation.</p>'
     + pumpQueries.map((q,i) => '<section class="section"><h3>' + E(q.title) + '</h3><pre>' + E(q.sql) + '</pre>' + A('sql/pump-' + i,'Open in SQL lab','button') + '<details><summary>Explain the result</summary><p>' + E(q.result) + '</p></details></section>').join('');
 }
 
@@ -314,10 +345,10 @@ function stageLinks(stage) {
 function sqlCourse() {
   return H('SQL learning', 'Read, explain and test a query', 'Each lesson uses the same local SQLite training database. Work in sequence or choose a business question.')
     + '<div class="row footer-links">' + A('practice','Open SQL Exercises','button primary') + A('sql','Open SQL editor','button') + A('technical','Technical library','button') + A('workshop/' + U('Database and SQL'),'Join troubleshooting workshop','button') + '</div>'
-    + '<h2>Five-stage SQL learning path</h2><ol>' + sqlStages.map(stage => '<li class="panel"><h3>' + E(stage.title) +
-      '</h3><p>' + E(stage.question) + '</p><p>' + E(stage.grain) + '</p>' + stageLinks(stage) + '</li>').join('') + '</ol>'
-    + A('exercise/30','Fix a query that counts an idle asset as an order','button')
-    + '<h2>All SQL lessons</h2>' + lessons.filter(l => l.type === 'technical').map(l => '<section class="list-item"><h3>' + lessonLink(l) + '</h3><p>' + E(sqlReading[l.id]?.[0] || l.concept) + '</p>' + A('sql/' + l.id,'Run the lesson query') + '</section>').join('');
+    + '<h2>Five-stage SQL learning path</h2><div class="stage-list">' + sqlStages.map((stage, idx) => '<div class="panel stage-card"><div class="eyebrow tabular">Stage ' + String(idx + 1).padStart(2, '0') + '</div><h3>' + E(stage.title) +
+      '</h3><p class="mb-sm">' + E(stage.question) + '</p><p class="muted">' + E(stage.grain) + '</p>' + stageLinks(stage) + '</div>').join('') + '</div>'
+    + '<div class="mt-md mb-md">' + A('exercise/30','Fix a query that counts an idle asset as an order','button') + '</div>'
+    + '<h2>All SQL lessons</h2>' + lessons.filter(l => l.type === 'technical').map(l => '<section class="list-item"><h3>' + lessonLink(l) + '</h3><p class="muted">' + E(sqlReading[l.id]?.[0] || l.concept) + '</p>' + A('sql/' + l.id,'Run the lesson query') + '</section>').join('');
 }
 
 function coveragePage(moduleName) {
@@ -346,9 +377,10 @@ function introReading() {
 function modulePage(m) {
   const ls = groups[m];
   if (!ls) return H('Not found', 'Module not found');
+  const comp = ls.filter(l => done.includes(l.id)).length;
   return H('Curriculum', m, `${ls.length} lessons · written walkthroughs and source references`)
     + (m === 'Introduction to EAM' ? introReading() : '')
-    + `<div class="panel"><div class="row between"><strong>${ls.filter(l => done.includes(l.id)).length} of ${ls.length} completed</strong>${A('lesson/' + (ls.find(l => !done.includes(l.id)) || ls[0]).id, 'Continue', 'button primary')}</div>${progress(ls.filter(l => done.includes(l.id)).length, ls.length)}${ls.map(l => `<div class="list-item">${lessonLink(l)} <small> · ${E(l.level)}</small><p class="muted">${E(l.concept)}</p></div>`).join('')}</div>`;
+    + `<div class="panel"><div class="row between mb-sm"><strong class="tabular">${comp} of ${ls.length} completed</strong>${A('lesson/' + (ls.find(l => !done.includes(l.id)) || ls[0]).id, 'Continue', 'button primary')}</div>${progress(comp, ls.length)}<div class="lesson-list">${ls.map(l => `<div class="lesson-row"><div class="row between"><div class="lesson-row-title"><span class="pill tabular">${E(l.id)}</span>${lessonLink(l)}</div><span class="pill">${E(l.level)}</span></div><p class="muted">${E(l.concept)}</p></div>`).join('')}</div></div>`;
 }
 
 function sourcePanel(l) {
@@ -382,15 +414,16 @@ function lessonPage(id) {
   const more = l.type === 'intro' ? {} : enrichment[String(s.hex.page)] || {};
   const related = sequence.filter(x => x.id !== id).slice(Math.max(0, i - 2), Math.max(0, i - 2) + 4);
   const lQuizzes = quizzes.filter(q => q.lesson.toLowerCase() === l.title.toLowerCase());
+  const isMarked = marks.includes(id), isDone = done.includes(id);
   return `<div class="lesson-layout"><article class="lesson-content">${H(l.module, l.title, `${l.id} · ${l.level} · ${l.type === 'technical' ? 'Technical SQL lesson' : l.type === 'consulting' ? 'Consultant guidance' : 'Written functional tutorial'}`)}`
-    + `<div class="row"><span class="pill">${l.type === 'intro' ? 'Academy introduction' : 'HxGN primary'}</span>${s.infor ? '<span class="pill">Infor supporting</span>' : ''}<button data-mark="${id}">${marks.includes(id) ? `${ICON_BOOKMARK_FILL}<span>Bookmarked</span>` : `${ICON_BOOKMARK}<span>Bookmark</span>`}</button><button class="primary" data-done="${id}">${done.includes(id) ? `${ICON_CHECK_CIRCLE}<span>Completed · undo</span>` : `${ICON_CHECK_CIRCLE}<span>Mark complete</span>`}</button></div>`
+    + `<div class="lesson-toolbar"><div class="row lesson-meta"><span class="pill">${l.type === 'intro' ? 'Academy introduction' : 'HxGN primary'}</span>${s.infor ? '<span class="pill">Infor supporting</span>' : ''}</div><div class="row lesson-actions"><button data-mark="${id}" class="${isMarked ? 'is-active' : ''}">${isMarked ? `${ICON_BOOKMARK_FILL}<span>Bookmarked</span>` : `${ICON_BOOKMARK}<span>Bookmark</span>`}</button><button class="primary${isDone ? ' is-completed' : ''}" data-done="${id}">${isDone ? `${ICON_CHECK_CIRCLE}<span>Completed · undo</span>` : `${ICON_CHECK_CIRCLE}<span>Mark complete</span>`}</button></div></div>`
     + (workshops.some(w => w.module === l.module) ? '<p class="mt-md">' + A('workshop/' + U(l.module),'Open module workshop') + '</p>' : '')
-    + sqlStages.filter(stage => [stage.sql,stage.functional].includes(id)).map(stage => '<section><h2>' + E(stage.title) + '</h2>' + stageLinks(stage) + '</section>').join('')
+    + sqlStages.filter(stage => [stage.sql,stage.functional].includes(id)).map(stage => '<section class="section"><h2>' + E(stage.title) + '</h2>' + stageLinks(stage) + '</section>').join('')
     + (id === 'INTRO01' ? introReading() : '')
     + (inPath ? '<p class="muted">' + A('path/' + U(activePath),activePath) + ' · Lesson ' + (i+1) + ' of ' + sequence.length + '</p>' : '')
     + (pumpSteps.some(([step]) => step === id) ? '<p class="note">' + A('pump','Case study · From pump to preventive work order') + '</p>' : '')
-    + (sqlResults[id] ? '<details class="sql-output"><summary>Inspect the expected training output</summary>' + table(sqlResults[id].columns,sqlResults[id].rows.map(row => row.map(v => v === null ? 'NULL' : v))) + '</details>' : '')
-    + (sqlReading[id] ? '<section class="section"><h2>How to read this query</h2><strong>' + E(sqlReading[id][0]) + '</strong><p>' + E(sqlReading[id][1]) + '</p><h3>Try a variation</h3><p>' + E(sqlReading[id][2]) + '</p></section>' : '')
+    + (sqlResults[id] ? '<details class="sql-output"><summary>Inspect the expected training output</summary>' + table(sqlResults[id].columns,sqlResults[id].rows) + '</details>' : '')
+    + (sqlReading[id] ? '<section class="section"><h2>How to read this query</h2><div class="callout-panel"><strong>' + E(sqlReading[id][0]) + '</strong><p class="mt-sm">' + E(sqlReading[id][1]) + '</p><h3>Try a variation</h3><p class="mb-sm">' + E(sqlReading[id][2]) + '</p></div></section>' : '')
     + `<section class="section"><h2>What you will learn</h2><p>${E(l.concept)}</p><p>By the end, you should be able to explain the business purpose, describe the steps for the scenario, and identify how to check the result.</p></section>`
     + `<section class="section"><h2>Business scenario</h2><div class="scenario">${E(l.scenario)}</div><p class="muted">Fictional PLANT01 example for learning; not a live EAM transaction.</p></section>`
     + `${more.context && l.type === 'functional' ? `<section class="section"><h2>How it works</h2>${more.context.map(x => `<p>${E(x)}</p>`).join('')}${more.flow ? `<div class="diagram">${more.flow.map((v, idx) => `${idx ? `<span class="diagram-arrow" aria-hidden="true">${ICON_FLOW_ARROW}</span>` : ''}<span>${E(v)}</span>`).join('')}</div>` : ''}</section>` : ''}`
@@ -399,18 +432,18 @@ function lessonPage(id) {
     + `${l.type === 'functional' && ev.fields.length ? `<section class="section"><h2>Documented fields and options</h2><p class="muted">Selected field descriptions extracted from the supplied HxGN pages. Not an exhaustive field list; some descriptions continue in the original source.</p>${table(['Field / option', 'Source excerpt'], ev.fields.map(x => [x.name, x.meaning]))}</section>` : ''}`
     + `<section class="section"><h2>Expected result &amp; troubleshooting</h2><div class="panel"><p>${E(l.verify)}</p>${more.check && l.type === 'functional' ? `<p>${E(more.check)}</p>` : ''}</div></section>`
     + `${l.type === 'functional' ? `<section class="section"><h2>Documentation reading</h2><p class="muted">Selected local source text for verification. The extract is partial; use the linked full pages for exact field requirements, notes, and remaining steps.</p><details open><summary>HxGN source context · p. ${s.hex.page}</summary><p>${E(ev.intro)}</p>${ev.steps.length ? `<h3>Selected numbered instructions</h3><ul class="steps">${ev.steps.map(x => `<li>${E(x)}</li>`).join('')}</ul>` : '<p>No numbered instructions extracted at this heading. See full pages for nested procedures.</p>'}</details></section>` : ''}`
-    + `<section class="section"><h2>Knowledge check</h2>${quizBlock(lQuizzes)}<p><strong>Written scenario prompt:</strong> Explain how you would address this scenario: ${E(l.scenario)} What evidence would demonstrate success?</p><details><summary>Review answer guidance</summary><p>${E(l.concept)}</p><p>${E(l.verify)}</p></details><label for="lessonNotes"><strong>Your revision notes</strong></label><textarea id="lessonNotes" data-note="${id}" placeholder="Record important terms and questions…">${E(notes[id] || '')}</textarea><small>Saved in this browser on change.</small></section>`
-    + `<section class="section"><h2>Related lessons</h2>${related.map(x => `<div>${lessonLink(x)}</div>`).join('')}</section>`
+    + `<section class="section"><h2>Knowledge check</h2>${quizBlock(lQuizzes)}<p><strong>Written scenario prompt:</strong> Explain how you would address this scenario: ${E(l.scenario)} What evidence would demonstrate success?</p><details><summary>Review answer guidance</summary><p>${E(l.concept)}</p><p>${E(l.verify)}</p></details><div class="notes-card"><div class="row between mb-sm"><label for="lessonNotes"><strong>Your revision notes</strong></label><small class="save-state" id="noteSaveState">Saved in browser</small></div><textarea id="lessonNotes" data-note="${id}" placeholder="Record important terms and questions…">${E(notes[id] || '')}</textarea></div></section>`
+    + `<section class="section"><h2>Related lessons</h2><div class="related-grid">${related.map(x => `<a class="related-card" href="#lesson/${E(x.id)}"><span class="pill tabular">${E(x.id)}</span><strong>${E(x.title)}</strong><small>${E(x.level)}</small></a>`).join('')}</div></section>`
     + `<div class="row between lesson-nav">${i ? `<a class="button" href="#lesson/${E(sequence[i - 1].id)}">${ICON_ARROW_LEFT}<span>Previous lesson</span></a>` : '<span></span>'}${i < sequence.length - 1 ? `<a class="button primary" href="#lesson/${E(sequence[i + 1].id)}"><span>Next lesson</span>${ICON_ARROW_RIGHT}</a>` : ''}</div></article><aside class="rail" aria-label="Lesson references">${l.reference ? '<h2>Further reading</h2>' + lessonLink(lessons.find(item => item.id === l.reference)) : sourcePanel(l)}</aside></div>`;
 }
 
 function paths() {
   return H('Learning paths', 'Choose a role', 'One shared curriculum, arranged for different job responsibilities.')
-    + tiles(Object.entries(roles).map(([r, ms]) => {
+    + '<div class="grid">' + Object.entries(roles).map(([r, ms]) => {
       const total = ms.reduce((a, m) => a + groups[m].length, 0);
       const comp = ms.reduce((a, m) => a + groups[m].filter(l => done.includes(l.id)).length, 0);
-      return ['path/' + U(r), r, `${total} lessons across ${ms.length} modules · ${comp} completed`];
-    }));
+      return `<a class="tile" href="#path/${U(r)}"><div class="row between mb-sm"><h3>${E(r)}</h3><span class="pill tabular">${comp}/${total}</span></div><p class="mb-sm">${total} lessons across ${ms.length} modules</p>${progress(comp, total)}</a>`;
+    }).join('') + '</div>';
 }
 
 function path(r) {
@@ -643,12 +676,14 @@ async function codeItemPage(id) {
   const sibs = (item.siblings || []).length > 1
     ? `<div class="row mt-md"><small>Candidates for ${E(item.norm_name)}:</small>${item.siblings.map(sb => A('code/' + sb.id, `Candidate ${sb.candidate} (${sb.line_count}L)`, sb.id === item.id ? 'button primary' : 'button')).join('')}</div>`
     : '';
+  const lineCount = item.body.split('\n').length;
+  const gutter = Array.from({ length: lineCount }, (_, idx) => `<span>${idx + 1}</span>`).join('');
   return H('Recovered SQL Source', item.name, `${item.kind.toUpperCase()} · Candidate ${item.candidate} · ${item.line_count} lines${item.offset ? ` · backup byte ${item.offset}` : ''}`)
-    + `<div class="note warn">RECOVERY REFERENCE ONLY — NOT A VERIFIED OR DEPLOYABLE SCRIPT. Never run against production or training SQLite.</div>`
+    + `<div class="note warn">${ICON_ALERT}<span>RECOVERY REFERENCE ONLY — NOT A VERIFIED OR DEPLOYABLE SCRIPT. Never run against production or training SQLite.</span></div>`
     + `<div class="row"><a class="button" href="#${backRoute}">${ICON_ARROW_LEFT}<span>${backLabel}</span></a><button type="button" id="copySqlBtn" class="primary">${ICON_COPY}<span>Copy SQL</span></button><button type="button" id="dlSqlBtn">${ICON_DOWNLOAD}<span>Download .sql</span></button></div>`
     + sibs
     + (tblLinks ? `<div class="panel mt-md mb-md"><strong>Referenced R5 tables:</strong><div class="mt-sm">${tblLinks}</div></div>` : '')
-    + `<pre class="code-view" id="rawSqlCode">${E(item.body)}</pre>`;
+    + `<div class="code-viewer mt-md"><div class="code-viewer-head"><span>T-SQL · ${lineCount} lines</span><span class="tabular">Candidate ${E(item.candidate)}</span></div><div class="code-viewer-body"><div class="code-gutter" aria-hidden="true">${gutter}</div><pre class="code-view" id="rawSqlCode">${E(item.body)}</pre></div></div>`;
 }
 
 function tablesPage() {
@@ -669,11 +704,11 @@ function tablePage(t) {
   const tokens = (codeMeta.col_tokens || {})[t] || [];
 
   const structured = kt ? `<div class="grid mt-md mb-md">
-    <div class="panel"><h3>Primary key &amp; area</h3><p><span class="pill">${E(kt.area)}</span></p><p><strong>PK:</strong> <code>${E(kt.pk || 'Not listed')}</code></p><p><strong>Outbound FKs:</strong> ${kt.out_fks.length} · <strong>Inbound refs:</strong> ${kt.in_fks.length} · <strong>Triggers:</strong> ${kt.triggers.length}</p></div>
-    <div class="panel"><h3>Outbound foreign keys (${kt.out_fks.length})</h3>${kt.out_fks.length ? kt.out_fks.map(fk => { const target = fk.to.split('.')[0]; return `<div><code>${E(fk.from)}</code> → ${A('table/' + U(target), fk.to)}</div>`; }).join('') : '<p class="muted">None listed</p>'}</div>
+    <div class="panel"><h3>Primary key &amp; area</h3><p><span class="pill">${E(kt.area)}</span></p><p><strong>PK:</strong> <code>${E(kt.pk || 'Not listed')}</code></p><p class="tabular"><strong>Outbound FKs:</strong> ${kt.out_fks.length} · <strong>Inbound refs:</strong> ${kt.in_fks.length} · <strong>Triggers:</strong> ${kt.triggers.length}</p></div>
+    <div class="panel"><h3>Outbound foreign keys (${kt.out_fks.length})</h3>${kt.out_fks.length ? kt.out_fks.map(fk => { const target = fk.to.split('.')[0]; return `<div class="fk-row"><code>${E(fk.from)}</code> ${ICON_FLOW_ARROW} ${A('table/' + U(target), fk.to)}</div>`; }).join('') : '<p class="muted">None listed</p>'}</div>
   </div>
   <div class="grid mt-md mb-md">
-    <div class="panel"><h3>Referenced by (${kt.in_fks.length})</h3><div class="scroll-panel">${kt.in_fks.length ? kt.in_fks.map(fk => { const src = fk.from.split('.')[0]; return `<div>${A('table/' + U(src), fk.from)} → <code>${E(fk.to)}</code>${fk.star ? ' ★' : ''}</div>`; }).join('') : '<p class="muted">None listed</p>'}</div></div>
+    <div class="panel"><h3>Referenced by (${kt.in_fks.length})</h3><div class="scroll-panel">${kt.in_fks.length ? kt.in_fks.map(fk => { const src = fk.from.split('.')[0]; return `<div class="fk-row">${A('table/' + U(src), fk.from)} ${ICON_FLOW_ARROW} <code>${E(fk.to)}</code>${fk.star ? ' ★' : ''}</div>`; }).join('') : '<p class="muted">None listed</p>'}</div></div>
     <div class="panel"><h3>Key-table triggers (${kt.triggers.length})</h3><div class="scroll-panel">${kt.triggers.length ? kt.triggers.map(tr => A('triggers/' + U(tr.split(' ')[0]), tr, 'taglink')).join('') : '<p class="muted">None listed</p>'}</div></div>
   </div>` : `<div class="panel"><p><strong>Indexed primary key:</strong> ${E(row?.[1] || 'Not listed')}</p>${d ? `<pre>${E(d)}</pre>` : '<p class="muted">No detailed key-table export supplied for this table.</p>'}</div>`;
 
@@ -721,13 +756,19 @@ function buildErSvg(t) {
     drawEdge(name, 204, y + 16, 344, cy, lbl, 268, y + 16);
     nodesSvg += `<g class="er-node" data-er-node="${E(name)}"><rect x="14" y="${y}" width="190" height="32"/><text x="24" y="${y + 20}">${E(name)}</text></g>`;
   });
+  if (!parents.length) {
+    nodesSvg += `<g class="er-empty"><rect x="14" y="${cy - 16}" width="190" height="32" rx="8"/><text x="109" y="${cy + 4}" text-anchor="middle">No outbound parent FKs</text></g>`;
+  }
   children.forEach(([name, lbl], i) => {
     const y = 26 + i * ((h - 68) / Math.max(children.length, 1));
     drawEdge(name, 516, cy, 656, y + 16, lbl, 592, y + 16);
     nodesSvg += `<g class="er-node" data-er-node="${E(name)}"><rect x="656" y="${y}" width="190" height="32"/><text x="666" y="${y + 20}">${E(name)}</text></g>`;
   });
+  if (!children.length) {
+    nodesSvg += `<g class="er-empty"><rect x="656" y="${cy - 16}" width="190" height="32" rx="8"/><text x="751" y="${cy + 4}" text-anchor="middle">No inbound child FKs</text></g>`;
+  }
   nodesSvg += `<g class="er-node center" data-er-node="${E(t)}"><rect x="344" y="${cy - 21}" width="172" height="42"/><text x="430" y="${cy + 4}" text-anchor="middle">${E(t)}</text></g>`;
-  return `<svg class="er-svg" viewBox="0 0 860 ${h}" width="100%" role="img" aria-label="Entity relationship diagram for ${E(t)}">${edgesSvg}${nodesSvg}</svg>`;
+  return `<div class="er-legend"><span>Parents (outbound FK: ${parents.length})</span><span>Focus Table</span><span>Children (inbound FK: ${children.length})</span></div><svg class="er-svg" viewBox="0 0 860 ${h}" width="100%" role="img" aria-label="Entity relationship diagram for ${E(t)}">${edgesSvg}${nodesSvg}</svg>`;
 }
 
 function erPage(t = 'R5EVENTS') {
@@ -761,7 +802,7 @@ function historyMarkup() {
 function sqlPage(id) {
   const l = lessons.find(x => x.id === id && x.type === 'technical');
   return H('SQL practice · technical only', 'Read-only SQL lab', 'All records are fictional and the SQLite schema is not the production R5 schema. Click schema columns to insert them, or use Check my output on lesson challenges.')
-    + `<div class="sql-workspace"><div class="panel"><label for="sqlExample">Choose a lesson query</label> <select id="sqlExample"><option value="">Custom query</option>${lessons.filter(x => x.type === 'technical').map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${E(x.title)}</option>`).join('')}</select>`
+    + `<div class="sql-workspace"><div class="panel"><div class="sql-toolbar"><label for="sqlExample">Choose a lesson query</label><select id="sqlExample"><option value="">Custom query</option>${lessons.filter(x => x.type === 'technical').map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${E(x.title)}</option>`).join('')}</select></div>`
     + `<p class="mt-md mb-sm"><label for="sqlText">SQL statement</label></p><div class="editor-shell"><div class="editor-head"><span>SQLite · Read-only</span><span class="editor-hint"><kbd>⌘↵</kbd> Run</span></div><textarea id="sqlText" spellcheck="false">${E(l?.sql || 'SELECT * FROM work_orders ORDER BY id;')}</textarea></div>`
     + `<div class="row mt-sm"><button id="runSQL" class="primary">${ICON_PLAY}<span>Run read-only query</span></button><button id="checkSQL" class="${l ? '' : 'is-hidden'}">${ICON_CHECK}<span>Check my output</span></button><small>SELECT / CTE · max 200 displayed rows</small></div>`
     + `<p id="sqlExpected" class="note">${E(l?.verify || 'Select a lesson for an expected result.')}</p><div id="sqlCheckMsg"></div><div id="sqlResult"></div></div>`
@@ -787,18 +828,19 @@ function progressPage() {
 
 function assess() {
   return H('Assessments & Quizzes', 'Interactive quizzes & scenario checks', 'Test your understanding with module multiple-choice quizzes, then review written scenario explanations.')
-    + `<div class="row"><label for="assessPick">Module</label><select id="assessPick">${Object.keys(groups).map(m => `<option>${E(m)}</option>`).join('')}</select><label><input id="missedOnly" type="checkbox" ${read('missedOnly',false) ? 'checked' : ''}> Review missed questions</label></div><p id="quizScore" aria-live="polite"></p><div id="assessList"></div>`;
+    + `<div class="row"><label for="assessPick">Module</label><select id="assessPick">${Object.keys(groups).map(m => `<option>${E(m)}</option>`).join('')}</select><label><input id="missedOnly" type="checkbox" ${read('missedOnly',false) ? 'checked' : ''}> Review missed questions</label></div><div id="quizScore" class="score-strip" aria-live="polite"></div><div id="assessList"></div>`;
 }
 function quizReport(items) {
   const correct = items.filter(q => quizState[q.id] === true).length;
   const missed = items.filter(q => quizState[q.id] === false).length;
-  return correct + ' correct · ' + missed + ' missed · ' + (items.length-correct-missed) + ' unanswered';
+  const open = items.length - correct - missed;
+  return `<span class="pill ok tabular">${ICON_CHECK}<span>${correct} correct</span></span><span class="pill warn tabular">${ICON_ALERT}<span>${missed} missed</span></span><span class="pill tabular">${open} unanswered</span>`;
 }
 function renderAssess(m) {
   const mQuizzes = quizzes.filter(q => q.module === m);
   const missed = $('missedOnly').checked;
   const bank = missed ? mQuizzes.filter(q => quizState[q.id] === false) : mQuizzes;
-  $('quizScore').textContent = quizReport(mQuizzes);
+  $('quizScore').innerHTML = quizReport(mQuizzes);
   $('assessList').innerHTML = `<h2>${missed ? 'Missed questions' : 'Module quiz'}</h2>`
     + (bank.length ? quizBlock(bank) : '<p class="muted">No questions in this selection.</p>')
     + `<h2>Written scenario checks</h2>`
@@ -827,7 +869,13 @@ async function route() {
         $('coverageModule').onchange = e => { location.hash = 'coverage/' + U(e.target.value); };
         break;
       case 'learn':
-        main.innerHTML = H('Curriculum', 'Tutorials', `${lessons.length} written lessons across ${Object.keys(groups).length} modules.`) + '<div class="row footer-links">' + A('lesson/INTRO01','Start here · What is EAM?','button primary') + A('paths','Learning paths','button') + A('assess','Assessments','button') + A('coverage','Lesson coverage','button') + '</div>' + introReading() + tiles(Object.entries(groups).map(([m, ls]) => ['module/' + U(m), m, `${ls.length} lessons`]));
+        main.innerHTML = H('Curriculum', 'Tutorials', `${lessons.length} written lessons across ${Object.keys(groups).length} modules.`)
+          + '<div class="row footer-links">' + A('lesson/INTRO01','Start here · What is EAM?','button primary') + A('paths','Learning paths','button') + A('assess','Assessments','button') + A('coverage','Lesson coverage','button') + '</div>'
+          + introReading()
+          + '<div class="grid">' + Object.entries(groups).map(([m, ls]) => {
+            const comp = ls.filter(l => done.includes(l.id)).length;
+            return `<a class="tile" href="#module/${U(m)}"><div class="row between mb-sm"><h3>${E(m)}</h3><span class="pill tabular">${comp}/${ls.length}</span></div><p class="mb-sm">${ls.length} lessons</p>${progress(comp, ls.length)}</a>`;
+          }).join('') + '</div>';
         break;
       case 'module': main.innerHTML = modulePage(id); break;
       case 'lesson': main.innerHTML = lessonPage(id); attachLessonContents(); break;
@@ -849,9 +897,9 @@ async function route() {
         const refs = lessons.filter(l => l.source.hex.id === d.id || l.source.hex.pages.some(p => p.id === d.id) || l.source.infor?.id === d.id);
         main.innerHTML = H(d.source, d.title, `Offline page ${d.page ?? 'not numbered'}`)
           + `<p class="note">Supplied source text. Repeated export header/footer lines are hidden by default for readability.</p>`
-          + `<div class="row">${A('reference', '← Reference', 'button')}${d.page > 1 ? A('doc/' + (Number(d.id) - 1), 'Previous page', 'button') : ''}${d.page < (d.source === 'Hexagon EAM Help' ? 1149 : 974) ? A('doc/' + (Number(d.id) + 1), 'Next page', 'button') : ''}<button type="button" id="toggleRawDoc">Show raw extract</button></div>`
-          + (refs.length ? `<div class="panel" style="margin:12px 0"><strong>Referenced by lessons:</strong> ${refs.map(l => lessonLink(l)).join(' · ')}</div>` : '')
-          + `<div class="panel source-text" id="docBody">${E(cleanDocText(d.body))}</div>`;
+          + `<div class="row"><a class="button" href="#reference">${ICON_ARROW_LEFT}<span>Reference</span></a>${d.page > 1 ? A('doc/' + (Number(d.id) - 1), 'Previous page', 'button') : ''}${d.page < (d.source === 'Hexagon EAM Help' ? 1149 : 974) ? A('doc/' + (Number(d.id) + 1), 'Next page', 'button') : ''}<button type="button" id="toggleRawDoc">Show raw extract</button></div>`
+          + (refs.length ? `<div class="panel mt-md mb-md"><strong>Referenced by lessons:</strong> ${refs.map(l => lessonLink(l)).join(' · ')}</div>` : '')
+          + `<div class="panel source-text mt-md" id="docBody">${E(cleanDocText(d.body))}</div>`;
         let raw = false;
         $('toggleRawDoc').onclick = () => { raw = !raw; $('docBody').textContent = raw ? d.body : cleanDocText(d.body); $('toggleRawDoc').textContent = raw ? 'Clean headers' : 'Show raw extract'; };
         break;
@@ -971,7 +1019,7 @@ async function route() {
             sqlHist = [q, ...sqlHist.filter(x => x !== q)].slice(0, 10);
             write('sqlhist', sqlHist);
             $('queryHistory').innerHTML = historyMarkup();
-            $('sqlResult').innerHTML = `<p>${v.rows.length} rows${v.truncated ? ' (truncated)' : ''}</p>` + table(v.columns, v.rows.map(row => row.map(x => x === null ? 'NULL' : x))) + '<button id="saveCsv">Export displayed rows as CSV</button>';
+            $('sqlResult').innerHTML = `<div class="result-head"><span class="tabular"><strong>${v.rows.length} rows</strong>${v.truncated ? ' (truncated at 200)' : ''} · ${v.columns.length} columns</span><button id="saveCsv">${ICON_DOWNLOAD}<span>Export CSV</span></button></div>` + table(v.columns, v.rows);
             $('saveCsv').onclick = () => downloadCsv(v);
           } catch (e) {
             if (current === generation) $('sqlResult').textContent = 'Query rejected or failed: ' + e.message;
@@ -999,16 +1047,16 @@ async function route() {
           $('sqlSchema').innerHTML = v.tables.map(t => {
             const pk = t.columns.filter(c => c.pk).sort((a,b) => a.pk-b.pk).map(c => c.name);
             const purpose = crosswalk.find(row => row[0] === t.name)?.[2] || '';
-            return '<details><summary>' + E(t.name) + '</summary><p>' + E(purpose) + '</p><p>' +
+            return '<details><summary><span>' + E(t.name) + '</span><small class="tabular">' + t.columns.length + ' cols</small></summary><p>' + E(purpose) + '</p><p>' +
               (pk.length ? 'One row per unique ' + E(pk.join(' + ')) + '.' : 'No declared primary key.') + '</p>' +
               t.links.map(link => '<p>' + E(link) + '</p>').join('') +
-              '<button data-ins="' + E(t.name) + '">Insert table</button> ' +
-              t.columns.map(c => '<button class="schema-col" data-ins="' + E(c.name) + '">' + E(c.name) + ' <small>' + E(c.type) + '</small></button>').join(' ') +
-              '<p><button data-preview="' + E(t.name) + '">Show five sample rows</button></p><div aria-live="polite"></div></details>';
+              '<div class="schema-cols">' +
+              t.columns.map(c => '<button class="schema-col" data-ins="' + E(c.name) + '">' + E(c.name) + ' <small>' + E(c.type) + '</small></button>').join('') +
+              '</div><div class="row schema-actions mt-sm"><button data-ins="' + E(t.name) + '">Insert table</button><button data-preview="' + E(t.name) + '">Show 5 sample rows</button></div><div data-sample-out aria-live="polite"></div></details>';
           }).join('');
           $('sqlSchema').querySelectorAll('[data-preview]').forEach(button => {
             button.onclick = async () => {
-              const output = button.parentElement.nextElementSibling;
+              const output = button.closest('details').querySelector('[data-sample-out]');
               button.disabled = true;
               try {
                 const name = button.dataset.preview;
@@ -1100,6 +1148,8 @@ $('main').addEventListener('click', e => {
     arr = has ? arr.filter(x => x !== id) : [...arr, id];
     if (k === 'marks') marks = arr; else done = arr;
     write(k, arr);
+    b.classList.toggle('is-active', k === 'marks' ? !has : false);
+    b.classList.toggle('is-completed', k === 'done' ? !has : false);
     b.innerHTML = k === 'marks'
       ? (has ? `${ICON_BOOKMARK}<span>Bookmark</span>` : `${ICON_BOOKMARK_FILL}<span>Bookmarked</span>`)
       : (has ? `${ICON_CHECK_CIRCLE}<span>Mark complete</span>` : `${ICON_CHECK_CIRCLE}<span>Completed · undo</span>`);
@@ -1116,7 +1166,7 @@ $('main').addEventListener('click', e => {
     const ok = Number(sel.value) === q.answer;
     quizState[qid] = ok; logActivity();
     write('quiz', quizState);
-    if ($('quizScore')) $('quizScore').textContent = quizReport(quizzes.filter(item => item.module === $('assessPick').value));
+    if ($('quizScore')) $('quizScore').innerHTML = quizReport(quizzes.filter(item => item.module === $('assessPick').value));
     const status = qb.closest('.quiz-box').querySelector('.pill');
     if (status) status.remove();
     fb.innerHTML = `<div class="note ${ok ? 'ok' : 'warn'}">${ok ? ICON_CHECK : ICON_ALERT} <span><strong>${ok ? 'Correct.' : 'Not quite.'}</strong> ${E(q.explain)}</span></div>`;
@@ -1124,7 +1174,16 @@ $('main').addEventListener('click', e => {
 });
 
 $('main').addEventListener('change', e => {
-  if (e.target.dataset.note) { notes[e.target.dataset.note] = e.target.value; write('notes', notes); }
+  if (e.target.dataset.note) {
+    notes[e.target.dataset.note] = e.target.value;
+    write('notes', notes);
+    const st = $('noteSaveState');
+    if (st) {
+      st.textContent = 'Saved';
+      st.classList.add('is-saved');
+      setTimeout(() => { if (st.isConnected) { st.textContent = 'Saved in browser'; st.classList.remove('is-saved'); } }, 1400);
+    }
+  }
 });
 $('quick').onsubmit = e => {
   e.preventDefault();
@@ -1179,4 +1238,4 @@ Promise.all(['curriculum.json', 'catalog.json', 'extended.json', 'enrichment.jso
   })
   .catch(e => { $('main').textContent = 'Unable to load academy. Start the local Python server. ' + e.message; });
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(() => {});

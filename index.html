@@ -22,7 +22,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Geist:wght@400;500;600;700&display=swap">
-  <link rel="stylesheet" href="style.css?v=3f0f8eba925a">
+  <link rel="stylesheet" href="style.css?v=5b7a68382735">
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -61,7 +61,7 @@
       </svg>
       <span>Curriculum</span>
     </button>
-    <span class="subbar-context">HxGN EAM <span class="sep">/</span> Infor EAM</span>
+    <span class="subbar-context" id="subbarBreadcrumb">HxGN EAM <span class="sep">/</span> Infor EAM</span>
     <form id="quick" role="search">
       <div class="search-field">
         <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -79,7 +79,12 @@
     <aside id="side" aria-label="Curriculum"></aside>
     <main id="main" tabindex="-1"><p class="muted">Loading academy…</p></main>
   </div>
-  <footer>Independent training resource · Local-first · Not affiliated with Hexagon or Infor</footer>
+  <footer>
+    <div class="footer-inner">
+      <span>Independent training resource · Local-first · Not affiliated with Hexagon or Infor</span>
+      <span class="footer-keys"><kbd>⌘K</kbd> Search <span class="sep">·</span> <kbd>/</kbd> Quick focus</span>
+    </div>
+  </footer>
   <script src="query-client.js"></script>
   <script src="challenges.js"></script>
   <script src="library.js"></script>

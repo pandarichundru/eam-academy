@@ -45,9 +45,9 @@ const files = [
 ];
 const prefix = 'eam-academy:' + self.registration.scope + ':';
 const version = prefix + '1';
-const cacheName = version + ':theme-3f0f8eba925a';
+const cacheName = version + ':theme-5b7a68382735';
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(cacheName).then(cache => cache.addAll(files.map(file => new Request(file === 'style.css' ? 'style.css?v=3f0f8eba925a' : file, {cache:'reload'})))).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(cacheName).then(cache => cache.addAll(files.map(file => new Request(file === 'style.css' ? 'style.css?v=5b7a68382735' : file, {cache:'reload'})))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', event => {
   event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith(prefix) && key !== cacheName).map(key => caches.delete(key)))).then(() => self.clients.claim()));

@@ -24,7 +24,8 @@ function practiceIndex(level, bank) {
     + '<div class="practice-levels">' + Object.entries(practiceLevels).map(([name,desc]) => {
       const total = bank.exercises.filter(x => x.level === name).length;
       const count = bank.exercises.filter(x => x.level === name && solved.includes(x.id)).length;
-      return '<a class="case-card" href="#practice/' + U(name) + '"><h2>' + E(name) + '</h2><p>' + E(desc) + '</p><small>' + count + ' / ' + total + ' solved</small>' + progress(count,total) + '</a>';
+      const active = level === name ? ' is-active' : '';
+      return '<a class="case-card' + active + '" href="#practice/' + U(name) + '"><div class="row between mb-sm"><h2>' + E(name) + '</h2><span class="pill tabular">' + count + '/' + total + '</span></div><p>' + E(desc) + '</p>' + progress(count,total) + '</a>';
     }).join('') + '</div><div class="section-head"><h2>' + E(level || 'All exercises') + '</h2>' + (level ? A('practice','Show all levels') : '') + '</div>'
     + '<label for="practiceFind">Find an exercise</label><input type="search" id="practiceFind" placeholder="Try median, receipts, or meter"><div id="practiceList"></div>';
 }
@@ -32,7 +33,10 @@ function practiceList(items,q) {
   const solved = read('practiceSolved',[]);
   const terms = q.trim().toLowerCase().split(/\s+/);
   const hits = items.filter(x => terms.every(t => [x.title,x.level,x.prompt,...x.tables].join(' ').toLowerCase().includes(t)));
-  return hits.length ? hits.map(x => '<a class="challenge-row" href="#exercise/' + x.id + '"><span>' + String(x.id).padStart(2,'0') + '</span><strong>' + E(x.title) + '</strong><small>' + E(x.level) + (solved.includes(x.id) ? ' · Solved' : '') + '</small></a>').join('') : '<p>No exercises match this search.</p>';
+  return hits.length ? hits.map(x => {
+    const isSolved = solved.includes(x.id);
+    return '<a class="challenge-row" href="#exercise/' + x.id + '"><span>' + String(x.id).padStart(2,'0') + '</span><strong>' + E(x.title) + '</strong><span class="challenge-meta"><small>' + E(x.level) + '</small>' + (isSolved ? '<span class="pill ok">' + ICON_CHECK + '<span>Solved</span></span>' : '') + '</span></a>';
+  }).join('') : '<p class="muted">No exercises match this search.</p>';
 }
 function practiceTask(x,bank) {
   const draft = read('practiceDrafts',{})[x.id] || '';
@@ -71,8 +75,14 @@ function comparePractice(result,x,index) {
 function wirePracticeTask(x) {
   const editor = $('answerSQL'), output = $('practiceOutput'), feedback = $('practiceFeedback');
   const run = $('runPractice'), grade = $('gradePractice');
-  const render = result => table(result.columns,result.rows.map(row => row.map(v => v === null ? 'NULL' : v)));
-  editor.oninput = () => { const drafts=read('practiceDrafts',{}); drafts[x.id]=editor.value; write('practiceDrafts',drafts); feedback.textContent=''; output.textContent=''; };
+  const render = result => table(result.columns,result.rows);
+  const setFeedback = (state, msg) => {
+    feedback.className = state ? 'is-' + state : '';
+    if (!msg) { feedback.textContent = ''; return; }
+    const icon = state === 'ok' ? ICON_CHECK : (state === 'warn' || state === 'err') ? ICON_ALERT : '';
+    feedback.innerHTML = icon ? icon + '<span>' + E(msg) + '</span>' : E(msg);
+  };
+  editor.oninput = () => { const drafts=read('practiceDrafts',{}); drafts[x.id]=editor.value; write('practiceDrafts',drafts); setFeedback('', ''); output.textContent=''; };
   if ($('loadBroken')) $('loadBroken').onclick = () => {
     if (editor.value.trim() && !confirm('Replace the current draft with the debugging example?')) return;
     editor.value = $('brokenQuery').textContent; editor.oninput(); editor.focus();
@@ -90,23 +100,23 @@ function wirePracticeTask(x) {
   });
   async function submit(check) {
     const sql=editor.value.trim();
-    if (!sql) { feedback.textContent='Write a SELECT or WITH query first.'; editor.focus(); return; }
-    run.disabled=grade.disabled=true; editor.readOnly=true; feedback.textContent=check?'Checking your query…':'Running…'; output.textContent='';
+    if (!sql) { setFeedback('warn', 'Write a SELECT or WITH query first.'); editor.focus(); return; }
+    run.disabled=grade.disabled=true; editor.readOnly=true; setFeedback('', check?'Checking your query…':'Running…'); output.textContent='';
     try {
       const first=await runTrainingQuery(sql,'practice-0');
-      output.innerHTML='<h2>Your result</h2><p>' + first.rows.length + (first.truncated ? '+ rows' : ' rows') + '</p>' + render(first);
-      if (!check) {feedback.textContent=''; return;}
+      output.innerHTML='<div class="result-head"><h2>Your result</h2><small class="tabular">' + first.rows.length + (first.truncated ? '+ rows' : ' rows') + ' · ' + first.columns.length + ' cols</small></div>' + render(first);
+      if (!check) { setFeedback('', ''); return; }
       let issue=comparePractice(first,x,0);
-      if (issue) {feedback.textContent=issue; return;}
+      if (issue) { setFeedback('warn', issue); return; }
       const second=await runTrainingQuery(sql,'practice-1');
       issue=comparePractice(second,x,1);
-      if (issue) { feedback.textContent='The first dataset passed. On a second dataset with changed records: ' + issue; return; }
+      if (issue) { setFeedback('warn', 'The first dataset passed. On a second dataset with changed records: ' + issue); return; }
       const solved=read('practiceSolved',[]);
       if (!solved.includes(x.id)) write('practiceSolved',[...solved,x.id]);
       logActivity();
-      feedback.textContent='Correct on both datasets.';
+      setFeedback('ok', 'Correct on both datasets.');
       if (editor.isConnected) $('practiceState').textContent='Solved';
-    } catch(err) { feedback.textContent=err.message; }
+    } catch(err) { setFeedback('err', err.message); }
     finally { run.disabled=grade.disabled=false; editor.readOnly=false; }
   }
   run.onclick=()=>submit(false); grade.onclick=()=>submit(true);
