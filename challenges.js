@@ -18,12 +18,13 @@ function practiceIndex(level, bank) {
   const subset = bank.exercises.filter(x => !level || x.level === level);
   const next = subset.find(x => !solved.includes(x.id)) || subset[0];
   if (!next) return A('practice','Browse the SQL practice course');
-  return H('SQL practice','100 SQL Exercises','Write each query from a business question. Run it on the practice data, then check your answer on two datasets. Your drafts and completed exercises are saved in this browser.')
+  return H('SQL practice','SQL Exercises','Write each query from a business question. Run it on the practice data, then check your answer on two datasets. Your drafts and completed exercises are saved in this browser.')
     + '<div class="row practice-tools">' + A('exercise/' + next.id,'Continue practice','button primary') + '<button id="mixedPractice">Random challenge</button>' + A('sql-course','Guided SQL lessons') + '</div>'
     + '<details class="challenge-aid"><summary>How to approach an unfamiliar SQL question</summary><ol><li>Write down what one output row represents and the columns it needs.</li><li>Inspect the tables. Identify the key on each side of every join.</li><li>Start with a few source rows. Add one filter, join or calculation at a time.</li><li>Check what happens with a missing match, a tie and two detail rows for the same parent.</li><li>Compare your result on both datasets. Revisit a solved question later without opening the solution.</li></ol></details>'
     + '<div class="practice-levels">' + Object.entries(practiceLevels).map(([name,desc]) => {
+      const total = bank.exercises.filter(x => x.level === name).length;
       const count = bank.exercises.filter(x => x.level === name && solved.includes(x.id)).length;
-      return '<a class="case-card" href="#practice/' + U(name) + '"><h2>' + E(name) + '</h2><p>' + E(desc) + '</p><small>' + count + ' / 25 solved</small>' + progress(count,25) + '</a>';
+      return '<a class="case-card" href="#practice/' + U(name) + '"><h2>' + E(name) + '</h2><p>' + E(desc) + '</p><small>' + count + ' / ' + total + ' solved</small>' + progress(count,total) + '</a>';
     }).join('') + '</div><div class="section-head"><h2>' + E(level || 'All exercises') + '</h2>' + (level ? A('practice','Show all levels') : '') + '</div>'
     + '<label for="practiceFind">Find an exercise</label><input type="search" id="practiceFind" placeholder="Try median, receipts, or meter"><div id="practiceList"></div>';
 }
@@ -36,11 +37,11 @@ function practiceList(items,q) {
 function practiceTask(x,bank) {
   const draft = read('practiceDrafts',{})[x.id] || '';
   const solved = read('practiceSolved',[]).includes(x.id);
-  return '<div class="challenge-reader">' + A('practice/' + U(x.level),'Back to ' + x.level + ' exercises') + H(x.level + ' · Exercise ' + x.id + ' of 100',x.title,x.prompt)
+  return '<div class="challenge-reader">' + A('practice/' + U(x.level),'Back to ' + x.level + ' exercises') + H(x.level + ' · Exercise ' + x.id + ' of ' + bank.exercises.length,x.title,x.prompt)
     + '<div class="section practice-schema"><h2>Tables for this question</h2><p>Choose a table to inspect up to five sample rows.</p><div class="row">' + x.tables.map(t => '<button data-sample="' + E(t) + '">' + E(t) + '</button>').join('') + '</div><div id="sampleRows" aria-live="polite"></div><details><summary>Column names</summary>' + x.tables.map(t => '<p><b>' + E(t) + '</b><br><code>' + E(bank.schema[t].join(', ')) + '</code></p>').join('') + '</details></div>'
     + '<label for="answerSQL"><strong>Your SQL query</strong></label><textarea id="answerSQL" spellcheck="false" placeholder="SELECT …">' + E(draft) + '</textarea><div class="row"><button id="runPractice">Run query</button><button id="gradePractice" class="primary">Check answer</button><small id="practiceState">' + (solved ? 'Previously solved' : 'SQLite · read-only practice data') + '</small></div><div id="practiceFeedback" aria-live="polite"></div><div id="practiceOutput"></div>'
     + '<details class="challenge-aid"><summary>Hint</summary><p>' + E(x.reason) + '</p></details><details class="challenge-aid"><summary>Show worked solution</summary><pre>' + E(x.sql) + '</pre><p>' + E(x.reason) + '</p><p>On the practice data this returns ' + x.expected[0].length + ' row(s) and ' + x.cols + ' column(s).</p></details>'
-    + '<div class="row footer-links">' + (x.id>1 ? A('exercise/' + (x.id-1),'Previous exercise','button') : '') + (x.id<100 ? A('exercise/' + (x.id+1),'Next exercise','button') : A('practice','Review your progress','button')) + '</div></div>';
+    + '<div class="row footer-links">' + (x.id>1 ? A('exercise/' + (x.id-1),'Previous exercise','button') : '') + (x.id<bank.exercises.length ? A('exercise/' + (x.id+1),'Next exercise','button') : A('practice','Review your progress','button')) + '</div></div>';
 }
 function comparePractice(result,x,index) {
   const expected = x.expected[index];

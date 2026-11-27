@@ -11,7 +11,7 @@ let done = read('done', []), marks = read('marks', []), notes = read('notes', {}
 let generation = 0;
 
 const nav = [
-  ['home','Home'], ['learn','Curriculum'], ['practice','100 SQL Exercises'], ['workshops','Workshops'], ['sql-course','SQL lab'],
+  ['home','Home'], ['learn','Curriculum'], ['practice','SQL Exercises'], ['workshops','Workshops'], ['sql-course','SQL lab'],
   ['reference','Reference'], ['progress','My learning']
 ];
 
@@ -220,7 +220,7 @@ function pumpPage() {
 
 function sqlCourse() {
   return H('SQL learning', 'Read, explain and test a query', 'Each lesson uses the same local SQLite training database. Work in sequence or choose a business question.')
-    + '<div class="row footer-links">' + A('practice','Open 100 SQL Exercises','button primary') + A('sql','Open SQL editor','button') + A('technical','Technical library','button') + A('workshop/' + U('Database and SQL'),'Join troubleshooting workshop','button') + '</div>'
+    + '<div class="row footer-links">' + A('practice','Open SQL Exercises','button primary') + A('sql','Open SQL editor','button') + A('technical','Technical library','button') + A('workshop/' + U('Database and SQL'),'Join troubleshooting workshop','button') + '</div>'
     + lessons.filter(l => l.type === 'technical').map(l => '<section class="list-item"><h3>' + lessonLink(l) + '</h3><p>' + E(sqlReading[l.id]?.[0] || l.concept) + '</p>' + A('sql/' + l.id,'Run the lesson query') + '</section>').join('');
 }
 
@@ -647,7 +647,7 @@ function progressPage() {
   const qOk = Object.values(quizState).filter(Boolean).length;
   return H('Personal learning', 'Your learning progress', 'Progress, quiz results, notes and bookmarks are stored locally in this browser.')
     + `<div class="metrics">${metric(valid.length, 'Completed')}${metric(marks.length, 'Bookmarked')}${metric(Object.keys(notes).filter(k => notes[k]).length, 'Lessons with notes')}${metric(qTot ? `${qOk}/${qTot}` : '0', 'Quiz score')}</div>`
-    + '<p>' + A('practice','SQL practice · ' + read('practiceSolved',[]).length + ' of 100 solved') + '</p>'
+    + '<p>' + A('practice','SQL practice · ' + read('practiceSolved',[]).length + ' solved') + '</p>'
     + progress(valid.length, lessons.length)
     + `<h2>Module progress</h2>`
     + Object.entries(groups).map(([m, ls]) => `<div class="list-item"><div class="row between">${A('module/' + U(m), m)}<small>${ls.filter(l => done.includes(l.id)).length}/${ls.length}</small></div>${progress(ls.filter(l => done.includes(l.id)).length, ls.length)}</div>`).join('')
@@ -869,8 +869,8 @@ async function route() {
             if (Array.isArray(d.activity)) write('activity', d.activity.filter(v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)));
             for (const key of ['lastLesson','activePath']) if (typeof d[key] === 'string') write(key,d[key]);
             if (Array.isArray(d.sqlHist)) { sqlHist = d.sqlHist.filter(v => typeof v === 'string').slice(0,10); write('sqlhist',sqlHist); }
-            if (Array.isArray(d.practiceSolved)) write('practiceSolved',[...new Set(d.practiceSolved.filter(id=>Number.isInteger(id) && id>=1 && id<=100))]);
-            if (d.practiceDrafts && typeof d.practiceDrafts==='object') write('practiceDrafts',Object.fromEntries(Object.entries(d.practiceDrafts).filter(([id,sql])=>Number.isInteger(+id) && +id>=1 && +id<=100 && typeof sql==='string' && sql.length<=20000)));
+            if (Array.isArray(d.practiceSolved)) write('practiceSolved',[...new Set(d.practiceSolved.filter(id=>Number.isInteger(id) && id>=1))]);
+            if (d.practiceDrafts && typeof d.practiceDrafts==='object') write('practiceDrafts',Object.fromEntries(Object.entries(d.practiceDrafts).filter(([id,sql])=>Number.isInteger(+id) && +id>=1 && typeof sql==='string' && sql.length<=20000)));
             if (Array.isArray(d.done)) { done = d.done; write('done', done); }
             if (Array.isArray(d.marks)) { marks = d.marks; write('marks', marks); }
             if (d.notes && typeof d.notes === 'object') { notes = d.notes; write('notes', notes); }
