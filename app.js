@@ -12,7 +12,7 @@ let generation = 0;
 
 const nav = [
   ['home','Home'], ['learn','Curriculum'], ['practice','SQL Exercises'], ['workshops','Workshops'], ['sql-course','SQL lab'],
-  ['technical','Technical Library'], ['reference','Reference'], ['progress','My learning']
+  ['reference','Reference'], ['progress','My learning']
 ];
 
 const roles = {
@@ -167,7 +167,10 @@ function renderNav(route, id) {
     : route === 'doc' || route === 'search' || route === 'glossary' || route === 'fields' || route === 'topics' ? 'reference'
       : route === 'sql' ? 'sql-course' : route === 'crosswalk' || route === 'tables' || route === 'table' || route === 'er' || route === 'triggers' || route === 'procedures' || route === 'codes' || route === 'code' ? 'technical'
         : route === 'path' ? 'paths' : route;
-  $('topnav').innerHTML = nav.map(([r, t]) => A(r, t, (r === active || (r === 'workshops' && ['workshop','pump','flows'].includes(route)) || (r === 'sql-course' && route === 'sql') || (r === 'practice' && route === 'exercise') || (r === 'learn' && ['paths','path','assess','coverage'].includes(route))) ? 'active' : '')).join('');
+  $('technicalNav').classList.toggle('active', active === 'technical');
+  if (active === 'technical') $('technicalNav').setAttribute('aria-current','page');
+  else $('technicalNav').removeAttribute('aria-current');
+  $('navLinks').innerHTML = nav.map(([r, t]) => A(r, t, (r === active || (r === 'workshops' && ['workshop','pump','flows'].includes(route)) || (r === 'sql-course' && route === 'sql') || (r === 'practice' && route === 'exercise') || (r === 'learn' && ['paths','path','assess','coverage'].includes(route))) ? 'active' : '')).join('');
   $('topnav').querySelector('.active')?.setAttribute('aria-current', 'page');
   const selected = lessons.find(l => l.id === id);
   const c = codeMeta.counts || {};
@@ -249,10 +252,23 @@ function coveragePage(moduleName) {
     }).join('') + '</tbody></table></div>';
 }
 
+function introReading() {
+  return '<section class="panel"><h2>Introduction slides · pages 2 and 3</h2>' +
+    '<p>Read the two opening teaching slides from <cite>EAM Materials</cite>.</p>' +
+    '<p><a class="button primary" href="data/eam-introduction-pages-2-3.pdf#page=1">Page 2 · Introduction to Enterprise Asset Management</a></p>' +
+    '<p><a class="button" href="data/eam-introduction-pages-2-3.pdf#page=2">Page 3 · What is EAM and why does it matter?</a></p>' +
+    '<details><summary>Read the slide overview as text</summary><h3>What EAM manages</h3>' +
+    '<p>An asset can be a pump, a production line, a truck, a warehouse or a utility network. EAM connects the people responsible for operating, maintaining, purchasing and financing these resources.</p>' +
+    '<h3>What the system records</h3><p>The asset register records identity, hierarchy and location. Inspections track condition. Requests and orders document preventive and corrective work, labor and materials. Stores records track spare parts and replenishment. History and cost reports support decisions about reliability, productivity and investment.</p>' +
+    '<h3>Follow a pump through six stages</h3><ol><li>Acquire: select, receive and register the pump.</li><li>Install: commission it and hand it over to operations.</li><li>Operate: monitor output and condition.</li><li>Maintain: inspect, repair and record labor and parts.</li><li>Optimize: compare cost, risk and reliability to decide whether changes are worthwhile.</li><li>Retire: replace or decommission the unit and record its disposition.</li></ol>' +
+    '<p>This history helps teams limit downtime, control costs, extend service life and demonstrate which work was performed.</p></details></section>';
+}
+
 function modulePage(m) {
   const ls = groups[m];
   if (!ls) return H('Not found', 'Module not found');
   return H('Curriculum', m, `${ls.length} lessons · written walkthroughs and source references`)
+    + (m === 'Introduction to EAM' ? introReading() : '')
     + `<div class="panel"><div class="row between"><strong>${ls.filter(l => done.includes(l.id)).length} of ${ls.length} completed</strong>${A('lesson/' + (ls.find(l => !done.includes(l.id)) || ls[0]).id, 'Continue', 'button primary')}</div>${progress(ls.filter(l => done.includes(l.id)).length, ls.length)}${ls.map(l => `<div class="list-item">${lessonLink(l)} <small> · ${E(l.level)}</small><p class="muted">${E(l.concept)}</p></div>`).join('')}</div>`;
 }
 
@@ -291,6 +307,7 @@ function lessonPage(id) {
     + `<div class="row"><span class="pill">${l.type === 'intro' ? 'Academy introduction' : 'HxGN primary'}</span>${s.infor ? '<span class="pill">Infor supporting</span>' : ''}<button data-mark="${id}">${marks.includes(id) ? '★ Bookmarked' : '☆ Bookmark'}</button><button class="primary" data-done="${id}">${done.includes(id) ? '✓ Completed · undo' : 'Mark complete'}</button></div>`
     + (workshops.some(w => w.module === l.module) ? '<p>' + A('workshop/' + U(l.module),'Open module workshop') + '</p>' : '')
     + sqlStages.filter(stage => [stage.sql,stage.functional].includes(id)).map(stage => '<section><h2>' + E(stage.title) + '</h2>' + stageLinks(stage) + '</section>').join('')
+    + (id === 'INTRO01' ? introReading() : '')
     + (inPath ? '<p class="muted">' + A('path/' + U(activePath),activePath) + ' · Lesson ' + (i+1) + ' of ' + sequence.length + '</p>' : '')
     + (pumpSteps.some(([step]) => step === id) ? '<p class="note">' + A('pump','Case study · From pump to preventive work order') + '</p>' : '')
     + (sqlResults[id] ? '<details class="sql-output"><summary>Inspect the expected training output</summary>' + table(sqlResults[id].columns,sqlResults[id].rows.map(row => row.map(v => v === null ? 'NULL' : v))) + '</details>' : '')
@@ -725,7 +742,7 @@ async function route() {
         $('coverageModule').onchange = e => { location.hash = 'coverage/' + U(e.target.value); };
         break;
       case 'learn':
-        main.innerHTML = H('Curriculum', 'Tutorials', `${lessons.length} written lessons across ${Object.keys(groups).length} modules.`) + '<div class="row footer-links">' + A('lesson/INTRO01','Start here · What is EAM?','button primary') + A('paths','Learning paths','button') + A('assess','Assessments','button') + A('coverage','Lesson coverage','button') + '</div>' + tiles(Object.entries(groups).map(([m, ls]) => ['module/' + U(m), m, `${ls.length} lessons`]));
+        main.innerHTML = H('Curriculum', 'Tutorials', `${lessons.length} written lessons across ${Object.keys(groups).length} modules.`) + '<div class="row footer-links">' + A('lesson/INTRO01','Start here · What is EAM?','button primary') + A('paths','Learning paths','button') + A('assess','Assessments','button') + A('coverage','Lesson coverage','button') + '</div>' + introReading() + tiles(Object.entries(groups).map(([m, ls]) => ['module/' + U(m), m, `${ls.length} lessons`]));
         break;
       case 'module': main.innerHTML = modulePage(id); break;
       case 'lesson': main.innerHTML = lessonPage(id); attachLessonContents(); break;
