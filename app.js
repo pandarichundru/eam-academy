@@ -376,6 +376,12 @@ async function doSearch(q, offset = 0) {
     const h = j.items.map(d => `<div class="list-item">${sourceLink(d.id, d.title)}<small> · ${E(d.source)} · p. ${E(d.page)}</small><p class="muted">${HMark(d.excerpt)}</p></div>`).join('');
     $('sourceResults').innerHTML = offset ? $('sourceResults').innerHTML + h : h || '<p>No matching source pages.</p>';
     $('moreResults').innerHTML = j.more ? `<button id="loadMore">Load more results</button>` : '';
+    if (!offset && q.trim() && !source && !mod) {
+      const code = await api('/api/code/search?q=' + U(q));
+      if (token !== searchToken || !$('lessonResults')) return;
+      if (code.items.length) $('lessonResults').insertAdjacentHTML('beforeend','<h2>SQL library</h2>' +
+        code.items.slice(0,10).map(item => '<p>' + A('code/' + item.id,item.name) + '</p>').join(''));
+    }
     if (j.more) $('loadMore').onclick = () => doSearch(q, offset + 30);
   } catch (e) {
     if ($('sourceResults') && token === searchToken) $('sourceResults').textContent = 'Search failed: ' + e.message;
@@ -629,6 +635,9 @@ function downloadCsv(result) {
   link.href = url; link.download = 'eam-query.csv'; link.click();
   setTimeout(() => URL.revokeObjectURL(url),1000);
 }
+function historyMarkup() {
+  return sqlHist.length ? `<details><summary>Recent query history (${sqlHist.length})</summary>${sqlHist.map((q, idx) => `<div class="list-item"><button type="button" data-load-sql="${idx}">Load</button> <code style="margin-left:8px">${E(q.slice(0, 120))}</code></div>`).join('')}</details>` : '';
+}
 function sqlPage(id) {
   const l = lessons.find(x => x.id === id && x.type === 'technical');
   return H('SQL practice · technical only', 'Read-only SQL lab', 'All records are fictional and the SQLite schema is not the production R5 schema. Click schema columns to insert them, or use Check my output on lesson challenges.')
@@ -636,7 +645,7 @@ function sqlPage(id) {
     + `<p style="margin-top:10px"><label for="sqlText">SQL statement</label></p><textarea id="sqlText">${E(l?.sql || 'SELECT * FROM work_orders ORDER BY id;')}</textarea>`
     + `<div class="row" style="margin-top:8px"><button id="runSQL" class="primary">Run read-only query</button><button id="checkSQL" ${l ? '' : 'style="display:none"'}>Check my output</button><small>SELECT / CTE · max 200 displayed rows</small></div>`
     + `<p id="sqlExpected" class="note">${E(l?.verify || 'Select a lesson for an expected result.')}</p><div id="sqlCheckMsg"></div><div id="sqlResult"></div></div>`
-    + (sqlHist.length ? `<details><summary>Recent query history (${sqlHist.length})</summary>${sqlHist.map((q, idx) => `<div class="list-item"><button type="button" data-load-sql="${idx}">Load</button> <code style="margin-left:8px">${E(q.slice(0, 120))}</code></div>`).join('')}</details>` : '')
+    + '<div id="queryHistory">' + historyMarkup() + '</div>' 
     + `<details><summary>Training table → Production R5 crosswalk (28 tables)</summary>${table(['Training table', 'Approximate R5 table', 'Purpose'], crosswalk)}</details>`
     + `<h2>Training schema (click any column to insert)</h2><div id="sqlSchema">Loading schema…</div>`;
 }
@@ -781,7 +790,9 @@ async function route() {
       case 'er':
         main.innerHTML = erPage(id || 'R5EVENTS');
         $('erPick').onchange = e => { location.hash = 'er/' + U(e.target.value); };
-        main.querySelectorAll('[data-er-node]').forEach(g => { g.onclick = () => { location.hash = 'er/' + U(g.dataset.erNode); }; });
+        main.querySelectorAll('[data-er-node]').forEach(g => { g.setAttribute('role','link'); g.setAttribute('tabindex','0');
+          g.onclick = () => { location.hash = 'er/' + U(g.dataset.erNode); };
+          g.onkeydown = e => { if (e.key === 'Enter') g.onclick(); }; });
         break;
       case 'sql': {
         main.innerHTML = sqlPage(id);
@@ -801,9 +812,10 @@ async function route() {
           if (l) { $('sqlText').value = l.sql; $('sqlExpected').textContent = l.verify; $('sqlCheckMsg').innerHTML = ''; }
           wireSql();
         };
-        main.querySelectorAll('[data-load-sql]').forEach(b => {
-          b.onclick = () => { $('sqlText').value = sqlHist[Number(b.dataset.loadSql)]; };
-        });
+        $('queryHistory').onclick = e => {
+          const button = e.target.closest('[data-load-sql]');
+          if (button) $('sqlText').value = sqlHist[Number(button.dataset.loadSql)];
+        };
         $('runSQL').onclick = async () => {
           const b = $('runSQL'), q = $('sqlText').value;
           b.disabled = true; $('sqlResult').textContent = 'Running…'; $('sqlCheckMsg').innerHTML = '';
@@ -812,6 +824,7 @@ async function route() {
             if (current !== generation) return;
             sqlHist = [q, ...sqlHist.filter(x => x !== q)].slice(0, 10);
             write('sqlhist', sqlHist);
+            $('queryHistory').innerHTML = historyMarkup();
             $('sqlResult').innerHTML = `<p>${v.rows.length} rows${v.truncated ? ' (truncated)' : ''}</p>` + table(v.columns, v.rows.map(row => row.map(x => x === null ? 'NULL' : x))) + '<button id="saveCsv">Export displayed rows as CSV</button>';
             $('saveCsv').onclick = () => downloadCsv(v);
           } catch (e) {
