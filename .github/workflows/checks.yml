@@ -1,0 +1,11 @@
+name: Academy content checks
+on: [pull_request, push]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 scripts/check-content.py
+      - run: for file in app.js field-guide.js challenges.js training-worker.js sw.js; do node --check "$file"; done

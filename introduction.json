@@ -1,0 +1,51 @@
+[
+  {
+    "id": "INTRO01", "reference": "L009", "title": "What is Enterprise Asset Management?",
+    "concept": "Enterprise Asset Management (EAM) is how an organization manages physical assets from planning to retirement. It connects the people who operate equipment with those who maintain it, buy parts and account for costs.",
+    "scenario": "A water plant needs cooling water during every shift. Operators report a leaking pump, the planner schedules a repair and stores supplies a seal.",
+    "walkthrough": ["Identify the service the plant needs: a reliable supply of cooling water.", "Follow the leak report to a work order against the pump. The technician records the repair and stores records the seal issue.", "Review the pump’s repair history and downtime when deciding whether to repair or replace it."],
+    "verify": "Trace the physical pump, the work order and the seal issue. Together they explain what needed attention, what was done and what it consumed."
+  },
+  {
+    "id": "INTRO02", "reference": "L012", "title": "What is an asset?",
+    "concept": "An asset is something that provides value to an organization. In maintenance, a physical item often gets its own asset record when people need to track its condition, work, cost or history individually.",
+    "scenario": "Receiving delivers one serialized pump and a box of identical replacement seals to the pump room.",
+    "walkthrough": ["Give the pump an asset identifier and record its serial number so its history follows the physical unit.", "Record the interchangeable seals as quantities of a stocked part. Issue one against the repair when it is used.", "Record the pump room as a location so a technician can find the installation."],
+    "verify": "If the pump moves, its serial number and repair history travel with it. The destination location changes. The remaining seals still have a stock balance."
+  },
+  {
+    "id": "INTRO03", "reference": "L019", "title": "Asset, position, system and location",
+    "concept": "The asset identifies the physical unit, the position identifies its duty, the location tells you where to go and the system groups equipment that delivers a service.",
+    "scenario": "Pump P-101A is replaced by spare P-101B at the duty position CW-DUTY in the north pump room.",
+    "walkthrough": ["Record the removal of P-101A and the installation of P-101B at CW-DUTY.", "Keep the north pump room as the location and the cooling-water system as the service grouping.", "Compare the repair history of P-101A with the installation history of CW-DUTY."],
+    "verify": "To find which unit was repaired, look up the asset. To count swaps at the same duty point, look up the position."
+  },
+  {
+    "id": "INTRO04", "reference": "L012", "title": "The asset lifecycle, from planning to retirement",
+    "concept": "The asset lifecycle covers the decisions and records created before, during and after an asset’s working life.",
+    "scenario": "The plant adds a standby cooling-water pump and needs a record of why it was bought, when it entered service and how it eventually left service.",
+    "walkthrough": ["Plan: record the required flow, duty and approved budget.", "Acquire: link the purchase order to the receipt and capture the delivered serial number.", "Commission: record the installation position, acceptance check and service start date.", "Operate and maintain: collect readings, inspections, work orders, parts and labor against the installed asset.", "Retire: record removal date, reason and disposal or transfer. Retain the history for cost and reliability reviews."],
+    "verify": "The receipt proves delivery. The commissioning record shows acceptance into service. The retirement record closes the service period while preserving earlier work."
+  },
+  {
+    "id": "INTRO05", "reference": "L067", "title": "From a work request to a closed work order",
+    "concept": "A request reports a need. A work order records the authorized scope, resources, execution and outcome.",
+    "scenario": "An operator sees a seal leak at CW-DUTY and submits a request.",
+    "walkthrough": ["Record the symptom, position, time and installed pump identifier.", "Review the request, create the order, plan the task and reserve a seal. A reservation sets stock aside; the issue records the quantity taken.", "Record labor, the issued part and the technician’s findings. Verify the repair against the acceptance check before closure."],
+    "verify": "A closed repair should identify the asset, describe the work and contain a recorded outcome. A parts issue alone does not prove installation."
+  },
+  {
+    "id": "INTRO06", "reference": "L081", "title": "Corrective, preventive and condition-based maintenance",
+    "concept": "Maintenance can be triggered by an observed fault, a planned interval or a measured condition. The trigger explains why the work is due.",
+    "scenario": "The pump has a leaking seal, a monthly inspection schedule and a vibration meter.",
+    "walkthrough": ["Corrective: raise a repair for the observed leak.", "Interval-based preventive: schedule an inspection every 30 days and link each generated order back to the schedule.", "Condition-based: review a rising vibration trend against the plant’s criteria and record the decision to inspect."],
+    "verify": "The PM schedule describes recurring work. The generated order describes one occurrence. A meter reading supplies evidence for a condition decision."
+  },
+  {
+    "id": "INTRO07", "reference": "L077", "title": "Read an asset’s maintenance history",
+    "concept": "Asset history combines dated records. Each record answers a different question about work, cost or condition.",
+    "scenario": "On 3 May a leak was reported. WO-214 closed on 5 May with two labor hours at 40 per hour and one seal costing 18. The schedule lists the next inspection on 2 June.",
+    "walkthrough": ["Find the most recent completed repair using the work order completion date.", "Calculate recorded direct repair cost: two hours times 40, plus 18 for the seal.", "Find the next planned inspection on the schedule and keep it distinct from completed work."],
+    "verify": "WO-214 closed on 5 May. Recorded direct cost was 98. The 2 June inspection is planned work and contributes no actual repair cost yet."
+  }
+]

@@ -384,3 +384,26 @@ body[data-view=home] main { max-width:1340px; margin:auto; padding-top:clamp(1.5
 .practice-schema h2 { margin-top:0; }
 #sampleRows:not(:empty) { margin:1rem 0; }
 @media(max-width:520px){.challenge-row { grid-template-columns:2rem 1fr; } .challenge-row small { grid-column:2; } }
+:root { --card-radius: 1rem; --focus: #006c78; }
+html[data-theme=dark] { --focus: #8ee8da; }
+.case-card, .panel, .feature, .resume-band { border-radius: var(--card-radius); box-shadow: var(--shadow); }
+.case-card { border-top: 3px solid var(--brand); }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+header :focus-visible { outline-color: white; }
+@media (max-width: 760px) {
+  header { position: sticky; flex-wrap: wrap; gap: .4rem; }
+  header nav { order: 3; flex-basis: 100%; flex-wrap: nowrap; overflow-x: auto; padding: .3rem; }
+  #theme { margin-left: auto; }
+  main { min-width: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+.sql-workspace { display: grid; align-items: start; gap: 1rem; }
+.sql-workspace > * { min-width: 0; }
+.sql-browser h2 { margin-top: 0; }
+.sql-browser details { overflow-wrap: anywhere; }
+@media (min-width: 1050px) {
+  .sql-workspace { grid-template-columns: minmax(0, 3fr) minmax(16rem, 2fr); }
+  .sql-browser { max-height: 38rem; overflow: auto; }
+}

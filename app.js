@@ -11,12 +11,12 @@ let done = read('done', []), marks = read('marks', []), notes = read('notes', {}
 let generation = 0;
 
 const nav = [
-  ['home','Home'], ['learn','Curriculum'], ['practice','100 SQL Exercises'], ['workshops','Workshops'], ['sql-course','SQL lab'],
-  ['reference','Reference'], ['progress','My learning']
+  ['home','Home'], ['learn','Curriculum'], ['practice','SQL Exercises'], ['workshops','Workshops'], ['sql-course','SQL lab'],
+  ['technical','Technical Library'], ['reference','Reference'], ['progress','My learning']
 ];
 
 const roles = {
-  'Beginner': ['Fundamentals', 'Equipment management', 'Work management'],
+  'Beginner': ['Introduction to EAM', 'Fundamentals', 'Equipment management', 'Work management'],
   'Maintenance technician': ['Fundamentals', 'Equipment management', 'Work management', 'Inspection, safety and calibration'],
   'Maintenance planner': ['Equipment management', 'Work management', 'Preventive maintenance', 'Materials and inventory'],
   'Inventory specialist': ['Fundamentals', 'Materials and inventory', 'Purchasing management'],
@@ -153,7 +153,7 @@ const A = (route, label, cls = '') => `<a ${cls ? `class="${cls}"` : ''} href="#
 const ext = (url, label) => `<a href="${E(url)}" target="_blank" rel="noopener noreferrer">${E(label)} ↗</a>`;
 const table = (headers, rows) => `<div class="scroll"><table><thead><tr>${headers.map(v => `<th scope="col">${E(v)}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(v => `<td>${E(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 const tiles = items => `<div class="grid">${items.map(([r, t, d]) => `<a class="tile" href="#${r}"><h3>${E(t)}</h3><p>${E(d)}</p></a>`).join('')}</div>`;
-const progress = (n, total) => `<div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${n}"><i style="width:${total ? n / total * 100 : 0}%"></i></div>`;
+const progress = (n, total) => `<div class="bar" role="progressbar" aria-label="Completion" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${n}"><i style="width:${total ? n / total * 100 : 0}%"></i></div>`;
 const lessonLink = l => A('lesson/' + l.id, `${done.includes(l.id) ? '✓ ' : ''}${l.title}`);
 const metric = (n, t) => `<div class="metric"><strong>${E(n)}</strong><span>${E(t)}</span></div>`;
 const sourceLink = (id, label) => A('doc/' + id, label);
@@ -165,9 +165,10 @@ function findLessonByTitle(t) {
 function renderNav(route, id) {
   const active = route === 'lesson' || route === 'module' ? 'learn'
     : route === 'doc' || route === 'search' || route === 'glossary' || route === 'fields' || route === 'topics' ? 'reference'
-      : route === 'sql' || route === 'tables' || route === 'table' || route === 'er' || route === 'triggers' || route === 'procedures' || route === 'codes' || route === 'code' ? 'technical'
+      : route === 'sql' ? 'sql-course' : route === 'crosswalk' || route === 'tables' || route === 'table' || route === 'er' || route === 'triggers' || route === 'procedures' || route === 'codes' || route === 'code' ? 'technical'
         : route === 'path' ? 'paths' : route;
-  $('topnav').innerHTML = nav.map(([r, t]) => A(r, t, (r === active || (r === 'workshops' && ['workshop','pump','flows'].includes(route)) || (r === 'sql-course' && route === 'sql') || (r === 'practice' && route === 'exercise') || (r === 'reference' && active === 'technical') || (r === 'learn' && ['paths','path','assess','coverage'].includes(route))) ? 'active' : '')).join('');
+  $('topnav').innerHTML = nav.map(([r, t]) => A(r, t, (r === active || (r === 'workshops' && ['workshop','pump','flows'].includes(route)) || (r === 'sql-course' && route === 'sql') || (r === 'practice' && route === 'exercise') || (r === 'learn' && ['paths','path','assess','coverage'].includes(route))) ? 'active' : '')).join('');
+  $('topnav').querySelector('.active')?.setAttribute('aria-current', 'page');
   const selected = lessons.find(l => l.id === id);
   const c = codeMeta.counts || {};
   $('side').innerHTML = '<div class="eyebrow">Course curriculum</div>'
@@ -217,10 +218,24 @@ function pumpPage() {
     + pumpQueries.map((q,i) => '<section class="section"><h3>' + E(q.title) + '</h3><pre>' + E(q.sql) + '</pre>' + A('sql/pump-' + i,'Open in SQL lab','button') + '<details><summary>Explain the result</summary><p>' + E(q.result) + '</p></details></section>').join('');
 }
 
+const sqlStages = [
+  {title:'Find open work', question:'Which orders still need attention?', grain:'One row per open work order.', sql:'L127', functional:'INTRO05', exercise:3},
+  {title:'Connect assets and orders', question:'Which physical asset does each order describe?', grain:'One row per matched work order.', sql:'L128', functional:'INTRO03', exercise:26},
+  {title:'Summarize work by asset', question:'How much work belongs to each asset?', grain:'One row per asset in the summary. Start from equipment to include idle assets.', sql:'L129', functional:'INTRO07', exercise:30},
+  {title:'Diagnose repeated charges', question:'Did the join count the same activity twice?', grain:'One row per order and activity before attaching labor. Both keys matter.', sql:'L130', functional:'L068', exercise:53},
+  {title:'Read a meter trend', question:'How much did a meter advance between readings?', grain:'One row per reading, compared with the previous reading on the same meter.', sql:'L134', functional:'INTRO06', exercise:107}
+];
+function stageLinks(stage) {
+  return '<div class="row">' + A('lesson/' + stage.functional,'EAM example') + A('lesson/' + stage.sql,'Worked SQL lesson') +
+    A('sql/' + stage.sql,'Run example') + A('exercise/' + stage.exercise,'Practice challenge') + '</div>';
+}
 function sqlCourse() {
   return H('SQL learning', 'Read, explain and test a query', 'Each lesson uses the same local SQLite training database. Work in sequence or choose a business question.')
-    + '<div class="row footer-links">' + A('practice','Open 100 SQL Exercises','button primary') + A('sql','Open SQL editor','button') + A('technical','Technical library','button') + A('workshop/' + U('Database and SQL'),'Join troubleshooting workshop','button') + '</div>'
-    + lessons.filter(l => l.type === 'technical').map(l => '<section class="list-item"><h3>' + lessonLink(l) + '</h3><p>' + E(sqlReading[l.id]?.[0] || l.concept) + '</p>' + A('sql/' + l.id,'Run the lesson query') + '</section>').join('');
+    + '<div class="row footer-links">' + A('practice','Open SQL Exercises','button primary') + A('sql','Open SQL editor','button') + A('technical','Technical library','button') + A('workshop/' + U('Database and SQL'),'Join troubleshooting workshop','button') + '</div>'
+    + '<h2>Five-stage SQL learning path</h2><ol>' + sqlStages.map(stage => '<li class="panel"><h3>' + E(stage.title) +
+      '</h3><p>' + E(stage.question) + '</p><p>' + E(stage.grain) + '</p>' + stageLinks(stage) + '</li>').join('') + '</ol>'
+    + A('exercise/30','Fix a query that counts an idle asset as an order','button')
+    + '<h2>All SQL lessons</h2>' + lessons.filter(l => l.type === 'technical').map(l => '<section class="list-item"><h3>' + lessonLink(l) + '</h3><p>' + E(sqlReading[l.id]?.[0] || l.concept) + '</p>' + A('sql/' + l.id,'Run the lesson query') + '</section>').join('');
 }
 
 function coveragePage(moduleName) {
@@ -248,28 +263,34 @@ function sourcePanel(l) {
 
 function quizBlock(qList) {
   if (!qList.length) return '';
-  return qList.map(q => {
+  const shuffled = [...qList];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i+1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled.map(q => {
     const saved = quizState[q.id];
     const badge = saved === true ? '<span class="pill ok">✓ Answered correctly</span>' : saved === false ? '<span class="pill warn">Needs review</span>' : '';
-    return `<div class="quiz-box" data-qid="${E(q.id)}"><div class="row between"><strong>Quick check · ${E(q.id)}</strong>${badge}</div><p>${E(q.q)}</p>${q.options.map((opt, idx) => `<label class="quiz-opt"><input type="radio" name="quiz_${E(q.id)}" value="${idx}"><span>${E(opt)}</span></label>`).join('')}<div class="row"><button type="button" class="primary" data-check-quiz="${E(q.id)}">Check answer</button></div><div class="quiz-feedback" id="qf_${E(q.id)}"></div></div>`;
+    return `<div class="quiz-box" data-qid="${E(q.id)}"><div class="row between"><strong>Quick check · ${E(q.id)}</strong>${badge}</div><p>${E(q.q)}</p>${q.options.map((opt, idx) => `<label class="quiz-opt"><input type="radio" name="quiz_${E(q.id)}" value="${idx}"><span>${E(opt)}</span></label>`).join('')}<div class="row"><button type="button" class="primary" data-check-quiz="${E(q.id)}">Check answer</button></div><div class="quiz-feedback" aria-live="polite" id="qf_${E(q.id)}"></div></div>`;
   }).join('');
 }
 
 function lessonPage(id) {
   const l = lessons.find(v => v.id === id);
   if (!l) return H('Not found', 'Lesson not found');
-  write('lastLesson', l.id);
+  write('lastLesson', l.id); logActivity();
   const activePath = read('activePath','');
   const pathModules = roles[activePath];
   const inPath = Array.isArray(pathModules) && pathModules.includes(l.module);
   const sequence = inPath ? pathModules.flatMap(m => groups[m]) : groups[l.module];
   const i = sequence.indexOf(l), s = l.source, ev = s.evidence;
-  const more = enrichment[String(s.hex.page)] || {};
+  const more = l.type === 'intro' ? {} : enrichment[String(s.hex.page)] || {};
   const related = sequence.filter(x => x.id !== id).slice(Math.max(0, i - 2), Math.max(0, i - 2) + 4);
   const lQuizzes = quizzes.filter(q => q.lesson.toLowerCase() === l.title.toLowerCase());
   return `<div class="lesson-layout"><article class="lesson-content">${H(l.module, l.title, `${l.id} · ${l.level} · ${l.type === 'technical' ? 'Technical SQL lesson' : l.type === 'consulting' ? 'Consultant guidance' : 'Written functional tutorial'}`)}`
-    + `<div class="row"><span class="pill">HxGN primary</span>${s.infor ? '<span class="pill">Infor supporting</span>' : ''}<button data-mark="${id}">${marks.includes(id) ? '★ Bookmarked' : '☆ Bookmark'}</button><button class="primary" data-done="${id}">${done.includes(id) ? '✓ Completed · undo' : 'Mark complete'}</button></div>`
-    + '<p class="workshop-link">' + A('workshop/' + U(l.module), 'Module workshop · ' + (workshops.find(w => w.module === l.module)?.title || l.module)) + '</p>'
+    + `<div class="row"><span class="pill">${l.type === 'intro' ? 'Academy introduction' : 'HxGN primary'}</span>${s.infor ? '<span class="pill">Infor supporting</span>' : ''}<button data-mark="${id}">${marks.includes(id) ? '★ Bookmarked' : '☆ Bookmark'}</button><button class="primary" data-done="${id}">${done.includes(id) ? '✓ Completed · undo' : 'Mark complete'}</button></div>`
+    + (workshops.some(w => w.module === l.module) ? '<p>' + A('workshop/' + U(l.module),'Open module workshop') + '</p>' : '')
+    + sqlStages.filter(stage => [stage.sql,stage.functional].includes(id)).map(stage => '<section><h2>' + E(stage.title) + '</h2>' + stageLinks(stage) + '</section>').join('')
     + (inPath ? '<p class="muted">' + A('path/' + U(activePath),activePath) + ' · Lesson ' + (i+1) + ' of ' + sequence.length + '</p>' : '')
     + (pumpSteps.some(([step]) => step === id) ? '<p class="note">' + A('pump','Case study · From pump to preventive work order') + '</p>' : '')
     + (sqlResults[id] ? '<details class="sql-output"><summary>Inspect the expected training output</summary>' + table(sqlResults[id].columns,sqlResults[id].rows.map(row => row.map(v => v === null ? 'NULL' : v))) + '</details>' : '')
@@ -277,14 +298,14 @@ function lessonPage(id) {
     + `<section class="section"><h2>What you will learn</h2><p>${E(l.concept)}</p><p>By the end, you should be able to explain the business purpose, describe the steps for the scenario, and identify how to check the result.</p></section>`
     + `<section class="section"><h2>Business scenario</h2><div class="scenario">${E(l.scenario)}</div><p class="muted">Fictional PLANT01 example for learning; not a live EAM transaction.</p></section>`
     + `${more.context && l.type === 'functional' ? `<section class="section"><h2>How it works</h2>${more.context.map(x => `<p>${E(x)}</p>`).join('')}${more.flow ? `<div class="diagram">${more.flow.map((v, idx) => `${idx ? '<b>→</b>' : ''}<span>${E(v)}</span>`).join('')}</div>` : ''}</section>` : ''}`
-    + `<section class="section"><h2>${l.type === 'technical' ? 'Technical walkthrough' : 'Prerequisites and written walkthrough'}</h2>${l.type === 'technical' ? `<p>Use the local synthetic dataset, not a production database. ${A('sql', 'Open SQL lab')}</p><pre>${E(l.sql)}</pre>${A('sql/' + id, 'Open this query in SQL lab', 'button primary')}` : `<p>${l.type === 'consulting' ? 'Agree the business scope, owners and test environment before applying the guidance.' : 'Before starting, confirm the relevant organization, authorized role, and referenced master data. Use the documented screen for your release.'}</p><ol class="steps">${l.walkthrough.map(x => `<li>${E(x)}</li>`).join('')}</ol>`}</section>`
+    + `<section class="section"><h2>${l.type === 'technical' ? 'Technical walkthrough' : 'Prerequisites and written walkthrough'}</h2>${l.type === 'technical' ? `<p>Use the local synthetic dataset, not a production database. ${A('sql', 'Open SQL lab')}</p><pre>${E(l.sql)}</pre>${A('sql/' + id, 'Open this query in SQL lab', 'button primary')}` : `<p>${l.type === 'intro' ? 'Follow the example in order.' : l.type === 'consulting' ? 'Agree the business scope, owners and test environment before applying the guidance.' : 'Before starting, confirm the relevant organization, authorized role, and referenced master data. Use the documented screen for your release.'}</p><ol class="steps">${l.walkthrough.map(x => `<li>${E(x)}</li>`).join('')}</ol>`}</section>`
     + `${more.example && l.type === 'functional' ? `<section class="section"><h2>Worked example</h2>${table(['Record / field', 'Training value or decision', 'Explanation'], more.example)}</section>` : ''}`
     + `${l.type === 'functional' && ev.fields.length ? `<section class="section"><h2>Documented fields and options</h2><p class="muted">Selected field descriptions extracted from the supplied HxGN pages. Not an exhaustive field list; some descriptions continue in the original source.</p>${table(['Field / option', 'Source excerpt'], ev.fields.map(x => [x.name, x.meaning]))}</section>` : ''}`
     + `<section class="section"><h2>Expected result &amp; troubleshooting</h2><div class="panel"><p>${E(l.verify)}</p>${more.check && l.type === 'functional' ? `<p>${E(more.check)}</p>` : ''}</div></section>`
     + `${l.type === 'functional' ? `<section class="section"><h2>Documentation reading</h2><p class="muted">Selected local source text for verification. The extract is partial; use the linked full pages for exact field requirements, notes, and remaining steps.</p><details open><summary>HxGN source context · p. ${s.hex.page}</summary><p>${E(ev.intro)}</p>${ev.steps.length ? `<h3>Selected numbered instructions</h3><ul class="steps">${ev.steps.map(x => `<li>${E(x)}</li>`).join('')}</ul>` : '<p>No numbered instructions extracted at this heading. See full pages for nested procedures.</p>'}</details></section>` : ''}`
     + `<section class="section"><h2>Knowledge check</h2>${quizBlock(lQuizzes)}<p><strong>Written scenario prompt:</strong> Explain how you would address this scenario: ${E(l.scenario)} What evidence would demonstrate success?</p><details><summary>Review answer guidance</summary><p>${E(l.concept)}</p><p>${E(l.verify)}</p></details><label for="lessonNotes"><strong>Your revision notes</strong></label><textarea id="lessonNotes" data-note="${id}" placeholder="Record important terms and questions…">${E(notes[id] || '')}</textarea><small>Saved in this browser on change.</small></section>`
     + `<section class="section"><h2>Related lessons</h2>${related.map(x => `<div>${lessonLink(x)}</div>`).join('')}</section>`
-    + `<div class="row between lesson-nav">${i ? A('lesson/' + sequence[i - 1].id, '← Previous lesson', 'button') : ''}${i < sequence.length - 1 ? A('lesson/' + sequence[i + 1].id, 'Next lesson →', 'button primary') : ''}</div></article><aside class="rail" aria-label="Lesson references">${sourcePanel(l)}</aside></div>`;
+    + `<div class="row between lesson-nav">${i ? A('lesson/' + sequence[i - 1].id, '← Previous lesson', 'button') : ''}${i < sequence.length - 1 ? A('lesson/' + sequence[i + 1].id, 'Next lesson →', 'button primary') : ''}</div></article><aside class="rail" aria-label="Lesson references">${l.reference ? '<h2>Further reading</h2>' + lessonLink(lessons.find(item => item.id === l.reference)) : sourcePanel(l)}</aside></div>`;
 }
 
 function paths() {
@@ -342,16 +363,22 @@ function searchPage(q) {
 let searchToken = 0;
 async function doSearch(q, offset = 0) {
   const token = ++searchToken;
+  const searchText = q.trim().replace(/\bwo\b/gi,'work order').replace(/\bpm\b/gi,'preventive maintenance');
   const source = $('sourceFilter')?.value || '';
   const mod = $('moduleFilter')?.value || '';
   if (!offset) {
-    const terms = q.toLowerCase().trim().split(/\s+/).filter(Boolean);
+    const terms = searchText.toLowerCase().trim().split(/\s+/).filter(Boolean);
     const names = q.trim() ? catalog.tables.filter(([name]) => name.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 20) : [];
     const workshopHits = terms.length ? workshops.filter(w => (!mod || w.module === mod) && terms.every(t => [w.title,w.situation,w.module,w.role].join(' ').toLowerCase().includes(t))) : [];
     const hits = lessons.filter(l => (!mod || l.module === mod) && (!terms.length || terms.every(t => [l.title, l.module, l.concept, l.scenario, l.source.hex.title].join(' ').toLowerCase().includes(t))));
     $('lessonResults').innerHTML = (q || mod)
       ? (hits.length ? hits.slice(0, 30).map(l => `<div class="list-item">${lessonLink(l)}<p class="muted">${E(l.module)} · ${E(l.concept)}</p></div>`).join('') : '<p>No matching authored lesson. Try fewer terms or use the source results.</p>')
       : '<p>Enter a term or select a module to filter tutorials.</p>';
+    if (terms.length) {
+      const fields = lessons.filter(l => (!mod || l.module === mod) && l.source.evidence?.fields?.some(f =>
+        terms.every(t => (f.name + ' ' + f.meaning).toLowerCase().includes(t))));
+      if (fields.length) $('lessonResults').innerHTML += '<h2>Field guide</h2>' + fields.slice(0,20).map(l => '<p>' + lessonLink(l) + '</p>').join('');
+    }
     if (workshopHits.length) $('lessonResults').innerHTML += '<h2>Matching workshops</h2>' + workshopCards(workshopHits);
     if (names.length && !mod) $('lessonResults').innerHTML += '<h2>Database dictionary</h2>' + names.map(([name]) => A('table/' + U(name),name,'taglink')).join(' ');
     if (!mod && terms.length && terms.every(t => ('pump asset preventive maintenance schedule open work orders').includes(t))) {
@@ -360,11 +387,17 @@ async function doSearch(q, offset = 0) {
     $('sourceResults').innerHTML = 'Searching…';
   }
   try {
-    const j = await api(`/api/search?q=${U(q)}&source=${U(source)}&offset=${offset}`);
+    const j = await api(`/api/search?q=${U(searchText)}&source=${U(source)}&offset=${offset}`);
     if (token !== searchToken || !$('sourceResults')) return;
     const h = j.items.map(d => `<div class="list-item">${sourceLink(d.id, d.title)}<small> · ${E(d.source)} · p. ${E(d.page)}</small><p class="muted">${HMark(d.excerpt)}</p></div>`).join('');
     $('sourceResults').innerHTML = offset ? $('sourceResults').innerHTML + h : h || '<p>No matching source pages.</p>';
     $('moreResults').innerHTML = j.more ? `<button id="loadMore">Load more results</button>` : '';
+    if (!offset && q.trim() && !source && !mod) {
+      const code = await api('/api/code/search?q=' + U(q));
+      if (token !== searchToken || !$('lessonResults')) return;
+      if (code.items.length) $('lessonResults').insertAdjacentHTML('beforeend','<h2>SQL library</h2>' +
+        code.items.slice(0,10).map(item => '<p>' + A('code/' + item.id,item.name) + '</p>').join(''));
+    }
     if (j.more) $('loadMore').onclick = () => doSearch(q, offset + 30);
   } catch (e) {
     if ($('sourceResults') && token === searchToken) $('sourceResults').textContent = 'Search failed: ' + e.message;
@@ -403,11 +436,12 @@ function glossaryPage() {
 
 function technical() {
   const c = codeMeta.counts || {};
-  return H('Technical academy', 'Database, SQL, Triggers & Procedures', 'Separate supplied schema evidence and read-only recovered SQL Server reference code from the synthetic SQLite practice lab. Never run recovered or training SQL against production.')
+  return H('Technical academy', 'Technical Library', 'Separate supplied schema evidence and read-only recovered SQL Server reference code from the synthetic SQLite practice lab. Never run recovered or training SQL against production.')
     + tiles([
       ['triggers', `Triggers — Full (${c.trigger ?? 2405})`, 'All 2,405 recovered SQL Server trigger blocks, searchable by name, keyword, or R5 table.'],
       ['procedures', `Stored Procedures — Full (${c.procedure ?? 1629})`, 'All 1,629 recovered SQL Server stored procedures plus procedure directory.'],
-      ['codes', 'All Codes Hub', 'Views (304), Functions (947), Tables/Indexes (11), Flex SQL (8), Install Parameters (97), Classes & Categories.'],
+      ['crosswalk', 'Training-to-R5 crosswalk', 'Look up the closest R5 table for a training database example.'],
+      ['codes', 'SQL object explorer', 'Views (304), Functions (947), Tables/Indexes (11), Flex SQL (8), Install Parameters (97), Classes & Categories.'],
       ['tables', 'Database dictionary', '1,681 indexed R5 tables; 47 structured key-table exports; 196 observed column token tables.'],
       ['er/R5EVENTS', 'Visual ER relationship explorer', 'Interactive SVG parent/child diagram around any R5 key table.'],
       ['sql', 'SQL lab & Self-Check', 'Read-only synthetic training database, 28 tables, click-to-insert schema, R5 crosswalk.'],
@@ -549,6 +583,7 @@ function tablePage(t) {
 
   return H('Schema evidence', t, kt ? `${kt.area} · Detailed key-table export` : 'Index only · no detailed export')
     + `<div class="row" style="margin-bottom:12px">${A('er/' + U(t), 'Open Visual ER Diagram', 'button primary')}${A('triggers/' + U(t), 'Search Triggers for ' + t, 'button')}${A('procedures/' + U(t), 'Search Procedures for ' + t, 'button')}</div>`
+    + (t === 'R5EVENTS' ? '<p>' + A('lesson/L127','Worked training example · Find open work orders') + '</p>' : '')
     + structured
     + `<h2>Recovered SQL objects referencing ${E(t)}</h2><div id="tableCodeRefs"><p class="muted">Checking triggers, procedures &amp; views…</p></div>`
     + (tokens.length ? `<h2>Observed column tokens (Unverified lexical reference)</h2><div class="note">Extracted from carved SQL DDL tokens only; column types and completeness are unverified.</div><div class="panel">${tokens.map(c => `<span class="taglink">${E(c)}</span>`).join('')}</div>` : '')
@@ -606,16 +641,31 @@ function erPage(t = 'R5EVENTS') {
     + `<p class="note">Multiple links may belong to one composite key. Verify actual constraints before writing production joins.</p>`;
 }
 
+function downloadCsv(result) {
+  function cell(value) {
+    let text = String(value ?? '');
+    if (typeof value === 'string' && /^[=+@\-\t\r]/.test(text)) text = "'" + text;
+    return '"' + text.replaceAll('"','""') + '"';
+  }
+  const csv = [result.columns, ...result.rows].map(row => row.map(cell).join(',')).join('\r\n');
+  const url = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
+  const link = document.createElement('a');
+  link.href = url; link.download = 'eam-query.csv'; link.click();
+  setTimeout(() => URL.revokeObjectURL(url),1000);
+}
+function historyMarkup() {
+  return sqlHist.length ? `<details><summary>Recent query history (${sqlHist.length})</summary>${sqlHist.map((q, idx) => `<div class="list-item"><button type="button" data-load-sql="${idx}">Load</button> <code style="margin-left:8px">${E(q.slice(0, 120))}</code></div>`).join('')}</details>` : '';
+}
 function sqlPage(id) {
   const l = lessons.find(x => x.id === id && x.type === 'technical');
   return H('SQL practice · technical only', 'Read-only SQL lab', 'All records are fictional and the SQLite schema is not the production R5 schema. Click schema columns to insert them, or use Check my output on lesson challenges.')
-    + `<div class="panel"><label for="sqlExample">Choose a lesson query</label> <select id="sqlExample"><option value="">Custom query</option>${lessons.filter(x => x.type === 'technical').map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${E(x.title)}</option>`).join('')}</select>`
+    + `<div class="sql-workspace"><div class="panel"><label for="sqlExample">Choose a lesson query</label> <select id="sqlExample"><option value="">Custom query</option>${lessons.filter(x => x.type === 'technical').map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${E(x.title)}</option>`).join('')}</select>`
     + `<p style="margin-top:10px"><label for="sqlText">SQL statement</label></p><textarea id="sqlText">${E(l?.sql || 'SELECT * FROM work_orders ORDER BY id;')}</textarea>`
     + `<div class="row" style="margin-top:8px"><button id="runSQL" class="primary">Run read-only query</button><button id="checkSQL" ${l ? '' : 'style="display:none"'}>Check my output</button><small>SELECT / CTE · max 200 displayed rows</small></div>`
     + `<p id="sqlExpected" class="note">${E(l?.verify || 'Select a lesson for an expected result.')}</p><div id="sqlCheckMsg"></div><div id="sqlResult"></div></div>`
-    + (sqlHist.length ? `<details><summary>Recent query history (${sqlHist.length})</summary>${sqlHist.map((q, idx) => `<div class="list-item"><button type="button" data-load-sql="${idx}">Load</button> <code style="margin-left:8px">${E(q.slice(0, 120))}</code></div>`).join('')}</details>` : '')
-    + `<details><summary>Training table → Production R5 crosswalk (28 tables)</summary>${table(['Training table', 'Approximate R5 table', 'Purpose'], crosswalk)}</details>`
-    + `<h2>Training schema (click any column to insert)</h2><div id="sqlSchema">Loading schema…</div>`;
+    + '<aside class="panel sql-browser"><h2>Training schema</h2><div id="sqlSchema">Loading schema…</div></aside></div>'
+    + '<div id="queryHistory">' + historyMarkup() + '</div>'
+    + `<details><summary>Training table → Production R5 crosswalk (28 tables)</summary>${table(['Training table', 'Approximate R5 table', 'Purpose'], crosswalk)}</details>`;
 }
 
 function progressPage() {
@@ -624,25 +674,31 @@ function progressPage() {
   const qOk = Object.values(quizState).filter(Boolean).length;
   return H('Personal learning', 'Your learning progress', 'Progress, quiz results, notes and bookmarks are stored locally in this browser.')
     + `<div class="metrics">${metric(valid.length, 'Completed')}${metric(marks.length, 'Bookmarked')}${metric(Object.keys(notes).filter(k => notes[k]).length, 'Lessons with notes')}${metric(qTot ? `${qOk}/${qTot}` : '0', 'Quiz score')}</div>`
-    + '<p>' + A('practice','SQL practice · ' + read('practiceSolved',[]).length + ' of 100 solved') + '</p>'
+    + '<p>' + A('practice','SQL practice · ' + read('practiceSolved',[]).length + ' solved') + '</p>'
     + progress(valid.length, lessons.length)
     + `<h2>Module progress</h2>`
     + Object.entries(groups).map(([m, ls]) => `<div class="list-item"><div class="row between">${A('module/' + U(m), m)}<small>${ls.filter(l => done.includes(l.id)).length}/${ls.length}</small></div>${progress(ls.filter(l => done.includes(l.id)).length, ls.length)}</div>`).join('')
     + `<h2>Bookmarks</h2>${lessons.filter(l => marks.includes(l.id)).map(l => `<div class="list-item">${lessonLink(l)}</div>`).join('') || '<p>No bookmarks yet.</p>'}`
     + `<h2>Revision notes</h2>${lessons.filter(l => notes[l.id]).map(l => `<div class="list-item">${lessonLink(l)}<p>${E(notes[l.id])}</p></div>`).join('') || '<p>No notes yet.</p>'}`
-    + `<div class="row" style="margin-top:18px"><button id="exportProgress" class="primary">Export progress JSON</button><label class="button" for="importFile">Import progress JSON</label><input id="importFile" type="file" accept=".json,application/json" style="display:none"><button id="resetProgress">Reset local progress</button></div><div id="importMsg" style="margin-top:8px"></div>`;
+    + `<div class="row" style="margin-top:18px"><button id="exportProgress" class="primary">Export progress JSON</button><label class="button" for="importFile">Import progress JSON</label><input id="importFile" type="file" accept=".json,application/json" ><button id="resetProgress">Reset local progress</button></div><div id="importMsg" style="margin-top:8px"></div>`;
 }
 
 function assess() {
   return H('Assessments & Quizzes', 'Interactive quizzes & scenario checks', 'Test your understanding with module multiple-choice quizzes, then review written scenario explanations.')
-    + `<div class="row"><label for="assessPick">Module</label><select id="assessPick">${Object.keys(groups).map(m => `<option>${E(m)}</option>`).join('')}</select></div><div id="assessList"></div>`;
+    + `<div class="row"><label for="assessPick">Module</label><select id="assessPick">${Object.keys(groups).map(m => `<option>${E(m)}</option>`).join('')}</select><label><input id="missedOnly" type="checkbox" ${read('missedOnly',false) ? 'checked' : ''}> Review missed questions</label></div><p id="quizScore" aria-live="polite"></p><div id="assessList"></div>`;
+}
+function quizReport(items) {
+  const correct = items.filter(q => quizState[q.id] === true).length;
+  const missed = items.filter(q => quizState[q.id] === false).length;
+  return correct + ' correct · ' + missed + ' missed · ' + (items.length-correct-missed) + ' unanswered';
 }
 function renderAssess(m) {
   const mQuizzes = quizzes.filter(q => q.module === m);
-  const scored = mQuizzes.filter(q => q.id in quizState);
-  const ok = scored.filter(q => quizState[q.id]).length;
-  $('assessList').innerHTML = `<h2>Interactive module quiz (${ok}/${mQuizzes.length} answered correctly)</h2>`
-    + (mQuizzes.length ? quizBlock(mQuizzes) : '<p class="muted">No multiple-choice questions for this module.</p>')
+  const missed = $('missedOnly').checked;
+  const bank = missed ? mQuizzes.filter(q => quizState[q.id] === false) : mQuizzes;
+  $('quizScore').textContent = quizReport(mQuizzes);
+  $('assessList').innerHTML = `<h2>${missed ? 'Missed questions' : 'Module quiz'}</h2>`
+    + (bank.length ? quizBlock(bank) : '<p class="muted">No questions in this selection.</p>')
     + `<h2>Written scenario checks</h2>`
     + groups[m].map((l, i) => `<details><summary>${i + 1}. ${E(l.title)} — ${E(l.scenario)}</summary><p><strong>Question:</strong> Explain the business purpose, the required sequence, and how you would verify the outcome.</p><p><strong>Answer guidance:</strong> ${E(l.concept)}</p>${l.walkthrough.length ? `<ol>${l.walkthrough.map(x => `<li>${E(x)}</li>`).join('')}</ol>` : `<pre>${E(l.sql)}</pre>`}<p><strong>Validation:</strong> ${E(l.verify)}</p>${lessonLink(l)}</details>`).join('');
 }
@@ -669,7 +725,7 @@ async function route() {
         $('coverageModule').onchange = e => { location.hash = 'coverage/' + U(e.target.value); };
         break;
       case 'learn':
-        main.innerHTML = H('Curriculum', 'Tutorials', `${lessons.length} written lessons across ${Object.keys(groups).length} modules.`) + '<div class="row footer-links">' + A('paths','Learning paths','button') + A('assess','Assessments','button') + A('coverage','Lesson coverage','button') + '</div>' + tiles(Object.entries(groups).map(([m, ls]) => ['module/' + U(m), m, `${ls.length} lessons`]));
+        main.innerHTML = H('Curriculum', 'Tutorials', `${lessons.length} written lessons across ${Object.keys(groups).length} modules.`) + '<div class="row footer-links">' + A('lesson/INTRO01','Start here · What is EAM?','button primary') + A('paths','Learning paths','button') + A('assess','Assessments','button') + A('coverage','Lesson coverage','button') + '</div>' + tiles(Object.entries(groups).map(([m, ls]) => ['module/' + U(m), m, `${ls.length} lessons`]));
         break;
       case 'module': main.innerHTML = modulePage(id); break;
       case 'lesson': main.innerHTML = lessonPage(id); attachLessonContents(); break;
@@ -701,6 +757,9 @@ async function route() {
       case 'topics': main.innerHTML = topics(); $('topicFilter').oninput = e => renderTopics(e.target.value); renderTopics(); break;
       case 'fields': main.innerHTML = fields(); $('fieldFilter').oninput = e => renderFields(e.target.value); renderFields(); break;
       case 'glossary': main.innerHTML = glossaryPage(); break;
+      case 'crosswalk':
+        main.innerHTML = H('Technical Library','Training-to-R5 crosswalk','Approximate mappings between the fictional training database and product tables. Verify joins in your installed release.') + table(['Training table','Approximate R5 table','Purpose'],crosswalk) + A('sql','Open training SQL lab');
+        break;
       case 'technical': main.innerHTML = technical(); break;
       case 'triggers':
       case 'procedures': {
@@ -752,7 +811,9 @@ async function route() {
       case 'er':
         main.innerHTML = erPage(id || 'R5EVENTS');
         $('erPick').onchange = e => { location.hash = 'er/' + U(e.target.value); };
-        main.querySelectorAll('[data-er-node]').forEach(g => { g.onclick = () => { location.hash = 'er/' + U(g.dataset.erNode); }; });
+        main.querySelectorAll('[data-er-node]').forEach(g => { g.setAttribute('role','link'); g.setAttribute('tabindex','0');
+          g.onclick = () => { location.hash = 'er/' + U(g.dataset.erNode); };
+          g.onkeydown = e => { if (e.key === 'Enter') g.onclick(); }; });
         break;
       case 'sql': {
         main.innerHTML = sqlPage(id);
@@ -772,9 +833,10 @@ async function route() {
           if (l) { $('sqlText').value = l.sql; $('sqlExpected').textContent = l.verify; $('sqlCheckMsg').innerHTML = ''; }
           wireSql();
         };
-        main.querySelectorAll('[data-load-sql]').forEach(b => {
-          b.onclick = () => { $('sqlText').value = sqlHist[Number(b.dataset.loadSql)]; };
-        });
+        $('queryHistory').onclick = e => {
+          const button = e.target.closest('[data-load-sql]');
+          if (button) $('sqlText').value = sqlHist[Number(button.dataset.loadSql)];
+        };
         $('runSQL').onclick = async () => {
           const b = $('runSQL'), q = $('sqlText').value;
           b.disabled = true; $('sqlResult').textContent = 'Running…'; $('sqlCheckMsg').innerHTML = '';
@@ -783,7 +845,9 @@ async function route() {
             if (current !== generation) return;
             sqlHist = [q, ...sqlHist.filter(x => x !== q)].slice(0, 10);
             write('sqlhist', sqlHist);
-            $('sqlResult').innerHTML = `<p>${v.rows.length} rows${v.truncated ? ' (truncated)' : ''}</p>` + table(v.columns, v.rows.map(row => row.map(x => x === null ? 'NULL' : x)));
+            $('queryHistory').innerHTML = historyMarkup();
+            $('sqlResult').innerHTML = `<p>${v.rows.length} rows${v.truncated ? ' (truncated)' : ''}</p>` + table(v.columns, v.rows.map(row => row.map(x => x === null ? 'NULL' : x))) + '<button id="saveCsv">Export displayed rows as CSV</button>';
+            $('saveCsv').onclick = () => downloadCsv(v);
           } catch (e) {
             if (current === generation) $('sqlResult').textContent = 'Query rejected or failed: ' + e.message;
           } finally { b.disabled = false; }
@@ -799,7 +863,7 @@ async function route() {
               api('/api/sql', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sql: l.sql }) }),
             ]);
             const norm = r => JSON.stringify(r.rows);
-            const ok = got.columns.length === exp.columns.length && norm(got) === norm(exp);
+            const ok = !got.truncated && !exp.truncated && got.columns.length === exp.columns.length && norm(got) === norm(exp);
             msg.innerHTML = ok
               ? `<div class="note ok">✓ Output matches expected result (${exp.rows.length} rows, ${exp.columns.length} columns).</div>`
               : `<div class="note warn">Result differs: got ${got.rows.length} rows × ${got.columns.length} cols, expected ${exp.rows.length} rows × ${exp.columns.length} cols. Check joins, filters, or ORDER BY.</div>`;
@@ -807,7 +871,29 @@ async function route() {
         };
         api('/api/schema').then(v => {
           if (current !== generation) return;
-          $('sqlSchema').innerHTML = v.tables.map(t => `<details><summary><span class="schema-col" data-ins="${E(t.name)}">${E(t.name)}</span> (${t.columns.length} columns)</summary><div style="margin-top:8px">${t.columns.map(c => `<span class="schema-col" title="Click to insert column" data-ins="${E(c.name)}">${E(c.name)} <small>${E(c.type)}${c.pk ? ' PK' : ''}</small></span>`).join('')}</div></details>`).join('');
+          $('sqlSchema').innerHTML = v.tables.map(t => {
+            const pk = t.columns.filter(c => c.pk).sort((a,b) => a.pk-b.pk).map(c => c.name);
+            const purpose = crosswalk.find(row => row[0] === t.name)?.[2] || '';
+            return '<details><summary>' + E(t.name) + '</summary><p>' + E(purpose) + '</p><p>' +
+              (pk.length ? 'One row per unique ' + E(pk.join(' + ')) + '.' : 'No declared primary key.') + '</p>' +
+              t.links.map(link => '<p>' + E(link) + '</p>').join('') +
+              '<button data-ins="' + E(t.name) + '">Insert table</button> ' +
+              t.columns.map(c => '<button class="schema-col" data-ins="' + E(c.name) + '">' + E(c.name) + ' <small>' + E(c.type) + '</small></button>').join(' ') +
+              '<p><button data-preview="' + E(t.name) + '">Show five sample rows</button></p><div aria-live="polite"></div></details>';
+          }).join('');
+          $('sqlSchema').querySelectorAll('[data-preview]').forEach(button => {
+            button.onclick = async () => {
+              const output = button.parentElement.nextElementSibling;
+              button.disabled = true;
+              try {
+                const name = button.dataset.preview;
+                if (!v.tables.some(t => t.name === name)) return;
+                const sample = await runTrainingQuery('SELECT * FROM "' + name.replaceAll('"','""') + '" LIMIT 5');
+                output.innerHTML = table(sample.columns,sample.rows);
+              } catch (error) { output.textContent = error.message; }
+              finally { button.disabled = false; }
+            };
+          });
           $('sqlSchema').querySelectorAll('[data-ins]').forEach(el => {
             el.onclick = ev => {
               ev.preventDefault(); ev.stopPropagation();
@@ -821,13 +907,14 @@ async function route() {
       }
       case 'assess':
         main.innerHTML = assess();
+        $('missedOnly').onchange = e => { write('missedOnly', e.target.checked); renderAssess($('assessPick').value); };
         $('assessPick').onchange = e => renderAssess(e.target.value);
         renderAssess($('assessPick').value);
         break;
       case 'progress':
         main.innerHTML = progressPage();
         $('exportProgress').onclick = () => {
-          const a = document.createElement('a'), url = URL.createObjectURL(new Blob([JSON.stringify({ done, marks, notes, quiz: quizState, practiceSolved: read('practiceSolved',[]), practiceDrafts:read('practiceDrafts',{}) }, null, 2)], { type: 'application/json' }));
+          const a = document.createElement('a'), url = URL.createObjectURL(new Blob([JSON.stringify({ activity: read('activity',[]), lastLesson: read('lastLesson',''), activePath: read('activePath',''), sqlHist, done, marks, notes, quiz: quizState, practiceSolved: read('practiceSolved',[]), practiceDrafts:read('practiceDrafts',{}) }, null, 2)], { type: 'application/json' }));
           a.href = url; a.download = 'eam-learning-progress.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
         };
         $('importFile').onchange = async e => {
@@ -835,8 +922,11 @@ async function route() {
           if (!f) return;
           try {
             const d = JSON.parse(await f.text());
-            if (Array.isArray(d.practiceSolved)) write('practiceSolved',[...new Set(d.practiceSolved.filter(id=>Number.isInteger(id) && id>=1 && id<=100))]);
-            if (d.practiceDrafts && typeof d.practiceDrafts==='object') write('practiceDrafts',Object.fromEntries(Object.entries(d.practiceDrafts).filter(([id,sql])=>Number.isInteger(+id) && +id>=1 && +id<=100 && typeof sql==='string' && sql.length<=20000)));
+            if (Array.isArray(d.activity)) write('activity', d.activity.filter(v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)));
+            for (const key of ['lastLesson','activePath']) if (typeof d[key] === 'string') write(key,d[key]);
+            if (Array.isArray(d.sqlHist)) { sqlHist = d.sqlHist.filter(v => typeof v === 'string').slice(0,10); write('sqlhist',sqlHist); }
+            if (Array.isArray(d.practiceSolved)) write('practiceSolved',[...new Set(d.practiceSolved.filter(id=>Number.isInteger(id) && id>=1))]);
+            if (d.practiceDrafts && typeof d.practiceDrafts==='object') write('practiceDrafts',Object.fromEntries(Object.entries(d.practiceDrafts).filter(([id,sql])=>Number.isInteger(+id) && +id>=1 && typeof sql==='string' && sql.length<=20000)));
             if (Array.isArray(d.done)) { done = d.done; write('done', done); }
             if (Array.isArray(d.marks)) { marks = d.marks; write('marks', marks); }
             if (d.notes && typeof d.notes === 'object') { notes = d.notes; write('notes', notes); }
@@ -846,7 +936,8 @@ async function route() {
         };
         $('resetProgress').onclick = () => {
           if (!confirm('Clear all local completion, bookmarks, notes, quiz scores, and SQL practice history?')) return;
-          done = []; marks = []; notes = {}; quizState = {};
+          done = []; marks = []; notes = {}; quizState = {}; sqlHist = [];
+          write('sqlhist', []); write('activity', []);
           write('practiceSolved',[]); write('practiceDrafts',{}); write('activePath',''); write('lastLesson','');
           write('done', done); write('marks', marks); write('notes', notes); write('quiz', quizState);
           route();
@@ -856,7 +947,7 @@ async function route() {
         main.innerHTML = H('Not found', 'This page is no longer available', 'Functional simulator and old competition sections were removed.') + A('home', 'Return home', 'button');
     }
     if (current === generation) {
-      if (r === 'module') main.insertAdjacentHTML('afterbegin','<p class="workshop-link">' + A('workshop/' + U(id),'Open the module workshop') + '</p>');
+      if (r === 'module' && workshops.some(w => w.module === id)) main.insertAdjacentHTML('afterbegin','<p class="workshop-link">' + A('workshop/' + U(id),'Open the module workshop') + '</p>');
       const ref = $('refSearch');
       if (ref) ref.onsubmit = e => { e.preventDefault(); location.hash = 'search/' + U($('refQ').value); };
       document.title = (main.querySelector('h1')?.textContent || 'Learning') + ' · EAM Academy';
@@ -891,8 +982,11 @@ $('main').addEventListener('click', e => {
     const fb = $('qf_' + qid);
     if (!sel) { fb.innerHTML = '<p class="warning">Select an option first.</p>'; return; }
     const ok = Number(sel.value) === q.answer;
-    quizState[qid] = ok;
+    quizState[qid] = ok; logActivity();
     write('quiz', quizState);
+    if ($('quizScore')) $('quizScore').textContent = quizReport(quizzes.filter(item => item.module === $('assessPick').value));
+    const status = qb.closest('.quiz-box').querySelector('.pill');
+    if (status) status.remove();
     fb.innerHTML = `<div class="note ${ok ? 'ok' : 'warn'}"><strong>${ok ? '✓ Correct.' : 'Not quite.'}</strong> ${E(q.explain)}</div>`;
   }
 });
@@ -907,19 +1001,33 @@ $('quick').onsubmit = e => {
 };
 document.querySelector('.skip').addEventListener('click', e => { e.preventDefault(); $('main').focus(); });
 document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault(); $('quickInput').focus(); $('quickInput').select(); return;
+  }
   if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
     e.preventDefault(); $('quickInput')?.focus();
   }
 });
 $('menu').onclick = () => { $('side').classList.toggle('open'); $('menu').setAttribute('aria-expanded', $('side').classList.contains('open')); };
-$('theme').onclick = () => { const v = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = v; write('theme', v); };
-document.documentElement.dataset.theme = read('theme', 'light');
+$('theme').onclick = () => { const v = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = v; write('theme', v); syncTheme(); };
+const systemTheme = matchMedia('(prefers-color-scheme: dark)');
+function syncTheme() {
+  document.documentElement.dataset.theme = read('theme', systemTheme.matches ? 'dark' : 'light');
+  $('theme').setAttribute('aria-pressed', document.documentElement.dataset.theme === 'dark');
+}
+systemTheme.addEventListener('change', syncTheme);
+syncTheme();
 window.addEventListener('hashchange', route);
 
-Promise.all(['curriculum.json', 'catalog.json', 'extended.json', 'enrichment.json', 'code_meta.json', 'quizzes.json'].map(p => fetch(p).then(r => { if (!r.ok) throw Error('Unable to load ' + p); return r.json(); })))
-  .then(([l, c, x, en, cm, qz]) => {
-    lessons = l; catalog = c; extended = x; enrichment = en; codeMeta = cm; quizzes = qz;
-    for (const a of l) (groups[a.module] ??= []).push(a);
+Promise.all(['curriculum.json', 'catalog.json', 'extended.json', 'enrichment.json', 'code_meta.json', 'quizzes.json', 'introduction.json'].map(p => fetch(p).then(r => { if (!r.ok) throw Error('Unable to load ' + p); return r.json(); })))
+  .then(([l, c, x, en, cm, qz, intro]) => {
+    lessons = [...intro.map(item => ({
+      ...item, module: 'Introduction to EAM', level: 'Beginner', type: 'intro',
+      source: l.find(lesson => lesson.id === item.reference).source
+    })), ...l]; catalog = c; extended = x; enrichment = en; codeMeta = cm; quizzes = qz;
+    for (const a of lessons) (groups[a.module] ??= []).push(a);
     route();
   })
   .catch(e => { $('main').textContent = 'Unable to load academy. Start the local Python server. ' + e.message; });
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
