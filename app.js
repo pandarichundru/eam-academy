@@ -368,16 +368,11 @@ function coveragePage(moduleName) {
     }).join('') + '</tbody></table></div>';
 }
 
-function introReading() {
-  return '<section class="panel"><h2>Introduction slides · pages 2 and 3</h2>' +
-    '<p>Read the two opening teaching slides from <cite>EAM Materials</cite>.</p>' +
-    '<p><a class="button primary" href="data/eam-introduction-pages-2-3.pdf#page=1">Page 2 · Introduction to Enterprise Asset Management</a></p>' +
-    '<p><a class="button" href="data/eam-introduction-pages-2-3.pdf#page=2">Page 3 · What is EAM and why does it matter?</a></p>' +
-    '<details><summary>Read the slide overview as text</summary><h3>What EAM manages</h3>' +
-    '<p>An asset can be a pump, a production line, a truck, a warehouse or a utility network. EAM connects the people responsible for operating, maintaining, purchasing and financing these resources.</p>' +
-    '<h3>What the system records</h3><p>The asset register records identity, hierarchy and location. Inspections track condition. Requests and orders document preventive and corrective work, labor and materials. Stores records track spare parts and replenishment. History and cost reports support decisions about reliability, productivity and investment.</p>' +
-    '<h3>Follow a pump through six stages</h3><ol><li>Acquire: select, receive and register the pump.</li><li>Install: commission it and hand it over to operations.</li><li>Operate: monitor output and condition.</li><li>Maintain: inspect, repair and record labor and parts.</li><li>Optimize: compare cost, risk and reliability to decide whether changes are worthwhile.</li><li>Retire: replace or decommission the unit and record its disposition.</li></ol>' +
-    '<p>This history helps teams limit downtime, control costs, extend service life and demonstrate which work was performed.</p></details></section>';
+function lessonFigure(figure) {
+  if (!figure) return '';
+  return '<figure class="record-map"><figcaption>' + E(figure.title) + '</figcaption><dl>' +
+    figure.cards.map(([term, detail]) => '<div><dt>' + E(term) + '</dt><dd>' + E(detail) + '</dd></div>').join('') +
+    '</dl></figure>';
 }
 
 function modulePage(m) {
@@ -385,7 +380,6 @@ function modulePage(m) {
   if (!ls) return H('Not found', 'Module not found');
   const comp = ls.filter(l => done.includes(l.id)).length;
   return H('Curriculum', m, `${ls.length} lessons · written walkthroughs and source references`)
-    + (m === 'Introduction to EAM' ? introReading() : '')
     + `<div class="panel"><div class="row between mb-sm"><strong class="tabular">${comp} of ${ls.length} completed</strong>${A('lesson/' + (ls.find(l => !done.includes(l.id)) || ls[0]).id, 'Continue', 'button primary')}</div>${progress(comp, ls.length)}<div class="lesson-list">${ls.map(l => `<div class="lesson-row"><div class="row between"><div class="lesson-row-title"><span class="pill tabular">${E(l.id)}</span>${lessonLink(l)}</div><span class="pill">${E(l.level)}</span></div><p class="muted">${E(l.concept)}</p></div>`).join('')}</div></div>`;
 }
 
@@ -425,13 +419,14 @@ function lessonPage(id) {
     + `<div class="lesson-toolbar"><div class="row lesson-meta"><span class="pill">${l.type === 'intro' ? 'Academy introduction' : 'HxGN primary'}</span>${s.infor ? '<span class="pill">Infor supporting</span>' : ''}</div><div class="row lesson-actions"><button data-mark="${id}" class="${isMarked ? 'is-active' : ''}">${isMarked ? `${ICON_BOOKMARK_FILL}<span>Bookmarked</span>` : `${ICON_BOOKMARK}<span>Bookmark</span>`}</button><button class="primary${isDone ? ' is-completed' : ''}" data-done="${id}">${isDone ? `${ICON_CHECK_CIRCLE}<span>Completed · undo</span>` : `${ICON_CHECK_CIRCLE}<span>Mark complete</span>`}</button></div></div>`
     + (workshops.some(w => w.module === l.module) ? '<p class="mt-md">' + A('workshop/' + U(l.module),'Open module workshop') + '</p>' : '')
     + sqlStages.filter(stage => [stage.sql,stage.functional].includes(id)).map(stage => '<section class="section"><h2>' + E(stage.title) + '</h2>' + stageLinks(stage) + '</section>').join('')
-    + (id === 'INTRO01' ? introReading() : '')
     + (inPath ? '<p class="muted">' + A('path/' + U(activePath),activePath) + ' · Lesson ' + (i+1) + ' of ' + sequence.length + '</p>' : '')
     + (pumpSteps.some(([step]) => step === id) ? '<p class="note">' + A('pump','Case study · From pump to preventive work order') + '</p>' : '')
     + (sqlResults[id] ? '<details class="sql-output"><summary>Inspect the expected training output</summary>' + table(sqlResults[id].columns,sqlResults[id].rows) + '</details>' : '')
     + (sqlReading[id] ? '<section class="section"><h2>How to read this query</h2><div class="callout-panel"><strong>' + E(sqlReading[id][0]) + '</strong><p class="mt-sm">' + E(sqlReading[id][1]) + '</p><h3>Try a variation</h3><p class="mb-sm">' + E(sqlReading[id][2]) + '</p></div></section>' : '')
     + `<section class="section"><h2>What you will learn</h2><p>${E(l.concept)}</p><p>By the end, you should be able to explain the business purpose, describe the steps for the scenario, and identify how to check the result.</p></section>`
     + `<section class="section"><h2>Business scenario</h2><div class="scenario">${E(l.scenario)}</div><p class="muted">Fictional PLANT01 example for learning; not a live EAM transaction.</p></section>`
+    + lessonFigure(l.figure)
+    + (l.reading ? '<section class="section"><h2>Read the sources</h2><ul>' + l.reading.map(([label, url]) => '<li>' + ext(url, label) + '</li>').join('') + '</ul></section>' : '')
     + `${more.context && l.type === 'functional' ? `<section class="section"><h2>How it works</h2>${more.context.map(x => `<p>${E(x)}</p>`).join('')}${more.flow ? `<div class="diagram">${more.flow.map((v, idx) => `${idx ? `<span class="diagram-arrow" aria-hidden="true">${ICON_FLOW_ARROW}</span>` : ''}<span>${E(v)}</span>`).join('')}</div>` : ''}</section>` : ''}`
     + `<section class="section"><h2>${l.type === 'technical' ? 'Technical walkthrough' : 'Prerequisites and written walkthrough'}</h2>${l.type === 'technical' ? `<p>Use the local synthetic dataset, not a production database. ${A('sql', 'Open SQL lab')}</p><pre>${E(l.sql)}</pre>${A('sql/' + id, 'Open this query in SQL lab', 'button primary')}` : `<p>${l.type === 'intro' ? 'Follow the example in order.' : l.type === 'consulting' ? 'Agree the business scope, owners and test environment before applying the guidance.' : 'Before starting, confirm the relevant organization, authorized role, and referenced master data. Use the documented screen for your release.'}</p><ol class="steps">${l.walkthrough.map(x => `<li>${E(x)}</li>`).join('')}</ol>`}</section>`
     + `${more.example && l.type === 'functional' ? `<section class="section"><h2>Worked example</h2>${table(['Record / field', 'Training value or decision', 'Explanation'], more.example)}</section>` : ''}`
@@ -877,7 +872,6 @@ async function route() {
       case 'learn':
         main.innerHTML = H('Curriculum', 'Tutorials', `${lessons.length} written lessons across ${Object.keys(groups).length} modules.`)
           + '<div class="row footer-links">' + A('lesson/INTRO01','Start here · What is EAM?','button primary') + A('paths','Learning paths','button') + A('assess','Assessments','button') + A('coverage','Lesson coverage','button') + '</div>'
-          + introReading()
           + '<div class="grid">' + Object.entries(groups).map(([m, ls]) => {
             const comp = ls.filter(l => done.includes(l.id)).length;
             return `<a class="tile" href="#module/${U(m)}"><div class="row between mb-sm"><h3>${E(m)}</h3><span class="pill tabular">${comp}/${ls.length}</span></div><p class="mb-sm">${ls.length} lessons</p>${progress(comp, ls.length)}</a>`;
