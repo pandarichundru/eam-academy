@@ -91,11 +91,9 @@ function profileWelcomeScreen() {
     + `<div class="profile-welcome-panel">`
     + `<div class="profile-welcome-logo"><span class="brandmark" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="2.5"></rect><path d="M5.5 6h5M5.5 8.2h3.5M5.5 10.4h5"></path></svg></span><span class="brand-text">EAM <b>Academy</b> <small class="muted">Field Manual</small></span></div>`
     + `<h1 id="welcomeHeading">Who's learning today?</h1>`
-    + `<p class="profile-hook">When a pump moves, where does its repair history go?</p>`
-    + `<p class="muted">Choose your profile to enter the field manual with your own progress, notes, quizzes, and SQL practice.</p>`
+    + `<p class="muted">Choose your profile to enter EAM Academy with your own progress, notes, quizzes, and SQL practice.</p>`
     + `<div class="profile-grid">${cards}</div>`
     + `</div>`
-    + `<div class="profile-welcome-art" aria-hidden="true">${typeof pumpScene === 'function' ? pumpScene('welcome') : ''}</div>`
     + `</section>`;
 }
 
