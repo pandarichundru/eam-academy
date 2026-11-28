@@ -56,6 +56,7 @@ const files = [
   "index.html",
   "library.js",
   "manifest.webmanifest",
+  "profiles.js",
   "query-client.js",
   "quizzes.json",
   "sql-asm.js",

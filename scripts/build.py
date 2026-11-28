@@ -633,6 +633,7 @@ def copy_assets():
         'style.css',
         'app.js',
         'field-guide.js',
+        'profiles.js',
         'challenges.js',
         'workshops.js',
         'library.js',
