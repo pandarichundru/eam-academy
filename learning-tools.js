@@ -88,7 +88,7 @@ function inspectField(t, c, origin) {
 
 let searchItems;
 async function searchIndex() {
-  if (!searchItems) searchItems = Promise.all([library('tables'), getPractice()]).then(([tables, practice]) => {
+  if (!searchItems) searchItems = Promise.all([library('tables'), getPractice(), asset('data/search-catalog.json'),loadRealExercises()]).then(([tables, practice,technical,real]) => {
     const entries = [];
     function add(kind, name, route, extra = '', field = null) {
       entries.push({kind, name, route, field, searchable:(name + ' ' + extra).toLowerCase()});
@@ -97,7 +97,12 @@ async function searchIndex() {
       add('Table', t.name, 'table/' + U(t.name), t.title);
       for (const c of t.cols) add('Field', c[0], '', t.name + ' ' + c[4], [t,c]);
     }
-    for (const t of catalog.tables) add('Table', t[0], 'table/' + U(t[0]), t.slice(6).join(' '));
+    for (const [kind,name,route] of technical) add(kind,name,route);
+    for (const x of real.exercises || real) add('Exercise',x.title,'sql-real/ex/'+U(x.id));
+    for (const q of quizzes) {
+      const lesson=lessons.find(l=>l.title===q.lesson);
+      if(lesson)add('Quiz',q.q,'lesson/'+lesson.id,q.module);
+    }
     for (const l of lessons) add('Lesson', l.title, 'lesson/' + U(l.id), l.concept);
     for (const x of practice.exercises) add('Exercise', x.title, 'exercise/' + x.id, x.prompt + ' ' + x.tables.join(' '));
     add('SQL example','Work orders without activities','sql/trace-left','missing activities unmatched left join');
@@ -110,7 +115,7 @@ function openTaskSearch(initial = '') {
   if (document.body.dataset.view === 'profiles' || document.querySelector('dialog[open]')) return;
   const origin = document.activeElement;
   const dialog = learningDialog('Search the academy',
-    '<label>Task, table, or field<input type="search" data-term placeholder="Try EVT_OBJECT or work orders without activities"></label><p data-status role="status"></p><div data-results></div>', origin, 'task-search');
+    '<label>Task, table, or field<input type="search" data-term placeholder="Try @R5EVENTS, #ex joins, or > commands"></label><p data-status role="status"></p><div data-results></div>', origin, 'task-search');
   const input = dialog.querySelector('[data-term]'), results = dialog.querySelector('[data-results]');
   input.value = initial;
   input.focus();
@@ -123,21 +128,43 @@ function openTaskSearch(initial = '') {
     try {
       const entries = await searchIndex();
       if (input.value.trim().toLowerCase() !== q || !dialog.open) return;
-      const words = q.split(/\s+/);
-      const hits = entries.filter(x => words.every(w => x.searchable.includes(w)));
-      const rank = x => x.name.toLowerCase() === q ? 0 : x.name.toLowerCase().startsWith(q) ? 1 : 2;
+      const prefix = q.startsWith('@')?'Table':q.startsWith('#ex')?'Exercise':q.startsWith('>')?'Command':'';
+      const term = q.slice(prefix==='Exercise'?3:prefix?1:0).trim();
+      const words = term.split(/\s+/);
+      const personal = lessons.flatMap(l => [
+        ...(marks.includes(l.id)?[{kind:'Bookmark',name:l.title,route:'lesson/'+l.id,searchable:l.title.toLowerCase()}]:[]),
+        ...(notes[l.id]?[{kind:'Note',name:l.title,route:'lesson/'+l.id,searchable:(l.title+' '+notes[l.id]).toLowerCase()}]:[])
+      ]);
+      const commands = [['Continue learning',resumeLink(nextLearningTask())],['Open SQL workbench','sql'],['Switch profile','profiles'],['Open database reference','database'],['Toggle theme','theme'],['Toggle sidebar','sidebar']];
+      if ($('formatSQL')) commands.push(['Format SQL','format']);
+      const corpus=prefix==='Command'?commands.map(([name,route])=>({kind:'Command',name,route,searchable:name.toLowerCase()})):[...personal,...entries];
+      const hits = corpus.filter(x => (!prefix || x.kind===prefix) && words.every(w => x.searchable.includes(w)));
+      const rank = x => x.name.toLowerCase() === term ? 0 : x.name.toLowerCase().startsWith(term) ? 1 : 2;
       hits.sort((a,b) => rank(a)-rank(b));
       status.textContent = hits.length ? 'Showing ' + Math.min(12,hits.length) + ' of ' + hits.length + ' matches.' : 'No matches in tasks or identifiers.';
-      results.innerHTML = hits.slice(0,12).map((x,i) => '<button type="button" data-hit="' + i + '"><small>' + E(x.kind) + '</small> ' + E(x.name) + (x.field ? ' · ' + E(x.field[0].name) : '') + '</button>').join('') + A('search/' + U(input.value.trim()), 'Search all documentation');
+      function highlight(name){
+        const start=term?name.toLowerCase().indexOf(term):-1;
+        return start<0?E(name):E(name.slice(0,start))+'<mark>'+E(name.slice(start,start+term.length))+'</mark>'+E(name.slice(start+term.length));
+      }
+      results.innerHTML = hits.slice(0,12).map((x,i) => '<button type="button" data-hit="' + i + '"><small>' + E(x.kind) + '</small> ' + highlight(x.name) + (x.field ? ' · ' + E(x.field[0].name) : '') + '</button>').join('') + A('search/' + U(input.value.trim()), 'Search all documentation');
       results.querySelector('a').onclick = () => dialog.close();
       results.querySelectorAll('button').forEach((btn,i) => btn.onclick = () => {
         const item = hits[i];
         if (item.field) inspectField(...item.field, btn);
-        else { dialog.close(); location.hash = item.route; }
+        else {
+          dialog.close();
+          if(item.kind==='Command' && item.route==='theme'){
+            const select=document.querySelector('[data-appearance]');select.value=document.documentElement.dataset.theme==='dark'?'light':'dark';select.dispatchEvent(new Event('change',{bubbles:true}));
+          }else if(item.route==='database')location.href='data/database-reference.html';
+          else if(item.route==='format')$('formatSQL')?.click();
+          else if(item.route==='sidebar')$('menu')?.click();
+          else location.hash=item.route;
+        }
       });
     } catch { status.textContent = 'Search index unavailable. Try again.'; }
   }
-  input.oninput = render;
+  let timer; input.oninput = () => {clearTimeout(timer);timer=setTimeout(render,100);};
+  dialog.addEventListener('close',()=>clearTimeout(timer),{once:true});
   results.onkeydown = event => {
     if (!['ArrowDown','ArrowUp'].includes(event.key)) return;
     const links = [...results.querySelectorAll('button,a')];

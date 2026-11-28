@@ -128,14 +128,14 @@
 
   // Optional Supabase REST sync (requires learner_profiles table)
   // SQL: create table learner_profiles (profile_id text primary key, state jsonb not null default '{}', updated_at timestamptz not null default now());
-  let syncTimer = 0;
+  const syncTimers = new Map();
   let syncStatus = getSupabaseConfig() ? 'Supabase ready' : 'Local profile storage';
 
   function scheduleSync(profileId) {
     const cfg = getSupabaseConfig();
     if (!cfg || !profileId) return;
-    clearTimeout(syncTimer);
-    syncTimer = setTimeout(() => pushToSupabase(profileId, cfg), 600);
+    clearTimeout(syncTimers.get(profileId));
+    syncTimers.set(profileId,setTimeout(()=>{syncTimers.delete(profileId);pushToSupabase(profileId,cfg);},600));
   }
 
   async function pushToSupabase(profileId, cfg = getSupabaseConfig()) {
@@ -179,7 +179,7 @@
         if (!localUpdated || (rows[0].updated_at && rows[0].updated_at > localUpdated)) {
           importProfileSnapshot(profileId, rows[0].state, rows[0].updated_at);
           syncStatus = 'Synced via Supabase';
-          if (typeof onHydrated === 'function') onHydrated();
+          if (getActiveProfileId()===profileId && typeof onHydrated === 'function') onHydrated();
           return true;
         }
       }
