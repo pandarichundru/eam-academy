@@ -80,19 +80,22 @@ function profileWelcomeScreen() {
   const cards = window.EAMProfiles.LEARNERS.map(p => {
     const s = window.EAMProfiles.getProfileSummary(p.id, lessons.length);
     const meta = s.completed > 0
-      ? `${s.pct}% complete · ${s.completed}/${lessons.length} lessons${s.streak ? ` · ${s.streak}d streak` : ''}`
-      : 'Ready to start learning';
+      ? `${s.pct}% · ${s.completed}/${lessons.length} lessons${s.streak ? ` · ${s.streak}d` : ''}`
+      : 'Ready to start';
     return `<button type="button" class="profile-card" data-select-profile="${E(p.id)}">`
       + `<span class="profile-avatar lg" aria-hidden="true">${E(p.initials)}</span>`
-      + `<strong>${E(p.name)}</strong>`
-      + `<small>${E(meta)}</small>`
+      + `<span class="profile-card-text"><strong>${E(p.name)}</strong><small>${E(meta)}</small></span>`
       + `</button>`;
   }).join('');
-  return `<section class="profile-welcome-wrap" aria-labelledby="welcomeHeading">`
-    + `<div class="profile-welcome-logo"><span class="brandmark" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="2.5"></rect><path d="M5.5 6h5M5.5 8.2h3.5M5.5 10.4h5"></path></svg></span><span class="brand-text">EAM <b>Academy</b></span></div>`
+  return `<section class="profile-welcome-shell" aria-labelledby="welcomeHeading">`
+    + `<div class="profile-welcome-panel">`
+    + `<div class="profile-welcome-logo"><span class="brandmark" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="2.5"></rect><path d="M5.5 6h5M5.5 8.2h3.5M5.5 10.4h5"></path></svg></span><span class="brand-text">EAM <b>Academy</b> <small class="muted">Field Manual</small></span></div>`
     + `<h1 id="welcomeHeading">Who's learning today?</h1>`
-    + `<p class="muted">Select your profile to continue with your own curriculum progress, quizzes, notes, and bookmarks.</p>`
+    + `<p class="profile-hook">When a pump moves, where does its repair history go?</p>`
+    + `<p class="muted">Choose your profile to enter the field manual with your own progress, notes, quizzes, and SQL practice.</p>`
     + `<div class="profile-grid">${cards}</div>`
+    + `</div>`
+    + `<div class="profile-welcome-art" aria-hidden="true">${typeof pumpScene === 'function' ? pumpScene('welcome') : ''}</div>`
     + `</section>`;
 }
 
@@ -265,11 +268,11 @@ function progressRing(n, total) {
 }
 
 const SQL_KEYWORDS = new Set([
-  'SELECT','FROM','WHERE','AND','OR','NOT','IN','IS','NULL','AS','ON','JOIN','LEFT','RIGHT','INNER','OUTER','FULL','CROSS',
-  'GROUP','BY','ORDER','ASC','DESC','HAVING','LIMIT','OFFSET','DISTINCT','UNION','ALL','WITH','CASE','WHEN','THEN','ELSE','END',
-  'CAST','COALESCE','OVER','PARTITION','ROW_NUMBER','RANK','DENSE_RANK','LAG','LEAD','COUNT','SUM','AVG','MIN','MAX',
-  'CREATE','TABLE','VIEW','TRIGGER','PROCEDURE','FUNCTION','INDEX','UNIQUE','PRIMARY','KEY','REFERENCES','ALTER','DROP',
-  'INSERT','INTO','VALUES','UPDATE','SET','DELETE','BEGIN','DECLARE','IF','RETURN','RETURNS','EXEC','EXECUTE','EXISTS','BETWEEN','LIKE'
+  'SELECT', 'FROM', 'WHERE', 'AND', 'OR', 'NOT', 'IN', 'IS', 'NULL', 'AS', 'ON', 'JOIN', 'LEFT', 'RIGHT', 'INNER', 'OUTER', 'FULL', 'CROSS',
+  'GROUP', 'BY', 'ORDER', 'ASC', 'DESC', 'HAVING', 'LIMIT', 'OFFSET', 'DISTINCT', 'UNION', 'ALL', 'WITH', 'CASE', 'WHEN', 'THEN', 'ELSE', 'END',
+  'CAST', 'COALESCE', 'OVER', 'PARTITION', 'ROW_NUMBER', 'RANK', 'DENSE_RANK', 'LAG', 'LEAD', 'COUNT', 'SUM', 'AVG', 'MIN', 'MAX',
+  'CREATE', 'TABLE', 'VIEW', 'TRIGGER', 'PROCEDURE', 'FUNCTION', 'INDEX', 'UNIQUE', 'PRIMARY', 'KEY', 'REFERENCES', 'ALTER', 'DROP',
+  'INSERT', 'INTO', 'VALUES', 'UPDATE', 'SET', 'DELETE', 'BEGIN', 'DECLARE', 'IF', 'RETURN', 'RETURNS', 'EXEC', 'EXECUTE', 'EXISTS', 'BETWEEN', 'LIKE'
 ]);
 
 function highlightSQL(source) {
@@ -316,7 +319,7 @@ function enhanceCodeBlocks(root) {
             btn.innerHTML = `${ICON_COPY}<span>Copy</span>`;
           }
         }, 1600);
-      } catch {}
+      } catch { }
     };
     pre.parentNode.insertBefore(wrap, pre);
     wrap.append(btn, pre);
@@ -338,45 +341,71 @@ function findLessonByTitle(t) {
 }
 
 function renderNav(route, id) {
-  const sections = {
-    learn: ['lesson','module','paths','path','assess','coverage'],
-    workshops: ['workshop','pump','flows'],
-    reference: ['doc','search','glossary','fields','topics'],
-    'sql-course': ['sql'],
-    technical: ['crosswalk','tables','table','er','triggers','procedures','codes','code'],
-    practice: ['exercise']
+  const groupMap = {
+    learn: ['home', 'learn', 'lesson', 'module', 'paths', 'path', 'workshops', 'workshop', 'pump', 'flows', 'progress', 'assess', 'coverage'],
+    sql: ['sql-course', 'practice', 'exercise', 'sql', 'sql-real'],
+    library: ['technical', 'triggers', 'procedures', 'codes', 'code', 'tables', 'table', 'er', 'crosswalk', 'reference', 'doc', 'search', 'glossary', 'fields', 'topics']
   };
-  const section = Object.keys(sections).find(key => sections[key].includes(route)) || route;
+  const activeGroup = Object.keys(groupMap).find(g => groupMap[g].includes(route)) || 'learn';
+  document.querySelectorAll('.nav-group-btn').forEach(btn => {
+    btn.classList.toggle('is-active', btn.dataset.navGroup === activeGroup);
+  });
   for (const link of $('topnav').querySelectorAll('a')) {
-    if (link.hash === '#' + section) link.setAttribute('aria-current','page');
+    const h = link.hash.slice(1);
+    if (h === route || (h === 'er/R5EVENTS' && route === 'er')) link.setAttribute('aria-current', 'page');
     else link.removeAttribute('aria-current');
   }
   const bottomNav = $('mobileBottomNav');
   if (bottomNav) {
+    const mobileTargets = { home: '#home', learn: '#learn', sql: '#sql-real', library: '#technical' };
+    const activeTarget = route === 'home' ? '#home' : mobileTargets[activeGroup] || '';
     for (const link of bottomNav.querySelectorAll('a')) {
-      if (link.hash === '#' + section) link.setAttribute('aria-current', 'page');
+      if (link.hash === activeTarget) link.setAttribute('aria-current', 'page');
       else link.removeAttribute('aria-current');
     }
-    $('mobileMoreBtn')?.classList.toggle('is-active', ['workshops', 'technical', 'reference', 'progress'].includes(section));
+    $('mobileMoreBtn')?.classList.toggle('is-active', ['progress', 'workshops', 'paths', 'reference'].includes(route));
   }
   const selected = lessons.find(l => l.id === id);
   const c = codeMeta.counts || {};
-  $('side').innerHTML = '<div class="eyebrow">Course curriculum</div>'
-    + Object.entries(groups).map(([m, ls]) => {
-      const doneCnt = ls.filter(l => done.includes(l.id)).length;
-      return `<details class="module" ${selected?.module === m || (route === 'module' && id === m) ? 'open' : ''}><summary>${E(m)} <span class="${doneCnt === ls.length && ls.length ? 'mod-complete' : ''}">${doneCnt}/${ls.length}</span></summary>${A('module/' + U(m), 'Module overview')}${ls.map(l => {
-        const isDone = done.includes(l.id);
-        const cls = [l.id === id ? 'active' : '', isDone ? 'is-done' : ''].filter(Boolean).join(' ');
-        return `<a ${cls ? `class="${cls}"` : ''} href="#lesson/${E(l.id)}">${isDone ? ICON_CHECK : ''}<span>${E(l.title)}</span></a>`;
-      }).join('')}</details>`;
-    }).join('')
-    + `<hr><div class="eyebrow">Code &amp; Schema</div>`
-    + A('triggers', `Triggers — Full (${c.trigger ?? 2405})`, route === 'triggers' ? 'active' : '')
-    + A('procedures', `Stored Procedures — Full (${c.procedure ?? 1629})`, route === 'procedures' ? 'active' : '')
-    + A('codes', 'All Codes (DDL & Params)', route === 'codes' ? 'active' : '')
-    + A('tables', 'Database Dictionary (1,681)', route === 'tables' || route === 'table' ? 'active' : '')
-    + A('er/R5EVENTS', 'Visual ER Explorer', route === 'er' ? 'active' : '')
-    + A('sql', 'SQL Lab (28 tables)', route === 'sql' ? 'active' : '');
+  const menuBtnLabel = $('menu')?.querySelector('span');
+
+  if (activeGroup === 'sql') {
+    if (menuBtnLabel) menuBtnLabel.textContent = 'SQL Tools';
+    $('side').innerHTML = '<div class="eyebrow">SQL Workspace</div>'
+      + A('sql-course', 'Learn SQL (10 lessons)', route === 'sql-course' ? 'active' : '')
+      + A('practice', 'Solve an exercise (110)', route === 'practice' || route === 'exercise' ? 'active' : '')
+      + A('sql', 'Run query · Synthetic DB (28)', route === 'sql' ? 'active' : '')
+      + A('sql-real', 'Run query · Restored 11.6 (1,681)', route === 'sql-real' ? 'active' : '')
+      + '<a href="sql-formatter/">Format SQL · Offline tool</a>'
+      + '<hr><div class="eyebrow">Schema &amp; Crosswalk</div>'
+      + A('tables', 'Database Dictionary (1,681)', '')
+      + A('er/R5EVENTS', 'Visual ER Explorer', '')
+      + A('crosswalk', 'R5 & U5 Crosswalk', '');
+  } else if (activeGroup === 'library') {
+    if (menuBtnLabel) menuBtnLabel.textContent = 'Library';
+    $('side').innerHTML = '<div class="eyebrow">Technical Objects</div>'
+      + A('technical', 'Library Overview', route === 'technical' ? 'active' : '')
+      + A('triggers', `Triggers — Full (${c.trigger ?? 2405})`, route === 'triggers' ? 'active' : '')
+      + A('procedures', `Stored Procedures (${c.procedure ?? 1629})`, route === 'procedures' ? 'active' : '')
+      + A('codes', 'Views, Functions &amp; DDL', route === 'codes' || route === 'code' ? 'active' : '')
+      + '<hr><div class="eyebrow">Database &amp; Reference</div>'
+      + A('tables', 'Database Dictionary (1,681)', route === 'tables' || route === 'table' ? 'active' : '')
+      + A('er/R5EVENTS', 'Visual ER Explorer', route === 'er' ? 'active' : '')
+      + A('crosswalk', 'R5 & U5 Crosswalk', route === 'crosswalk' ? 'active' : '')
+      + A('reference', 'Learning References', route === 'reference' || route === 'doc' ? 'active' : '')
+      + A('glossary', 'EAM Glossary', route === 'glossary' ? 'active' : '');
+  } else {
+    if (menuBtnLabel) menuBtnLabel.textContent = 'Curriculum';
+    $('side').innerHTML = '<div class="eyebrow">Course curriculum</div>'
+      + Object.entries(groups).map(([m, ls]) => {
+        const doneCnt = ls.filter(l => done.includes(l.id)).length;
+        return `<details class="module" ${selected?.module === m || (route === 'module' && id === m) ? 'open' : ''}><summary>${E(m)} <span class="${doneCnt === ls.length && ls.length ? 'mod-complete' : ''}">${doneCnt}/${ls.length}</span></summary>${A('module/' + U(m), 'Module overview')}${ls.map(l => {
+          const isDone = done.includes(l.id);
+          const cls = [l.id === id ? 'active' : '', isDone ? 'is-done' : ''].filter(Boolean).join(' ');
+          return `<a ${cls ? `class="${cls}"` : ''} href="#lesson/${E(l.id)}">${isDone ? ICON_CHECK : ''}<span>${E(l.title)}</span></a>`;
+        }).join('')}</details>`;
+      }).join('');
+  }
   const activeSide = $('side').querySelector('a.active');
   if (activeSide) activeSide.scrollIntoView({ block: 'nearest' });
   const bc = $('subbarBreadcrumb');
@@ -385,13 +414,13 @@ function renderNav(route, id) {
     if (route === 'home') bc.innerHTML = `HxGN EAM${sep}Infor EAM`;
     else if (route === 'lesson' && selected) bc.innerHTML = `${A('learn', 'Curriculum')}${sep}${A('module/' + U(selected.module), selected.module)}${sep}<span class="bc-cur">${E(selected.id)}</span>`;
     else if (route === 'module' && id) bc.innerHTML = `${A('learn', 'Curriculum')}${sep}<span class="bc-cur">${E(id)}</span>`;
-    else if (route === 'er') bc.innerHTML = `${A('technical', 'Technical Library')}${sep}ER Explorer${id ? sep + `<span class="bc-cur">${E(id)}</span>` : ''}`;
-    else if (route === 'table' && id) bc.innerHTML = `${A('technical', 'Technical Library')}${sep}${A('tables', 'Dictionary')}${sep}<span class="bc-cur">${E(id)}</span>`;
+    else if (route === 'er') bc.innerHTML = `${A('technical', 'Library')}${sep}ER Explorer${id ? sep + `<span class="bc-cur">${E(id)}</span>` : ''}`;
+    else if (route === 'table' && id) bc.innerHTML = `${A('technical', 'Library')}${sep}${A('tables', 'Dictionary')}${sep}<span class="bc-cur">${E(id)}</span>`;
     else if (route === 'exercise' && id) bc.innerHTML = `${A('practice', 'SQL Exercises')}${sep}<span class="bc-cur">Exercise #${E(id)}</span>`;
     else if (route === 'workshop' && id) bc.innerHTML = `${A('workshops', 'Workshops')}${sep}<span class="bc-cur">${E(id)}</span>`;
     else if (route === 'path' && id) bc.innerHTML = `${A('paths', 'Role paths')}${sep}<span class="bc-cur">${E(id)}</span>`;
     else {
-      const labels = { learn: 'Curriculum', workshops: 'Workshops', 'sql-course': 'SQL Lab', sql: 'SQL Lab', technical: 'Technical Library', triggers: 'Triggers', procedures: 'Stored Procedures', codes: 'All Codes', tables: 'Database Dictionary', practice: 'SQL Exercises', reference: 'Reference', search: 'Search', glossary: 'Glossary', fields: 'Field Dictionary', topics: 'Topic Index', progress: 'My Learning', assess: 'Assessments', coverage: 'Coverage', flows: 'Process Flows', pump: 'Pump Case Study', paths: 'Role Paths' };
+      const labels = { learn: 'Curriculum', workshops: 'Workshops', 'sql-course': 'Learn SQL', sql: 'Synthetic SQL Lab', 'sql-real': 'Restored EAM 11.6 SQL Lab', technical: 'Technical Library', triggers: 'Triggers', procedures: 'Stored Procedures', codes: 'All Codes', tables: 'Database Dictionary', crosswalk: 'R5 & U5 Crosswalk', practice: 'SQL Exercises', reference: 'Reference', search: 'Search', glossary: 'Glossary', fields: 'Field Dictionary', topics: 'Topic Index', progress: 'My Learning', assess: 'Assessments', coverage: 'Coverage', flows: 'Process Flows', pump: 'Pump Case Study', paths: 'Role Paths' };
       bc.innerHTML = `<span class="bc-cur">${E(labels[route] || 'EAM Academy')}</span>`;
     }
   }
@@ -636,28 +665,28 @@ const sqlDeepDive = {
 function pumpPage() {
   return H('Maintenance planning', 'From pump to preventive work order', 'Follow PUMP-001 from its asset record to a 30-day maintenance schedule. Use each linked lesson for the full procedure.')
     + '<div class="reader">'
-    + pumpSteps.map(([id,title,body],i) => {
+    + pumpSteps.map(([id, title, body], i) => {
       const l = lessons.find(x => x.id === id);
-      return '<section class="decision"><small>Step ' + String(i+1).padStart(2,'0') + ' of 04</small><h2>' + E(title) + '</h2><p>' + E(body) + '</p><div class="row">' + lessonLink(l) + sourceLink(l.source.hex.id,'HxGN guide · p. ' + l.source.hex.page) + '</div></section>';
+      return '<section class="decision"><small>Step ' + String(i + 1).padStart(2, '0') + ' of 04</small><h2>' + E(title) + '</h2><p>' + E(body) + '</p><div class="row">' + lessonLink(l) + sourceLink(l.source.hex.id, 'HxGN guide · p. ' + l.source.hex.page) + '</div></section>';
     }).join('')
     + '</div><h2>Verify with SQL</h2><p class="muted">Use the fictional SQLite training records below. Predict each result before opening the explanation.</p>'
-    + pumpQueries.map((q,i) => '<section class="section"><h3>' + E(q.title) + '</h3><pre>' + E(q.sql) + '</pre>' + A('sql/pump-' + i,'Open in SQL lab','button') + '<details><summary>Explain the result</summary><p>' + E(q.result) + '</p></details></section>').join('');
+    + pumpQueries.map((q, i) => '<section class="section"><h3>' + E(q.title) + '</h3><pre>' + E(q.sql) + '</pre>' + A('sql/pump-' + i, 'Open in SQL lab', 'button') + '<details><summary>Explain the result</summary><p>' + E(q.result) + '</p></details></section>').join('');
 }
 
 const sqlStages = [
-  {title:'Find open work', question:'Which orders still need attention?', grain:'One row per open work order.', sql:'L127', functional:'INTRO05', exercise:3},
-  {title:'Connect assets and orders', question:'Which physical asset does each order describe?', grain:'One row per matched work order.', sql:'L128', functional:'INTRO03', exercise:26},
-  {title:'Summarize work by asset', question:'How much work belongs to each asset?', grain:'One row per asset in the summary. Start from equipment to include idle assets.', sql:'L129', functional:'INTRO07', exercise:30},
-  {title:'Diagnose repeated charges', question:'Did the join count the same activity twice?', grain:'One row per order and activity before attaching labor. Both keys matter.', sql:'L130', functional:'L068', exercise:53},
-  {title:'Read a meter trend', question:'How much did a meter advance between readings?', grain:'One row per reading, compared with the previous reading on the same meter.', sql:'L134', functional:'INTRO06', exercise:107}
+  { title: 'Find open work', question: 'Which orders still need attention?', grain: 'One row per open work order.', sql: 'L127', functional: 'INTRO05', exercise: 3 },
+  { title: 'Connect assets and orders', question: 'Which physical asset does each order describe?', grain: 'One row per matched work order.', sql: 'L128', functional: 'INTRO03', exercise: 26 },
+  { title: 'Summarize work by asset', question: 'How much work belongs to each asset?', grain: 'One row per asset in the summary. Start from equipment to include idle assets.', sql: 'L129', functional: 'INTRO07', exercise: 30 },
+  { title: 'Diagnose repeated charges', question: 'Did the join count the same activity twice?', grain: 'One row per order and activity before attaching labor. Both keys matter.', sql: 'L130', functional: 'L068', exercise: 53 },
+  { title: 'Read a meter trend', question: 'How much did a meter advance between readings?', grain: 'One row per reading, compared with the previous reading on the same meter.', sql: 'L134', functional: 'INTRO06', exercise: 107 }
 ];
 function stageLinks(stage) {
-  return '<div class="row">' + A('lesson/' + stage.functional,'EAM example') + A('lesson/' + stage.sql,'Worked SQL lesson') +
-    A('sql/' + stage.sql,'Run example') + A('exercise/' + stage.exercise,'Practice challenge') + '</div>';
+  return '<div class="row">' + A('lesson/' + stage.functional, 'EAM example') + A('lesson/' + stage.sql, 'Worked SQL lesson') +
+    A('sql/' + stage.sql, 'Run example') + A('exercise/' + stage.exercise, 'Practice challenge') + '</div>';
 }
 function sqlCourse() {
   return H('SQL learning', 'Read, explain and test a query', 'Master EAM SQL from first principles: logical execution order, relational grain, composite keys, anti-patterns, and performance. Practice in the Synthetic Lab or jump to the Restored EAM 11.6 Lab (1,681 real tables).')
-    + '<div class="row footer-links">' + A('practice','Open SQL Exercises','button primary') + A('sql','Synthetic SQL Lab','button') + A('sql-real','Restored EAM 11.6 Lab (1,681 tables)','button') + A('technical','Technical library','button') + A('workshop/' + U('Database and SQL'),'Join troubleshooting workshop','button') + '</div>'
+    + '<div class="row footer-links">' + A('practice', 'Open SQL Exercises', 'button primary') + A('sql', 'Synthetic SQL Lab', 'button') + A('sql-real', 'Restored EAM 11.6 Lab (1,681 tables)', 'button') + A('technical', 'Technical library', 'button') + A('workshop/' + U('Database and SQL'), 'Join troubleshooting workshop', 'button') + '</div>'
     + `<section class="section"><h2>Logical SQL Execution Pipeline</h2><p class="muted">SQL is written top-to-bottom (<code>SELECT ... FROM ... WHERE ...</code>), but the engine executes it in the order below — which explains why <code>WHERE</code> cannot reference a <code>SELECT</code> alias and why <code>LEFT JOIN</code> filters in <code>WHERE</code> drop NULL rows.</p><div class="diagram"><span>1. FROM / JOIN</span><span class="diagram-arrow">${ICON_FLOW_ARROW}</span><span>2. WHERE</span><span class="diagram-arrow">${ICON_FLOW_ARROW}</span><span>3. GROUP BY</span><span class="diagram-arrow">${ICON_FLOW_ARROW}</span><span>4. HAVING</span><span class="diagram-arrow">${ICON_FLOW_ARROW}</span><span>5. SELECT</span><span class="diagram-arrow">${ICON_FLOW_ARROW}</span><span>6. WINDOW (OVER)</span><span class="diagram-arrow">${ICON_FLOW_ARROW}</span><span>7. ORDER BY / LIMIT</span></div></section>`
     + `<section class="section"><h2>EAM 11.6 Join Grain Cheat Sheet</h2>${table(['Pattern', 'When to use in EAM', 'Classic bug if done wrong'], [
       ['N:1 Lookup (INNER JOIN)', 'Work order → Equipment (EVT_OBJECT = OBJ_CODE)', 'Joining on description instead of key causes duplicates.'],
@@ -668,8 +697,8 @@ function sqlCourse() {
     ])}</section>`
     + '<h2>Five-stage SQL learning path</h2><div class="stage-list">' + sqlStages.map((stage, idx) => '<div class="panel stage-card"><div class="eyebrow tabular">Stage ' + String(idx + 1).padStart(2, '0') + '</div><h3>' + E(stage.title) +
       '</h3><p class="mb-sm">' + E(stage.question) + '</p><p class="muted">' + E(stage.grain) + '</p>' + stageLinks(stage) + '</div>').join('') + '</div>'
-    + '<div class="mt-md mb-md">' + A('exercise/30','Fix a query that counts an idle asset as an order','button') + '</div>'
-    + '<h2>All SQL lessons (with grain, anti-patterns &amp; deep-dives)</h2>' + lessons.filter(l => l.type === 'technical').map(l => '<section class="list-item"><h3>' + lessonLink(l) + '</h3><p class="muted">' + E(sqlDeepDive[l.id]?.grain || sqlReading[l.id]?.[0] || l.concept) + '</p>' + (sqlDeepDive[l.id] ? `<p><small class="muted"><strong>Key pitfall:</strong> ${E(sqlDeepDive[l.id].pitfall)}</small></p>` : '') + '<div class="row">' + A('sql/' + l.id,'Run in Synthetic Lab') + (sqlDeepDive[l.id]?.realTable ? A('sql-real/' + U(sqlDeepDive[l.id].realTable), 'Inspect ' + sqlDeepDive[l.id].realTable + ' in Real-Data Lab') : A('sql-real','Explore in Real-Data Lab')) + '</div></section>').join('');
+    + '<div class="mt-md mb-md">' + A('exercise/30', 'Fix a query that counts an idle asset as an order', 'button') + '</div>'
+    + '<h2>All SQL lessons (with grain, anti-patterns &amp; deep-dives)</h2>' + lessons.filter(l => l.type === 'technical').map(l => '<section class="list-item"><h3>' + lessonLink(l) + '</h3><p class="muted">' + E(sqlDeepDive[l.id]?.grain || sqlReading[l.id]?.[0] || l.concept) + '</p>' + (sqlDeepDive[l.id] ? `<p><small class="muted"><strong>Key pitfall:</strong> ${E(sqlDeepDive[l.id].pitfall)}</small></p>` : '') + '<div class="row">' + A('sql/' + l.id, 'Run in Synthetic Lab') + (sqlDeepDive[l.id]?.realTable ? A('sql-real/' + U(sqlDeepDive[l.id].realTable), 'Inspect ' + sqlDeepDive[l.id].realTable + ' in Real-Data Lab') : A('sql-real', 'Explore in Real-Data Lab')) + '</div></section>').join('');
 }
 
 function coveragePage(moduleName) {
@@ -679,7 +708,7 @@ function coveragePage(moduleName) {
     + '<div class="scroll"><table><thead><tr><th>Lesson</th><th>HxGN page</th><th>Infor 11.6</th><th>Source excerpts</th><th>Teaching material</th></tr></thead><tbody>' + visible.map(l => {
       const s = l.source, ev = s.evidence, more = enrichment[String(s.hex.page)];
       const materials = [l.scenario && 'Scenario', l.verify && 'verification', more?.example?.length && 'worked example', l.sql && 'SQL exercise', quizzes.some(q => q.lesson.toLowerCase() === l.title.toLowerCase()) && 'quiz'].filter(Boolean);
-      return '<tr><td>' + lessonLink(l) + '</td><td>' + sourceLink(s.hex.id,String(s.hex.page)) + '</td><td>' + (s.infor ? sourceLink(s.infor.id,String(s.infor.page)) : 'No mapped page') + '</td><td>' + ev.steps.length + ' steps · ' + ev.fields.length + ' fields</td><td>' + E(materials.join(', ')) + '</td></tr>';
+      return '<tr><td>' + lessonLink(l) + '</td><td>' + sourceLink(s.hex.id, String(s.hex.page)) + '</td><td>' + (s.infor ? sourceLink(s.infor.id, String(s.infor.page)) : 'No mapped page') + '</td><td>' + ev.steps.length + ' steps · ' + ev.fields.length + ' fields</td><td>' + E(materials.join(', ')) + '</td></tr>';
     }).join('') + '</tbody></table></div>';
 }
 
@@ -700,7 +729,7 @@ function quizBlock(qList) {
   if (!qList.length) return '';
   const shuffled = [...qList];
   for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i+1));
+    const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled.map(q => {
@@ -717,7 +746,7 @@ function lessonPage(id) {
   const recent = read('recentLessons', []);
   write('recentLessons', [l.id, ...(Array.isArray(recent) ? recent.filter(x => x !== l.id) : [])].slice(0, 5));
   logActivity();
-  const activePath = read('activePath','');
+  const activePath = read('activePath', '');
   const pathModules = roles[activePath];
   const inPath = Array.isArray(pathModules) && pathModules.includes(l.module);
   const sequence = inPath ? pathModules.flatMap(m => groups[m]) : groups[l.module];
@@ -729,11 +758,11 @@ function lessonPage(id) {
   return `<div class="lesson-layout"><article class="lesson-content">${H(l.module, l.title, `${l.id} · ${l.level} · ${l.type === 'technical' ? 'Technical SQL lesson' : l.type === 'consulting' ? 'Consultant guidance' : 'Written functional tutorial'}`)}`
     + `<div class="lesson-toolbar"><div class="row lesson-meta"><span class="pill">${l.type === 'intro' ? 'Academy introduction' : 'HxGN primary'}</span>${s.infor ? '<span class="pill">Infor supporting</span>' : ''}</div><div class="row lesson-actions"><button type="button" data-present-lesson="${E(id)}">Present lesson</button><button data-mark="${id}" class="${isMarked ? 'is-active' : ''}">${isMarked ? `${ICON_BOOKMARK_FILL}<span>Bookmarked</span>` : `${ICON_BOOKMARK}<span>Bookmark</span>`}</button><button class="primary${isDone ? ' is-completed' : ''}" data-done="${id}">${isDone ? `${ICON_CHECK_CIRCLE}<span>Completed · undo</span>` : `${ICON_CHECK_CIRCLE}<span>Mark complete</span>`}</button></div></div>`
     + lessonVisual(l)
-    + (workshops.some(w => w.module === l.module) ? '<p class="mt-md">' + A('workshop/' + U(l.module),'Open module workshop') + '</p>' : '')
-    + sqlStages.filter(stage => [stage.sql,stage.functional].includes(id)).map(stage => '<section class="section"><h2>' + E(stage.title) + '</h2>' + stageLinks(stage) + '</section>').join('')
-    + (inPath ? '<p class="muted">' + A('path/' + U(activePath),activePath) + ' · Lesson ' + (i+1) + ' of ' + sequence.length + '</p>' : '')
-    + (pumpSteps.some(([step]) => step === id) ? '<p class="note">' + A('pump','Case study · From pump to preventive work order') + '</p>' : '')
-    + (sqlResults[id] ? '<details class="sql-output"><summary>Inspect the expected training output</summary>' + table(sqlResults[id].columns,sqlResults[id].rows) + '</details>' : '')
+    + (workshops.some(w => w.module === l.module) ? '<p class="mt-md">' + A('workshop/' + U(l.module), 'Open module workshop') + '</p>' : '')
+    + sqlStages.filter(stage => [stage.sql, stage.functional].includes(id)).map(stage => '<section class="section"><h2>' + E(stage.title) + '</h2>' + stageLinks(stage) + '</section>').join('')
+    + (inPath ? '<p class="muted">' + A('path/' + U(activePath), activePath) + ' · Lesson ' + (i + 1) + ' of ' + sequence.length + '</p>' : '')
+    + (pumpSteps.some(([step]) => step === id) ? '<p class="note">' + A('pump', 'Case study · From pump to preventive work order') + '</p>' : '')
+    + (sqlResults[id] ? '<details class="sql-output"><summary>Inspect the expected training output</summary>' + table(sqlResults[id].columns, sqlResults[id].rows) + '</details>' : '')
     + (sqlReading[id] ? '<section class="section"><h2>How to read this query</h2><div class="callout-panel"><strong>' + E(sqlReading[id][0]) + '</strong><p class="mt-sm">' + E(sqlReading[id][1]) + '</p><h3>Try a variation</h3><p class="mb-sm">' + E(sqlReading[id][2]) + '</p></div></section>' : '')
     + (sqlDeepDive[id] ? `<section class="section"><h2>Engineering deep-dive · Grain, Execution &amp; Anti-Patterns</h2><div class="panel mb-md"><p><strong>Output grain:</strong> ${E(sqlDeepDive[id].grain)}</p><p><strong>Logical execution order:</strong> <code>${E(sqlDeepDive[id].execOrder)}</code></p><p class="muted mb-sm"><strong>Performance &amp; indexing:</strong> ${E(sqlDeepDive[id].perf)}</p>${sqlDeepDive[id].realTable ? A('sql-real/' + U(sqlDeepDive[id].realTable), 'Inspect ' + sqlDeepDive[id].realTable + ' in Real-Data SQL Lab', 'button') : ''}</div><h3>Clause-by-clause breakdown</h3>${table(['SQL Clause', 'What it does & why'], sqlDeepDive[id].clauses)}<h3 class="mt-md">Column meanings in EAM 11.6</h3>${table(['Column', 'Meaning & key role'], sqlDeepDive[id].columns)}<h3 class="mt-md">Broken anti-pattern vs. production rule</h3><div class="note warn">${ICON_ALERT}<div><pre class="mb-sm">${E(sqlDeepDive[id].antiPattern.bad)}</pre><p class="mb-sm">${E(sqlDeepDive[id].antiPattern.why)}</p></div></div><details class="mt-sm"><summary>Senior engineer self-check: ${E(sqlDeepDive[id].interview[0])}</summary><p>${E(sqlDeepDive[id].interview[1])}</p></details></section>` : '')
     + `<section class="section"><h2>What you will learn</h2><p>${E(l.concept)}</p><p>By the end, you should be able to explain the business purpose, describe the steps for the scenario, and identify how to check the result.</p></section>`
@@ -805,13 +834,13 @@ function searchPage(q) {
 let searchToken = 0;
 async function doSearch(q, offset = 0) {
   const token = ++searchToken;
-  const searchText = q.trim().replace(/\bwo\b/gi,'work order').replace(/\bpm\b/gi,'preventive maintenance');
+  const searchText = q.trim().replace(/\bwo\b/gi, 'work order').replace(/\bpm\b/gi, 'preventive maintenance');
   const source = $('sourceFilter')?.value || '';
   const mod = $('moduleFilter')?.value || '';
   if (!offset) {
     const terms = searchText.toLowerCase().trim().split(/\s+/).filter(Boolean);
     const names = q.trim() ? catalog.tables.filter(([name]) => name.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 20) : [];
-    const workshopHits = terms.length ? workshops.filter(w => (!mod || w.module === mod) && terms.every(t => [w.title,w.situation,w.module,w.role].join(' ').toLowerCase().includes(t))) : [];
+    const workshopHits = terms.length ? workshops.filter(w => (!mod || w.module === mod) && terms.every(t => [w.title, w.situation, w.module, w.role].join(' ').toLowerCase().includes(t))) : [];
     const hits = lessons.filter(l => (!mod || l.module === mod) && (!terms.length || terms.every(t => [l.title, l.module, l.concept, l.scenario, l.source.hex.title].join(' ').toLowerCase().includes(t))));
     $('lessonResults').innerHTML = (q || mod)
       ? (hits.length ? hits.slice(0, 30).map(l => `<div class="list-item">${lessonLink(l)}<p class="muted">${E(l.module)} · ${E(l.concept)}</p></div>`).join('') : '<p>No matching authored lesson. Try fewer terms or use the source results.</p>')
@@ -819,12 +848,12 @@ async function doSearch(q, offset = 0) {
     if (terms.length) {
       const fields = lessons.filter(l => (!mod || l.module === mod) && l.source.evidence?.fields?.some(f =>
         terms.every(t => (f.name + ' ' + f.meaning).toLowerCase().includes(t))));
-      if (fields.length) $('lessonResults').innerHTML += '<h2>Field guide</h2>' + fields.slice(0,20).map(l => '<p>' + lessonLink(l) + '</p>').join('');
+      if (fields.length) $('lessonResults').innerHTML += '<h2>Field guide</h2>' + fields.slice(0, 20).map(l => '<p>' + lessonLink(l) + '</p>').join('');
     }
     if (workshopHits.length) $('lessonResults').innerHTML += '<h2>Matching workshops</h2>' + workshopCards(workshopHits);
-    if (names.length && !mod) $('lessonResults').innerHTML += '<h2>Database dictionary</h2>' + names.map(([name]) => A('table/' + U(name),name,'taglink')).join(' ');
+    if (names.length && !mod) $('lessonResults').innerHTML += '<h2>Database dictionary</h2>' + names.map(([name]) => A('table/' + U(name), name, 'taglink')).join(' ');
     if (!mod && terms.length && terms.every(t => ('pump asset preventive maintenance schedule open work orders').includes(t))) {
-      $('lessonResults').innerHTML += '<h2>Guided case study</h2>' + A('pump','From pump to preventive work order');
+      $('lessonResults').innerHTML += '<h2>Guided case study</h2>' + A('pump', 'From pump to preventive work order');
     }
     $('sourceResults').innerHTML = 'Searching…';
   }
@@ -837,8 +866,8 @@ async function doSearch(q, offset = 0) {
     if (!offset && q.trim() && !source && !mod) {
       const code = await api('/api/code/search?q=' + U(q));
       if (token !== searchToken || !$('lessonResults')) return;
-      if (code.items.length) $('lessonResults').insertAdjacentHTML('beforeend','<h2>SQL library</h2>' +
-        code.items.slice(0,10).map(item => '<p>' + A('code/' + item.id,item.name) + '</p>').join(''));
+      if (code.items.length) $('lessonResults').insertAdjacentHTML('beforeend', '<h2>SQL library</h2>' +
+        code.items.slice(0, 10).map(item => '<p>' + A('code/' + item.id, item.name) + '</p>').join(''));
     }
     if (j.more) $('loadMore').onclick = () => doSearch(q, offset + 30);
   } catch (e) {
@@ -923,7 +952,7 @@ async function runCodeSearch(kind, offset = 0) {
     const html = j.items.map(it => {
       const tblLinks = (it.tables || '').split(',').map(x => x.trim()).filter(Boolean).slice(0, 8)
         .map(t => A('table/' + U(t), t, 'taglink')).join('');
-      return `<div class="list-item"><div class="row between code-item-head"><div>${A('code/' + it.id, it.name)} <span class="pill">${E(it.kind.toUpperCase())}</span> <small class="tabular">Candidate ${E(it.candidate)} · ${it.line_count} lines</small></div><a class="button" href="#code/${E(it.id)}"><span>${['procedure','trigger'].includes(it.kind) ? 'Explanation and SQL' : 'View full SQL'}</span>${ICON_ARROW_RIGHT}</a></div>${tblLinks ? `<div class="mt-sm">${tblLinks}</div>` : ''}<pre class="code-excerpt">${HMark(it.excerpt)}</pre></div>`;
+      return `<div class="list-item"><div class="row between code-item-head"><div>${A('code/' + it.id, it.name)} <span class="pill">${E(it.kind.toUpperCase())}</span> <small class="tabular">Candidate ${E(it.candidate)} · ${it.line_count} lines</small></div><a class="button" href="#code/${E(it.id)}"><span>${['procedure', 'trigger'].includes(it.kind) ? 'Explanation and SQL' : 'View full SQL'}</span>${ICON_ARROW_RIGHT}</a></div>${tblLinks ? `<div class="mt-sm">${tblLinks}</div>` : ''}<pre class="code-excerpt">${HMark(it.excerpt)}</pre></div>`;
     }).join('');
     $('codeResults').innerHTML = offset ? $('codeResults').innerHTML + html : (html || '<p>No matching code objects.</p>');
     $('codeMore').innerHTML = j.more ? `<button id="codeLoadMore">Load more (${j.total - offset - j.items.length} remaining)</button>` : '';
@@ -1028,7 +1057,7 @@ function tablePage(t) {
   const area = row?.[6] || kt?.area || 'Database Schema';
   return H('Schema Reference · ' + area, t, title)
     + `<div class="row mb-md">${A('er/' + U(t), 'Open Visual ER Diagram', 'button primary')}${A('sql-real/' + U(t), 'Open in Real-Data SQL Lab', 'button')}${A('triggers/' + U(t), 'Search Triggers for ' + t, 'button')}${A('procedures/' + U(t), 'Search Procedures for ' + t, 'button')}${A('tables', 'All Tables', 'button')}</div>`
-    + (t === 'R5EVENTS' ? '<p>' + A('lesson/L127','Worked training example · Find open work orders') + '</p>' : '')
+    + (t === 'R5EVENTS' ? '<p>' + A('lesson/L127', 'Worked training example · Find open work orders') + '</p>' : '')
     + `<div id="tableRealExercises"></div>`
     + `<div id="tableFullDetail"><p class="muted">Loading full column dictionary, keys, relationships, and triggers for ${E(t)}…</p></div>`
     + `<h2>Recovered SQL objects referencing ${E(t)}</h2><div id="tableCodeRefs"><p class="muted">Checking triggers, procedures &amp; views…</p></div>`;
@@ -1043,7 +1072,7 @@ function renderTableDetail(t, td) {
   }
   const pkBadge = td.pk_source === 'pk' ? '<span class="pill ok">Physical PK</span>'
     : td.pk_source === 'audit_pk' ? '<span class="pill">R5AUDITPK Logical Key</span>'
-    : '<span class="pill">No PK</span>';
+      : '<span class="pill">No PK</span>';
   const flexBadge = td.flex ? '<span class="pill ok">Flex SQL Enabled</span>' : '';
   const entPills = (td.entities || []).map(en => `<span class="pill">Entity: ${E(en)}</span>`).join('');
 
@@ -1068,15 +1097,15 @@ function renderTableDetail(t, td) {
     <div class="panel">
       <h3>Parent References · Outbound FKs (${td.out_fks.length})</h3>
       <div class="scroll-panel">${td.out_fks.length ? td.out_fks.map(fk => {
-        const pairs = fk.cols.map(([c, p]) => `${c} → ${p}`).join(', ');
-        return `<div class="fk-item"><div class="fk-row"><code>${E(fk.cols.map(x => x[0]).join(', '))}</code> ${ICON_FLOW_ARROW} ${A('table/' + U(fk.to), `${fk.to} (${fk.cols.map(x => x[1]).join(', ')})`)}</div><div class="fk-explain muted">${E(fk.explain)} <small>[${E(fk.name)}${fk.on_delete && fk.on_delete !== 'NO_ACTION' ? ` · ON DELETE ${E(fk.on_delete)}` : ''}]</small></div></div>`;
-      }).join('') : '<p class="muted">No outbound foreign keys.</p>'}</div>
+    const pairs = fk.cols.map(([c, p]) => `${c} → ${p}`).join(', ');
+    return `<div class="fk-item"><div class="fk-row"><code>${E(fk.cols.map(x => x[0]).join(', '))}</code> ${ICON_FLOW_ARROW} ${A('table/' + U(fk.to), `${fk.to} (${fk.cols.map(x => x[1]).join(', ')})`)}</div><div class="fk-explain muted">${E(fk.explain)} <small>[${E(fk.name)}${fk.on_delete && fk.on_delete !== 'NO_ACTION' ? ` · ON DELETE ${E(fk.on_delete)}` : ''}]</small></div></div>`;
+  }).join('') : '<p class="muted">No outbound foreign keys.</p>'}</div>
     </div>
     <div class="panel">
       <h3>Child References · Inbound FKs (${td.in_fks.length})</h3>
       <div class="scroll-panel">${td.in_fks.length ? td.in_fks.map(fk => {
-        return `<div class="fk-item"><div class="fk-row">${A('table/' + U(fk.from), `${fk.from} (${fk.cols.map(x => x[0]).join(', ')})`)} ${ICON_FLOW_ARROW} <code>${E(fk.cols.map(x => x[1]).join(', '))}</code></div><div class="fk-explain muted">${E(fk.explain)} <small>[${E(fk.name)}]</small></div></div>`;
-      }).join('') : '<p class="muted">No inbound foreign keys from other tables.</p>'}</div>
+    return `<div class="fk-item"><div class="fk-row">${A('table/' + U(fk.from), `${fk.from} (${fk.cols.map(x => x[0]).join(', ')})`)} ${ICON_FLOW_ARROW} <code>${E(fk.cols.map(x => x[1]).join(', '))}</code></div><div class="fk-explain muted">${E(fk.explain)} <small>[${E(fk.name)}]</small></div></div>`;
+  }).join('') : '<p class="muted">No inbound foreign keys from other tables.</p>'}</div>
     </div>
   </div>`;
 
@@ -1237,13 +1266,13 @@ function downloadCsv(result) {
   function cell(value) {
     let text = String(value ?? '');
     if (typeof value === 'string' && /^[=+@\-\t\r]/.test(text)) text = "'" + text;
-    return '"' + text.replaceAll('"','""') + '"';
+    return '"' + text.replaceAll('"', '""') + '"';
   }
   const csv = [result.columns, ...result.rows].map(row => row.map(cell).join(',')).join('\r\n');
-  const url = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
+  const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
   const link = document.createElement('a');
   link.href = url; link.download = 'eam-query.csv'; link.click();
-  setTimeout(() => URL.revokeObjectURL(url),1000);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 function historyMarkup() {
   return sqlHist.length ? `<details><summary>Recent query history (${sqlHist.length})</summary>${sqlHist.map((q, idx) => `<div class="list-item"><button type="button" data-load-sql="${idx}">Load</button> <code class="ml-sm">${E(q.slice(0, 120))}</code></div>`).join('')}</details>` : '';
@@ -1272,14 +1301,38 @@ const vanillaReports = [
 function sqlExampleById(id) {
   return vanillaReports.find(report => report.id === id) || lessons.find(lesson => lesson.type === 'technical' && lesson.id === id);
 }
+function sqlMobileTabsHtml() {
+  return `<div class="sql-mobile-tabs" role="tablist" aria-label="SQL workspace panels">`
+    + `<button type="button" class="chip active" role="tab" aria-selected="true" data-sql-tab="query">Query</button>`
+    + `<button type="button" class="chip" role="tab" aria-selected="false" data-sql-tab="schema">Schema</button>`
+    + `<button type="button" class="chip" role="tab" aria-selected="false" data-sql-tab="results">Results</button>`
+    + `</div>`;
+}
+function wireSqlMobileTabs() {
+  const ws = document.querySelector('.sql-workspace');
+  if (!ws) return;
+  ws.dataset.mobileTab = 'query';
+  document.querySelectorAll('[data-sql-tab]').forEach(btn => {
+    btn.onclick = () => {
+      const tab = btn.dataset.sqlTab;
+      ws.dataset.mobileTab = tab;
+      document.querySelectorAll('[data-sql-tab]').forEach(b => {
+        const on = b === btn;
+        b.classList.toggle('active', on);
+        b.setAttribute('aria-selected', String(on));
+      });
+    };
+  });
+}
 function sqlPage(id) {
   const l = sqlExampleById(id);
   return H('SQL practice · technical only', 'Read-only SQL lab', 'All tables and columns use exact Infor EAM 11.6 (EAM116) vanilla R5 names with synthetic training rows. Click schema columns to insert them, or use Check my output on lesson challenges.')
-    + `<div class="row mb-md">${A('sql', 'Synthetic Training Lab (28 tables)', 'chip active button')}${A('sql-real', 'Restored EAM 11.6 Lab (1,681 tables · Real Backup)', 'chip button')}</div>`
-    + `<div class="sql-workspace"><div class="panel"><div class="sql-toolbar"><label for="sqlExample">Choose a report or lesson query</label><select id="sqlExample"><option value="">Custom query</option><optgroup label="EAM 11.6 vanilla reports">${vanillaReports.map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${E(x.title)}</option>`).join('')}</optgroup><optgroup label="Lesson queries">${lessons.filter(x => x.type === 'technical').map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${E(x.title)}</option>`).join('')}</optgroup></select></div>`
+    + `<div class="row mb-md">${A('sql', 'Synthetic Training Lab (28 tables)', 'chip active button')}${A('sql-real', 'Restored EAM 11.6 Lab (1,681 tables · Real Backup)', 'chip button')}<span class="pill ok">Active dataset: Synthetic Training DB</span></div>`
+    + sqlMobileTabsHtml()
+    + `<div class="sql-workspace" data-mobile-tab="query"><div class="panel sql-main-pane"><div class="sql-toolbar"><label for="sqlExample">Choose a report or lesson query</label><select id="sqlExample"><option value="">Custom query</option><optgroup label="EAM 11.6 vanilla reports">${vanillaReports.map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${E(x.title)}</option>`).join('')}</optgroup><optgroup label="Lesson queries">${lessons.filter(x => x.type === 'technical').map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${E(x.title)}</option>`).join('')}</optgroup></select></div>`
     + `<p class="mt-md mb-sm"><label for="sqlText">SQL statement</label></p><div class="editor-shell"><div class="editor-head"><span>SQLite · Read-only</span><span class="editor-hint"><kbd>⌘↵</kbd> Run</span></div><textarea id="sqlText" spellcheck="false">${E(l?.sql || 'SELECT * FROM R5EVENTS ORDER BY EVT_CODE;')}</textarea></div>`
     + `<div class="row mt-sm"><button id="runSQL" class="primary">${ICON_PLAY}<span>Run read-only query</span></button><button id="checkSQL" class="${l ? '' : 'is-hidden'}">${ICON_CHECK}<span>Check my output</span></button><small>SELECT / CTE · max 200 displayed rows</small></div>`
-    + `<p id="sqlExpected" class="note">${E(l?.verify || 'Select a lesson for an expected result.')}</p><div id="sqlCheckMsg"></div><div id="sqlResult"></div></div>`
+    + `<p id="sqlExpected" class="note">${E(l?.verify || 'Select a lesson for an expected result.')}</p><div class="sql-results-pane"><div id="sqlCheckMsg"></div><div id="sqlResult"></div></div></div>`
     + '<aside class="panel sql-browser"><h2>Training schema</h2><div id="sqlSchema">Loading schema…</div></aside></div>'
     + '<div id="queryHistory">' + historyMarkup() + '</div>'
     + `<details><summary>Training database · 28 EAM 11.6 R5 tables</summary>${table(['R5 Table', 'Entity', 'Purpose'], crosswalk)}</details>`;
@@ -1333,34 +1386,48 @@ function realSqlPage(selectedTable = '', selectedExerciseId = '') {
     ? `SELECT * FROM ${quoteIdentIfNeeded(selectedTable)} LIMIT 25;`
     : 'SELECT ORG_CODE, ORG_DESC, ORG_CURR FROM R5ORGANIZATION ORDER BY ORG_CODE;';
   return H('Restored backup · EAM 11.6 Vanilla (116_van.bak)', 'Real-Data Read-Only SQL Lab', 'Query real exported rows from the restored Microsoft SQL Server backup (1,681 tables across 7 families). Tables are lazy-loaded into read-only SQLite on demand; cross-family joins are supported.')
-    + `<div class="row mb-md">${A('sql', 'Synthetic Training Lab (28 tables)', 'chip button')}${A('sql-real', 'Restored EAM 11.6 Lab (1,681 tables · Real Backup)', 'chip active button')}</div>`
+    + `<div class="row mb-md">${A('sql', 'Synthetic Training Lab (28 tables)', 'chip button')}${A('sql-real', 'Restored EAM 11.6 Lab (1,681 tables · Real Backup)', 'chip active button')}<span class="pill ok">Active dataset: Restored 116_van.bak</span></div>`
     + `<div id="realBackupSummary" class="panel mb-md"><p class="muted">Loading backup manifest and family inventory…</p></div>`
-    + `<div class="sql-workspace"><div class="panel"><div class="sql-toolbar"><label for="realSqlExample">Choose a real-data exercise (55 across 5 populated families)</label><select id="realSqlExample"><option value="">Custom query</option></select></div>`
+    + sqlMobileTabsHtml()
+    + `<div class="sql-workspace" data-mobile-tab="query"><div class="panel sql-main-pane"><div class="sql-toolbar"><label for="realSqlExample">Choose a real-data exercise (55 across 5 populated families)</label><select id="realSqlExample"><option value="">Custom query</option></select></div>`
     + `<p class="mt-md mb-sm"><label for="sqlText">SQL statement</label></p><div class="editor-shell"><div class="editor-head"><span>SQLite · Read-only · Real Backup Exports</span><span class="editor-hint"><kbd>⌘↵</kbd> Run</span></div><textarea id="sqlText" spellcheck="false">${E(starter)}</textarea></div>`
     + `<div class="row mt-sm"><button id="runSQL" class="primary">${ICON_PLAY}<span>Run read-only query</span></button><button id="checkSQL" class="${selectedExerciseId ? '' : 'is-hidden'}">${ICON_CHECK}<span>Check my output</span></button><small>One SELECT / WITH · max 200 displayed rows · 10s timeout</small></div>`
-    + `<p id="sqlExpected" class="note">${selectedTable ? `Selected table: ${E(selectedTable)}. Click Run or choose an exercise.` : 'Select an exercise or write any read-only SELECT / WITH query.'}</p><div id="sqlCheckMsg"></div><div id="sqlResult"></div></div>`
+    + `<p id="sqlExpected" class="note">${selectedTable ? `Selected table: ${E(selectedTable)}. Click Run or choose an exercise.` : 'Select an exercise or write any read-only SELECT / WITH query.'}</p><div class="sql-results-pane"><div id="sqlCheckMsg"></div><div id="sqlResult"></div></div></div>`
     + `<aside class="panel sql-browser"><h2>Restored Schema (7 Families)</h2><div class="row mb-sm"><input id="realSchemaSearch" type="search" placeholder="Search tables or columns…"></div><label class="row mb-sm"><input type="checkbox" id="realPopulatedOnly"> <small>Populated tables only</small></label><div id="sqlSchema">Loading 1,681 tables…</div></aside></div>`
     + '<div id="queryHistory">' + historyMarkup() + '</div>';
 }
 
 function progressPage() {
+  const profile = window.EAMProfiles?.getActiveProfile();
   const valid = lessons.filter(l => done.includes(l.id));
   const qTot = Object.keys(quizState).length;
   const qOk = Object.values(quizState).filter(Boolean).length;
-  return H('Personal learning', 'Your learning progress', 'Progress, quiz results, notes and bookmarks are stored locally in this browser.')
-    + `<div class="panel mb-md"><div class="dashboard-head"><div><strong>Overall curriculum progress</strong><p class="muted mb-sm">${valid.length} of ${lessons.length} lessons completed</p></div>${progressRing(valid.length, lessons.length)}</div>${progress(valid.length, lessons.length)}</div>`
-    + `<div class="metrics">${metric(valid.length, 'Completed')}${metric(marks.length, 'Bookmarked')}${metric(Object.keys(notes).filter(k => notes[k]).length, 'Lessons with notes')}${metric(qTot ? `${qOk}/${qTot}` : '0', 'Quiz score')}</div>`
-    + '<p>' + A('practice','SQL practice · ' + read('practiceSolved',[]).length + ' solved') + '</p>'
-    + `<h2>Module progress</h2>`
-    + Object.entries(groups).map(([m, ls]) => `<div class="list-item"><div class="row between">${A('module/' + U(m), m)}<small>${ls.filter(l => done.includes(l.id)).length}/${ls.length}</small></div>${progress(ls.filter(l => done.includes(l.id)).length, ls.length)}</div>`).join('')
-    + `<h2>Bookmarks</h2>${lessons.filter(l => marks.includes(l.id)).map(l => `<div class="list-item">${lessonLink(l)}</div>`).join('') || '<p>No bookmarks yet.</p>'}`
-    + `<h2>Revision notes</h2>${lessons.filter(l => notes[l.id]).map(l => `<div class="list-item">${lessonLink(l)}<p>${E(notes[l.id])}</p></div>`).join('') || '<p>No notes yet.</p>'}`
+  const lastLesson = lessons.find(l => l.id === read('lastLesson', ''));
+  const lastEx = read('lastExercise', 0);
+  const solved = read('practiceSolved', []);
+  const drafts = read('practiceDrafts', {});
+  const draftIds = Object.keys(drafts).filter(id => drafts[id]?.trim());
+  const recentIds = read('recentLessons', []);
+  const recentItems = (Array.isArray(recentIds) ? recentIds : []).map(id => lessons.find(l => l.id === id)).filter(Boolean).slice(0, 5);
+  const nextTitle = lastLesson ? `Continue: ${lastLesson.title}` : 'Start your first lesson: Asset vs. Position';
+  const nextHref = lastLesson ? `lesson/${lastLesson.id}` : 'lesson/INTRO01';
+
+  return H('Personal learning', profile ? `${profile.name}'s Learning` : 'Your learning progress', `${window.EAMProfiles ? window.EAMProfiles.getSyncStatus() : 'Local storage'} · Progress, bookmarks, notes, and saved SQL exercises.`)
+    + `<section class="panel mb-md"><div class="dashboard-head"><div><div class="eyebrow">Next step</div><h2>${E(nextTitle)}</h2><div class="row mt-sm">${A(nextHref, lastLesson ? 'Resume lesson' : 'Start learning', 'button primary')}${lastEx ? A('exercise/' + Number(lastEx), `Resume SQL Exercise #${Number(lastEx)}`, 'button') : A('practice', 'Open SQL Exercises', 'button')}</div></div>${progressRing(valid.length, lessons.length)}</div></section>`
+    + `<div class="grid mb-md">`
+    + `<section class="panel"><h3>Recently visited lessons</h3>${recentItems.length ? recentItems.map(l => `<div class="list-item">${lessonLink(l)}</div>`).join('') : '<p class="muted">No lessons visited yet.</p>'}</section>`
+    + `<section class="panel"><h3>Saved SQL exercises (${solved.length} solved)</h3><p class="muted">${draftIds.length} in-progress draft(s)</p>${draftIds.length ? `<div class="row">${draftIds.slice(0, 8).map(id => A('exercise/' + id, 'Exercise #' + id, 'taglink')).join('')}</div>` : '<p class="muted">No saved drafts yet.</p>'}${A('practice', 'Browse 110 SQL exercises', 'button mt-sm')}</section>`
+    + `</div>`
+    + `<h2>Bookmarks (${marks.length})</h2>${lessons.filter(l => marks.includes(l.id)).map(l => `<div class="list-item">${lessonLink(l)}</div>`).join('') || '<p class="muted">No bookmarks yet.</p>'}`
+    + `<h2>Revision notes</h2>${lessons.filter(l => notes[l.id]).map(l => `<div class="list-item">${lessonLink(l)}<p>${E(notes[l.id])}</p></div>`).join('') || '<p class="muted">No notes yet.</p>'}`
+    + `<div class="metrics mt-lg">${metric(valid.length + '/' + lessons.length, 'Completed')}${metric(marks.length, 'Bookmarked')}${metric(Object.keys(notes).filter(k => notes[k]).length, 'Notes')}${metric(qTot ? `${qOk}/${qTot}` : '0', 'Quiz score')}</div>`
+    + `<details class="mt-md"><summary>Module progress (${Object.keys(groups).length} modules)</summary>${Object.entries(groups).map(([m, ls]) => `<div class="list-item"><div class="row between">${A('module/' + U(m), m)}<small>${ls.filter(l => done.includes(l.id)).length}/${ls.length}</small></div>${progress(ls.filter(l => done.includes(l.id)).length, ls.length)}</div>`).join('')}</details>`
     + `<div class="row mt-lg"><button id="exportProgress" class="primary">Export progress JSON</button><label class="button" for="importFile">Import progress JSON</label><input id="importFile" type="file" accept=".json,application/json" ><button id="resetProgress">Reset local progress</button></div><div id="importMsg" class="mt-sm"></div>`;
 }
 
 function assess() {
   return H('Assessments & Quizzes', 'Interactive quizzes & scenario checks', 'Test your understanding with module multiple-choice quizzes, then review written scenario explanations.')
-    + `<div class="row"><label for="assessPick">Module</label><select id="assessPick">${Object.keys(groups).map(m => `<option>${E(m)}</option>`).join('')}</select><label><input id="missedOnly" type="checkbox" ${read('missedOnly',false) ? 'checked' : ''}> Review missed questions</label></div><div id="quizScore" class="score-strip" aria-live="polite"></div><div id="assessList"></div>`;
+    + `<div class="row"><label for="assessPick">Module</label><select id="assessPick">${Object.keys(groups).map(m => `<option>${E(m)}</option>`).join('')}</select><label><input id="missedOnly" type="checkbox" ${read('missedOnly', false) ? 'checked' : ''}> Review missed questions</label></div><div id="quizScore" class="score-strip" aria-live="polite"></div><div id="assessList"></div>`;
 }
 function quizReport(items) {
   const correct = items.filter(q => quizState[q.id] === true).length;
@@ -1385,7 +1452,7 @@ async function route() {
   const pos = hash.indexOf('/');
   const r = pos < 0 ? hash : hash.slice(0, pos);
   let id = '';
-  try { id = pos < 0 ? '' : decodeURIComponent(hash.slice(pos + 1)); } catch {}
+  try { id = pos < 0 ? '' : decodeURIComponent(hash.slice(pos + 1)); } catch { }
   renderProfileMenu();
   if (window.EAMProfiles && (!window.EAMProfiles.getActiveProfileId() || r === 'profiles')) {
     document.body.dataset.view = 'profiles';
@@ -1413,7 +1480,7 @@ async function route() {
       case 'home': main.innerHTML = fieldHome(); break;
       case 'workshops': case 'workshop': main.innerHTML = workshopPage(id); break;
       case 'pump': main.innerHTML = pumpPage(); break;
-      case 'practice': case 'exercise': await showPractice(r,id,current); break;
+      case 'practice': case 'exercise': await showPractice(r, id, current); break;
       case 'sql-course': main.innerHTML = sqlCourse(); break;
       case 'coverage':
         main.innerHTML = coveragePage(id);
@@ -1421,7 +1488,7 @@ async function route() {
         break;
       case 'learn':
         main.innerHTML = H('Curriculum', 'Tutorials', `${lessons.length} written lessons across ${Object.keys(groups).length} modules.`)
-          + '<div class="row footer-links">' + A('lesson/INTRO01','Start here · What is EAM?','button primary') + A('paths','Learning paths','button') + A('assess','Assessments','button') + A('coverage','Lesson coverage','button') + '</div>'
+          + '<div class="row footer-links">' + A('lesson/INTRO01', 'Start here · What is EAM?', 'button primary') + A('paths', 'Learning paths', 'button') + A('assess', 'Assessments', 'button') + A('coverage', 'Lesson coverage', 'button') + '</div>'
           + '<div class="grid">' + Object.entries(groups).map(([m, ls]) => {
             const comp = ls.filter(l => done.includes(l.id)).length;
             return `<a class="tile" href="#module/${U(m)}"><div class="row between mb-sm"><h3>${E(m)}</h3><span class="pill tabular">${comp}/${ls.length}</span></div><p class="mb-sm">${ls.length} lessons</p>${progress(comp, ls.length)}</a>`;
@@ -1458,13 +1525,13 @@ async function route() {
       case 'fields': main.innerHTML = fields(); $('fieldFilter').oninput = e => renderFields(e.target.value); renderFields(); break;
       case 'glossary': main.innerHTML = glossaryPage(); break;
       case 'crosswalk':
-        main.innerHTML = H('Technical Library','Training-to-R5 crosswalk','Approximate mappings between the synthetic training database, core R5 tables, U5 custom conventions, and the 7 restored EAM 11.6 table families.')
+        main.innerHTML = H('Technical Library', 'Training-to-R5 crosswalk', 'Approximate mappings between the synthetic training database, core R5 tables, U5 custom conventions, and the 7 restored EAM 11.6 table families.')
           + `<h2>Core R5 Training Tables (28 tables)</h2>`
-          + table(['R5 Table','Entity','Purpose'],crosswalk)
+          + table(['R5 Table', 'Entity', 'Purpose'], crosswalk)
           + `<h2 class="mt-lg">U5 Custom Tables, UDFs &amp; Non-R5 Families (Verified against 116_van.bak)</h2>`
           + `<p class="muted">Infor/HxGN EAM sites create custom <code>U5*</code> tables via User Defined Screens; the vanilla <code>116_van.bak</code> backup contains <strong>0 <code>U5*</code> tables</strong> and stores UDF/extensibility metadata in the <code>udf</code>, <code>r5</code>, <code>datalake</code>, and <code>other</code> families below.</p>`
-          + table(['Table / Prefix','Family &amp; Backup Count','Role &amp; Join Path'],u5AndFamilyCrosswalk)
-          + `<div class="row mt-md">${A('sql','Open Synthetic SQL Lab','button')}${A('sql-real','Open Real-Data SQL Lab (1,681 tables)','button primary')}${A('er/R5USERDEFINEDFIELDSETUP','Explore UDF ER Diagram','button')}</div>`;
+          + table(['Table / Prefix', 'Family &amp; Backup Count', 'Role &amp; Join Path'], u5AndFamilyCrosswalk)
+          + `<div class="row mt-md">${A('sql', 'Open Synthetic SQL Lab', 'button')}${A('sql-real', 'Open Real-Data SQL Lab (1,681 tables)', 'button primary')}${A('er/R5USERDEFINEDFIELDSETUP', 'Explore UDF ER Diagram', 'button')}</div>`;
         break;
       case 'technical': main.innerHTML = technical(); break;
       case 'triggers':
@@ -1500,7 +1567,7 @@ async function route() {
             await navigator.clipboard.writeText(txt);
             btn.innerHTML = `${ICON_CHECK}<span>Copied</span>`;
             setTimeout(() => { if ($('copySqlBtn')) $('copySqlBtn').innerHTML = `${ICON_COPY}<span>Copy SQL</span>`; }, 1500);
-          } catch {}
+          } catch { }
         };
         $('dlSqlBtn').onclick = () => {
           const txt = $('rawSqlCode').textContent;
@@ -1527,13 +1594,13 @@ async function route() {
           if (current !== generation || !$('tableCodeRefs')) return;
           if (!res.items.length) { $('tableCodeRefs').innerHTML = '<p class="muted">No recovered SQL objects matched this table name.</p>'; return; }
           $('tableCodeRefs').innerHTML = `<p class="muted">${res.total} matching SQL objects (showing up to 40)</p><div class="panel">${res.items.map(it => `${A('code/' + it.id, `${it.name} (${it.kind})`, 'taglink')}`).join('')}</div>`;
-        }).catch(() => {});
+        }).catch(() => { });
         loadRealExercises().then(data => {
           if (current !== generation || !$('tableRealExercises')) return;
           const hits = (data.exercises || []).filter(ex => ex.tables.some(tbl => tbl.toUpperCase() === id.toUpperCase()));
           if (!hits.length) return;
           $('tableRealExercises').innerHTML = `<div class="panel mb-md"><strong>Real-Data SQL Lab Exercises for ${E(id)} (${hits.length}):</strong><div class="row mt-sm">${hits.map(ex => A('sql-real/ex/' + U(ex.id), `${ex.title} (${ex.difficulty})`, 'taglink')).join('')}</div></div>`;
-        }).catch(() => {});
+        }).catch(() => { });
         break;
       case 'er': {
         main.innerHTML = erPage(id || 'R5EVENTS');
@@ -1544,7 +1611,7 @@ async function route() {
           const existing = new Set([...$('erPick').options].map(o => o.value));
           const extra = rows.filter(([tbl]) => !existing.has(tbl)).map(([tbl, fam]) => `<option value="${E(tbl)}" ${tbl === cur ? 'selected' : ''}>${E(tbl)} [${E(fam)}]</option>`).join('');
           if (extra) $('erPick').insertAdjacentHTML('beforeend', extra);
-        }).catch(() => {});
+        }).catch(() => { });
         const erSvg = main.querySelector('.er-svg');
         const setEdgeHover = name => {
           if (!erSvg) return;
@@ -1567,6 +1634,7 @@ async function route() {
       }
       case 'sql': {
         main.innerHTML = sqlPage(id);
+        wireSqlMobileTabs();
         const exercise = /^pump-([0-3])$/.exec(id);
         if (exercise) {
           const q = pumpQueries[Number(exercise[1])];
@@ -1625,7 +1693,7 @@ async function route() {
         api('/api/schema').then(v => {
           if (current !== generation) return;
           $('sqlSchema').innerHTML = v.tables.map(t => {
-            const pk = t.columns.filter(c => c.pk).sort((a,b) => a.pk-b.pk).map(c => c.name);
+            const pk = t.columns.filter(c => c.pk).sort((a, b) => a.pk - b.pk).map(c => c.name);
             const purpose = crosswalk.find(row => row[0] === t.name)?.[2] || '';
             return '<details><summary><span>' + E(t.name) + '</span><small class="tabular">' + t.columns.length + ' cols</small></summary><p>' + E(purpose) + '</p><p>' +
               (pk.length ? 'One row per unique ' + E(pk.join(' + ')) + '.' : 'No declared primary key.') + '</p>' +
@@ -1641,8 +1709,8 @@ async function route() {
               try {
                 const name = button.dataset.preview;
                 if (!v.tables.some(t => t.name === name)) return;
-                const sample = await runTrainingQuery('SELECT * FROM "' + name.replaceAll('"','""') + '" LIMIT 5');
-                output.innerHTML = table(sample.columns,sample.rows);
+                const sample = await runTrainingQuery('SELECT * FROM "' + name.replaceAll('"', '""') + '" LIMIT 5');
+                output.innerHTML = table(sample.columns, sample.rows);
               } catch (error) { output.textContent = error.message; }
               finally { button.disabled = false; }
             };
@@ -1665,6 +1733,7 @@ async function route() {
         const selectedExId = isEx ? id.slice(3) : '';
         const selectedTable = !isEx && id ? id : '';
         main.innerHTML = realSqlPage(selectedTable, selectedExId);
+        wireSqlMobileTabs();
         let realManifest = null;
         let realExercises = [];
 
@@ -1825,7 +1894,7 @@ async function route() {
       case 'progress':
         main.innerHTML = progressPage();
         $('exportProgress').onclick = () => {
-          const a = document.createElement('a'), url = URL.createObjectURL(new Blob([JSON.stringify({ activity: read('activity',[]), lastLesson: read('lastLesson',''), activePath: read('activePath',''), sqlHist, done, marks, notes, quiz: quizState, practiceSolved: read('practiceSolved',[]), practiceDrafts:read('practiceDrafts',{}) }, null, 2)], { type: 'application/json' }));
+          const a = document.createElement('a'), url = URL.createObjectURL(new Blob([JSON.stringify({ activity: read('activity', []), lastLesson: read('lastLesson', ''), activePath: read('activePath', ''), sqlHist, done, marks, notes, quiz: quizState, practiceSolved: read('practiceSolved', []), practiceDrafts: read('practiceDrafts', {}) }, null, 2)], { type: 'application/json' }));
           a.href = url; a.download = 'eam-learning-progress.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
         };
         $('importFile').onchange = async e => {
@@ -1834,10 +1903,10 @@ async function route() {
           try {
             const d = JSON.parse(await f.text());
             if (Array.isArray(d.activity)) write('activity', d.activity.filter(v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)));
-            for (const key of ['lastLesson','activePath']) if (typeof d[key] === 'string') write(key,d[key]);
-            if (Array.isArray(d.sqlHist)) { sqlHist = d.sqlHist.filter(v => typeof v === 'string').slice(0,10); write('sqlhist',sqlHist); }
-            if (Array.isArray(d.practiceSolved)) write('practiceSolved',[...new Set(d.practiceSolved.filter(id=>Number.isInteger(id) && id>=1))]);
-            if (d.practiceDrafts && typeof d.practiceDrafts==='object') write('practiceDrafts',Object.fromEntries(Object.entries(d.practiceDrafts).filter(([id,sql])=>Number.isInteger(+id) && +id>=1 && typeof sql==='string' && sql.length<=20000)));
+            for (const key of ['lastLesson', 'activePath']) if (typeof d[key] === 'string') write(key, d[key]);
+            if (Array.isArray(d.sqlHist)) { sqlHist = d.sqlHist.filter(v => typeof v === 'string').slice(0, 10); write('sqlhist', sqlHist); }
+            if (Array.isArray(d.practiceSolved)) write('practiceSolved', [...new Set(d.practiceSolved.filter(id => Number.isInteger(id) && id >= 1))]);
+            if (d.practiceDrafts && typeof d.practiceDrafts === 'object') write('practiceDrafts', Object.fromEntries(Object.entries(d.practiceDrafts).filter(([id, sql]) => Number.isInteger(+id) && +id >= 1 && typeof sql === 'string' && sql.length <= 20000)));
             if (Array.isArray(d.done)) { done = d.done; write('done', done); }
             if (Array.isArray(d.marks)) { marks = d.marks; write('marks', marks); }
             if (d.notes && typeof d.notes === 'object') { notes = d.notes; write('notes', notes); }
@@ -1849,7 +1918,7 @@ async function route() {
           if (!confirm('Clear all local completion, bookmarks, notes, quiz scores, and SQL practice history?')) return;
           done = []; marks = []; notes = {}; quizState = {}; sqlHist = [];
           write('sqlhist', []); write('activity', []);
-          write('practiceSolved',[]); write('practiceDrafts',{}); write('lastExercise',0); write('dbBookmarks',[]); write('dbLast',null); write('activePath',''); write('lastLesson','');
+          write('practiceSolved', []); write('practiceDrafts', {}); write('lastExercise', 0); write('dbBookmarks', []); write('dbLast', null); write('activePath', ''); write('lastLesson', '');
           write('done', done); write('marks', marks); write('notes', notes); write('quiz', quizState);
           route();
         };
@@ -1858,7 +1927,7 @@ async function route() {
         main.innerHTML = H('Not found', 'This page is no longer available', 'Functional simulator and old competition sections were removed.') + A('home', 'Return home', 'button');
     }
     if (current === generation) {
-      if (r === 'module' && workshops.some(w => w.module === id)) main.insertAdjacentHTML('afterbegin','<p class="workshop-link">' + A('workshop/' + U(id),'Open the module workshop') + '</p>');
+      if (r === 'module' && workshops.some(w => w.module === id)) main.insertAdjacentHTML('afterbegin', '<p class="workshop-link">' + A('workshop/' + U(id), 'Open the module workshop') + '</p>');
       enhanceCodeBlocks(main);
       main.classList.remove('view-enter');
       void main.offsetWidth;
@@ -1877,7 +1946,7 @@ async function route() {
 
 $('main').addEventListener('click', e => {
   const pathStart = e.target.closest('[data-start-path]');
-  if (pathStart) write('activePath',pathStart.dataset.startPath);
+  if (pathStart) write('activePath', pathStart.dataset.startPath);
   const b = e.target.closest('button[data-mark],button[data-done]');
   if (b) {
     const k = b.dataset.mark ? 'marks' : 'done', id = b.dataset.mark || b.dataset.done;
@@ -1963,10 +2032,33 @@ $('sideBackdrop')?.addEventListener('click', () => setDrawer(false));
 $('mobileNavBtn')?.addEventListener('click', () => setMobileNav(!$('topnav')?.classList.contains('is-open')));
 $('mobileMoreBtn')?.addEventListener('click', () => setMobileNav(!$('topnav')?.classList.contains('is-open')));
 $('mobileNavBackdrop')?.addEventListener('click', () => setMobileNav(false));
-$('topnav')?.addEventListener('click', e => { if (e.target.closest('a')) setMobileNav(false); });
+$('topnav')?.addEventListener('click', e => {
+  const gbtn = e.target.closest('.nav-group-btn');
+  if (gbtn) {
+    e.stopPropagation();
+    const group = gbtn.closest('.nav-group');
+    const drop = group.querySelector('.nav-dropdown');
+    const open = drop.hasAttribute('hidden');
+    document.querySelectorAll('.nav-dropdown').forEach(d => d.setAttribute('hidden', ''));
+    document.querySelectorAll('.nav-group-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+    if (open) { drop.removeAttribute('hidden'); gbtn.setAttribute('aria-expanded', 'true'); }
+    return;
+  }
+  if (e.target.closest('a')) {
+    document.querySelectorAll('.nav-dropdown').forEach(d => d.setAttribute('hidden', ''));
+    document.querySelectorAll('.nav-group-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+    setMobileNav(false);
+  }
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('.nav-group')) {
+    document.querySelectorAll('.nav-dropdown').forEach(d => d.setAttribute('hidden', ''));
+    document.querySelectorAll('.nav-group-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+  }
+});
 window.addEventListener('hashchange', route);
 
-Promise.all(['curriculum.json', 'catalog.json', 'extended.json', 'enrichment.json', 'code_meta.json', 'quizzes.json', 'introduction.json', 'lesson-diagrams.json', 'lesson-notes.json', 'lesson-records.json', 'data/db-evidence.json'].map(p => fetch(p, {cache: 'no-cache'}).then(r => { if (!r.ok) throw Error('Unable to load ' + p); return r.json(); })))
+Promise.all(['curriculum.json', 'catalog.json', 'extended.json', 'enrichment.json', 'code_meta.json', 'quizzes.json', 'introduction.json', 'lesson-diagrams.json', 'lesson-notes.json', 'lesson-records.json', 'data/db-evidence.json'].map(p => fetch(p, { cache: 'no-cache' }).then(r => { if (!r.ok) throw Error('Unable to load ' + p); return r.json(); })))
   .then(([l, c, x, en, cm, qz, intro, diagrams, diagramNotes, records, audit]) => {
     lessons = [...intro.map(item => ({
       ...item, module: 'Introduction to EAM', level: 'Beginner', type: 'intro',
@@ -1998,4 +2090,4 @@ Promise.all(['curriculum.json', 'catalog.json', 'extended.json', 'enrichment.jso
     </div>`;
   });
 
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(() => {});
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(() => { });

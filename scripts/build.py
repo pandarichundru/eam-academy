@@ -152,16 +152,10 @@ def html_shell(title, description, canonical_path, og_image, body_html,
       <span class="brand-text">EAM <b>Academy</b><small>Field Guide</small></span>
     </a>
     <nav id="topnav" aria-label="Primary">
-      <a href="/eam-academy/"{"aria-current='page'" if nav_active=='home' else ''}>Home</a>
-      <a href="/eam-academy/#practice">SQL Practice · 110</a>
-      <a href="/eam-academy/#learn"{"aria-current='page'" if nav_active=='learn' else ''}>Curriculum</a>
-      <a href="/eam-academy/#workshops">Workshops</a>
-      <a href="/eam-academy/#sql-course">SQL Lab</a>
-      <a href="/eam-academy/sql-formatter/">SQL Formatter</a>
-      <a href="/eam-academy/#technical">Technical Library</a>
-      <a href="/eam-academy/data/database-reference.html">Database Reference</a>
-      <a href="/eam-academy/#reference">Reference</a>
-      <a href="/eam-academy/#progress">My Learning</a>
+      <a href="/eam-academy/#learn"{"aria-current='page'" if nav_active=='learn' else ''}>Learn</a>
+      <a href="/eam-academy/#sql-course">SQL</a>
+      <a href="/eam-academy/#technical">Library</a>
+      <a href="/eam-academy/sql-formatter/">Format SQL</a>
     </nav>
     <button id="mobileNavBtn" type="button" class="mobile-nav-btn" aria-controls="topnav" aria-expanded="false" aria-label="Toggle navigation menu">
       <span>Menu</span>

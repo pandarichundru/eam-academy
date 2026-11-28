@@ -3232,3 +3232,138 @@ header.site-header nav:not(.is-open) a:hover,header.site-header nav:not(.is-open
   .profile-grid { grid-template-columns: 1fr; }
   .profile-name-label { display: none; }
 }
+
+/* ==========================================================================
+   Visual Redesign — 3-Group Nav, Welcome Composition, SQL Tabs & Responsive
+   ========================================================================== */
+.nav-group { position: relative; display: inline-flex; align-items: center; }
+.nav-group-btn {
+  padding: 6px 12px;
+  border-radius: var(--r-sm);
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: background-color var(--dur-hover) var(--ease-standard), color var(--dur-hover) var(--ease-standard);
+}
+.nav-group-btn::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(45deg) translateY(-1px);
+  opacity: 0.65;
+}
+.nav-group-btn:hover,
+.nav-group-btn.is-active {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+.nav-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 250px;
+  padding: 6px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-float);
+  z-index: 70;
+  animation: viewEnter var(--dur-dropdown) var(--ease-entrance);
+}
+.nav-dropdown[hidden] { display: none; }
+.nav-dropdown a {
+  display: block;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 13px;
+  transition: background-color var(--dur-hover) var(--ease-standard);
+}
+.nav-dropdown a:hover,
+.nav-dropdown a[aria-current="page"] {
+  background: var(--bg-hover);
+}
+
+/* Full-width Welcome & Home compositions */
+body[data-view="profiles"] #side,
+body[data-view="profiles"] .subbar,
+body[data-view="profiles"] .mobile-bottom-nav,
+body[data-view="home"] #side {
+  display: none !important;
+}
+body[data-view="profiles"] .layout,
+body[data-view="home"] .layout {
+  grid-template-columns: 1fr !important;
+}
+
+.profile-welcome-shell {
+  max-width: 1120px;
+  margin: 24px auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: 28px;
+  align-items: center;
+  animation: viewEnter var(--dur-standard) var(--ease-entrance);
+}
+.profile-welcome-panel {
+  padding: 28px 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--bg-elevated);
+}
+.profile-hook {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 8px 0 6px;
+}
+.profile-card-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Fix SQL family badge wrapping & long identifiers */
+.sql-browser summary { gap: 8px; }
+.sql-browser summary strong { white-space: nowrap; flex-shrink: 0; }
+code, .taglink, .col-dict-table td { overflow-wrap: anywhere; }
+
+/* Mobile SQL 3-tab switcher */
+.sql-mobile-tabs { display: none; gap: 8px; margin-bottom: 12px; }
+@media (max-width: 900px) {
+  .profile-welcome-shell { grid-template-columns: 1fr; margin: 8px auto; gap: 18px; }
+  .profile-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .profile-card { padding: 14px 8px; }
+  .profile-avatar.lg { width: 40px; height: 40px; font-size: 14px; }
+  .sql-mobile-tabs { display: flex; }
+  .sql-workspace[data-mobile-tab="query"] .sql-browser,
+  .sql-workspace[data-mobile-tab="query"] .sql-results-pane { display: none; }
+  .sql-workspace[data-mobile-tab="schema"] .sql-main-pane { display: none; }
+  .sql-workspace[data-mobile-tab="results"] .sql-browser,
+  .sql-workspace[data-mobile-tab="results"] .sql-toolbar,
+  .sql-workspace[data-mobile-tab="results"] .editor-shell,
+  .sql-workspace[data-mobile-tab="results"] #runSQL,
+  .sql-workspace[data-mobile-tab="results"] #checkSQL,
+  .sql-workspace[data-mobile-tab="results"] #sqlExpected { display: none; }
+  #topnav.is-open .nav-group { display: block; width: 100%; }
+  #topnav.is-open .nav-dropdown { position: static; box-shadow: none; border: 0; padding-left: 12px; display: block !important; }
+  .mobile-bottom-nav { padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px)); }
+  .mobile-bottom-nav a, .mobile-bottom-nav button { min-height: 44px; }
+}
+@media (max-width: 500px) {
+  .profile-grid { grid-template-columns: 1fr; }
+  .profile-card { flex-direction: row; justify-content: flex-start; text-align: left; padding: 12px 14px; }
+  .profile-card-text { align-items: flex-start; }
+  .appearance-select { padding: 4px 6px; font-size: 12px; max-width: 78px; }
+  #realBackupSummary { padding: 10px 12px; font-size: 12px; }
+}

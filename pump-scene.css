@@ -1,25 +1,39 @@
 .pumpsim {
-  --pump-accent: var(--lab-accent, #176c62);
-  --pump-tint: var(--lab-tint, #e3f1ed);
-  --pump-edge: var(--lab-edge, #81aba0);
-  --pump-sheet: color-mix(in srgb, var(--bg, white) 80%, var(--pump-tint));
-  --pump-pipe: color-mix(in srgb, var(--bg, white) 86%, var(--text-secondary, #596363));
-  --pump-line: color-mix(in srgb, var(--text, #202525) 72%, var(--bg, white));
-  --pump-cast: color-mix(in srgb, var(--pump-tint) 70%, var(--pump-edge));
-  --pump-front: color-mix(in srgb, var(--pump-tint) 92%, var(--bg, white));
+  --pump-accent: #176C62;
+  --pump-tint: #E4F0EC;
+  --pump-edge: #7CA79C;
+  --pump-amber: #D97706;
+  --pump-amber-bg: #FEF3C7;
+  --pump-sheet: color-mix(in srgb, var(--bg, #FAF9F6) 78%, var(--pump-tint));
+  --pump-pipe: color-mix(in srgb, var(--bg, #FAF9F6) 86%, var(--text-secondary, #595959));
+  --pump-line: color-mix(in srgb, var(--text, #202020) 76%, var(--bg, #FFFFFF));
+  --pump-cast: color-mix(in srgb, var(--pump-tint) 68%, var(--pump-edge));
+  --pump-front: color-mix(in srgb, var(--pump-tint) 92%, var(--bg, #FFFFFF));
   min-width: 0;
   isolation: isolate;
-  color: var(--text, #202525);
-  border: 1px solid var(--border-strong, #cfd5d2);
-  border-radius: 1.1rem;
-  background: var(--bg-elevated, white);
+  color: var(--text, #202020);
+  border: 1px solid var(--border-strong, #D4D4D0);
+  border-radius: var(--r-xl, 12px);
+  background: var(--bg-elevated, #FFFFFF);
   overflow: hidden;
-  box-shadow: 0 6px 22px rgb(31 48 43 / 5%);
+  box-shadow: var(--shadow-sm);
+}
+:root[data-theme="dark"] .pumpsim {
+  --pump-accent: #2DD4BF;
+  --pump-tint: #152926;
+  --pump-edge: #3E736A;
+  --pump-amber: #F59E0B;
+  --pump-amber-bg: rgba(245, 158, 11, 0.18);
+  --pump-sheet: #17201E;
+  --pump-pipe: #252A29;
+  --pump-line: #CBD5E1;
+  --pump-cast: #1E3834;
+  --pump-front: #264842;
 }
 .pumpsim .pumpsim-head {
   display: block;
   position: static;
-  padding: 1.05rem 1.25rem .85rem;
+  padding: 1rem 1.25rem 0.75rem;
   background: var(--pump-sheet);
   border: 0;
 }
@@ -32,178 +46,208 @@
 .pumpsim .pumpsim-head p {
   display: flex;
   align-items: center;
-  gap: .4rem;
+  gap: 0.4rem;
   color: var(--pump-accent);
-  font-size: .875rem;
-  line-height: 1.5;
+  font-size: 0.85rem;
+  line-height: 1.4;
   font-weight: 600;
 }
 .pumpsim .pumpsim-head h2 {
-  margin: .2rem 0 0;
+  margin: 0.2rem 0 0;
   color: var(--text);
-  font-size: clamp(1.3rem, 2.2vw, 1.65rem);
+  font-size: clamp(1.2rem, 2vw, 1.5rem);
   line-height: 1.2;
-  letter-spacing: -.035em;
+  letter-spacing: -0.025em;
   font-weight: 650;
 }
 .pumpsim-sheet {
   overflow: hidden;
-  padding: .2rem 0 .6rem;
+  padding: 0.25rem 0 0.75rem;
   background-color: var(--pump-sheet);
-  background-image: radial-gradient(circle, var(--border-strong, #d3d6d3) .8px, transparent 1px);
+  background-image: radial-gradient(circle, var(--border-strong, #D4D4D0) 0.8px, transparent 1px);
   background-size: 13px 13px;
   border-block: 1px solid var(--border);
 }
 .pumpsim-drawing {
   display: block;
   width: 100%;
-  max-height: 15rem;
+  max-height: 14rem;
   height: auto;
 }
-.pumpsim-datum {
-  stroke: var(--pump-edge);
-  stroke-width: 1;
-  opacity: .65;
-}
-.pumpsim-pipes, .pumpsim-skid, .pumpsim-machine {
-  stroke: var(--pump-line);
-  stroke-width: 1.75;
-}
+.pumpsim-datum { stroke: var(--pump-edge); stroke-width: 1; opacity: 0.65; }
+.pumpsim-pipes, .pumpsim-skid, .pumpsim-machine { stroke: var(--pump-line); stroke-width: 1.75; }
 .pumpsim-pipes { fill: var(--pump-pipe); }
-.pumpsim-pipe-shine {
-  fill: none;
-  stroke: var(--bg);
-  stroke-width: 3;
-}
+.pumpsim-pipe-shine { fill: none; stroke: var(--bg); stroke-width: 2.5; opacity: 0.7; }
 .pumpsim-skid { fill: var(--pump-pipe); }
 .pumpsim-machine { fill: var(--pump-cast); }
 .pumpsim-face { fill: var(--pump-front); }
-.pumpsim-detail { fill: none; stroke-width: 1.55; }
+.pumpsim-detail { fill: none; stroke-width: 1.5; }
 .pumpsim-bolts { fill: var(--pump-line); stroke: none; }
 .pumpsim-plate { fill: var(--pump-accent); stroke: none; }
+.pumpsim-seal {
+  fill: var(--pump-amber-bg);
+  stroke: var(--pump-amber);
+  stroke-width: 1.8;
+}
 .pumpsim [data-pump-plate] {
   fill: var(--bg);
   stroke: none;
   font: 700 12px var(--font-mono, monospace);
-  letter-spacing: .25px;
+  letter-spacing: 0.25px;
 }
+:root[data-theme="dark"] .pumpsim [data-pump-plate] { fill: #0F172A; }
+
+.pumpsim-callouts {
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  padding: 0.25rem 0.75rem 0.45rem;
+}
+.pumpsim-callout {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+}
+.pumpsim-callout.is-amber {
+  border-color: var(--pump-amber);
+  background: var(--pump-amber-bg);
+  color: var(--text);
+  font-weight: 600;
+}
+
 .pumpsim-position {
   width: fit-content;
-  margin: -.1rem auto 0;
+  margin: 0 auto;
   display: flex;
   align-items: baseline;
-  gap: .45rem;
-  background: var(--pump-sheet);
-  padding: .1rem .5rem;
+  gap: 0.45rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 0.2rem 0.6rem;
   color: var(--text-secondary);
-  font-size: .875rem;
+  font-size: 0.82rem;
 }
 .pumpsim-position b, .pumpsim-id, .pumpsim-controls strong {
   font-family: var(--font-mono, monospace);
   font-weight: 600;
 }
 .pumpsim-position b { color: var(--text); }
+
 .pumpsim-b,
 .pumpsim[data-installed="B"] .pumpsim-a { display: none; }
 .pumpsim[data-installed="B"] .pumpsim-b { display: inline; }
+
+.pumpsim.is-swapping .pumpsim-unit {
+  animation: pumpsim-swap-seq 0.48s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
 .pumpsim[data-installed="B"] .pumpsim-unit {
-  --pump-cast: color-mix(in srgb, var(--pump-edge) 60%, var(--pump-tint));
-  animation: pumpsim-seat .32s ease-out both;
+  --pump-cast: color-mix(in srgb, var(--pump-edge) 55%, var(--pump-tint));
 }
-@keyframes pumpsim-seat {
-  from { transform: translateY(-7px); opacity: .4; }
-  to { transform: translateY(0); opacity: 1; }
+@keyframes pumpsim-swap-seq {
+  0% { transform: translateY(-10px); opacity: 0.35; }
+  65% { transform: translateY(2px); opacity: 1; }
+  100% { transform: translateY(0); opacity: 1; }
 }
+
 .pumpsim .pumpsim-controls {
   display: flex;
   flex-wrap: wrap;
-  gap: .45rem .8rem;
+  gap: 0.5rem 0.8rem;
   justify-content: space-between;
   align-items: center;
-  padding: .6rem 1rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
 }
 .pumpsim .pumpsim-controls p {
-  font-size: .94rem;
-  line-height: 1.5;
+  font-size: 0.9rem;
+  line-height: 1.45;
   color: var(--text-secondary);
 }
 .pumpsim .pumpsim-controls strong { color: var(--text); }
 .pumpsim button {
-  min-height: 2.75rem;
+  min-height: 44px;
   touch-action: manipulation;
 }
 .pumpsim .pumpsim-swap {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: .45rem;
-  padding: .45rem .8rem;
+  gap: 0.45rem;
+  padding: 0.5rem 0.95rem;
   background: var(--pump-accent);
-  color: var(--bg);
+  color: #FFFFFF;
   border: 1px solid var(--pump-accent);
-  border-radius: .6rem;
-  font: 600 .9rem/1.25 var(--font-sans, sans-serif);
+  border-radius: var(--r-md);
+  font: 600 0.88rem/1.2 var(--font-sans, sans-serif);
+  cursor: pointer;
 }
-.pumpsim .pumpsim-swap:hover {
-  background: color-mix(in srgb, var(--pump-accent) 90%, var(--text));
-}
+:root[data-theme="dark"] .pumpsim .pumpsim-swap { color: #0B1412; }
+.pumpsim .pumpsim-swap:hover { filter: brightness(0.92); }
+
 .pumpsim .pumpsim-records {
-  padding: .7rem 1rem .95rem;
-  border-top: 1px solid var(--border);
+  padding: 0.75rem 1rem 1rem;
+  background: var(--bg-sidebar);
 }
 .pumpsim-record-label {
-  margin-bottom: .45rem;
-  color: var(--text-secondary);
-  font-size: .875rem;
-  font-weight: 500;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
 }
 .pumpsim-assets {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0,1fr));
-  gap: .45rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
 }
-.pumpsim .pumpsim-asset {
-  min-width: 0;
+.pumpsim-asset {
   display: flex;
-  flex-wrap: wrap;
-  align-content: center;
-  align-items: baseline;
-  column-gap: .45rem;
-  padding: .45rem .6rem;
-  background: var(--bg);
-  border: 1px solid var(--border-strong);
-  border-radius: .55rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
   color: var(--text);
   text-align: left;
-  line-height: 1.35;
+  cursor: pointer;
 }
-.pumpsim-id { font-size: .9rem; }
-.pumpsim [data-pump-status] {
-  font-size: .8125rem;
+.pumpsim-asset[aria-expanded="true"] {
+  border-color: var(--pump-amber);
+  background: var(--pump-amber-bg);
+}
+.pumpsim-asset span:last-child {
+  font-size: 12px;
   color: var(--text-secondary);
 }
-.pumpsim .pumpsim-asset:hover, .pumpsim .pumpsim-asset[aria-expanded="true"] {
-  background: var(--pump-tint);
-  border-color: var(--pump-edge);
+.pumpsim-history {
+  margin-top: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: var(--r-md);
+  border: 1px solid var(--pump-amber);
+  background: var(--bg-elevated);
+  font-size: 13px;
 }
-.pumpsim .pumpsim-asset[aria-expanded="true"] { box-shadow: inset 0 -2px var(--pump-accent); }
-.pumpsim button:focus-visible { outline: 3px solid var(--pump-accent); outline-offset: 2px; }
-.pumpsim .pumpsim-history {
-  padding: .85rem .1rem 0;
-  color: var(--text);
-  font-size: .9rem;
-  line-height: 1.5;
+.pumpsim-history ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.1rem;
 }
-.pumpsim-history[hidden] { display: none; }
-.pumpsim-history > strong { font-size: .94rem; font-weight: 600; }
-.pumpsim .pumpsim-history ul { margin: .4rem 0 0; padding: 0; list-style: none; }
-.pumpsim .pumpsim-history li {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: .6rem;
-  margin: .35rem 0 0;
+.pumpsim-history li span:first-child {
+  font-family: var(--font-mono, monospace);
+  font-size: 12px;
+  color: var(--pump-amber);
+  font-weight: 600;
+  margin-right: 0.5rem;
 }
-.pumpsim-history li > :first-child { font-family: var(--font-mono, monospace); color: var(--text-secondary); }
+
+@media (max-width: 520px) {
+  .pumpsim-assets { grid-template-columns: 1fr; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .pumpsim[data-installed="B"] .pumpsim-unit { animation: none; }
+  .pumpsim.is-swapping .pumpsim-unit { animation: none; }
 }
