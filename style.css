@@ -3293,11 +3293,16 @@ header.site-header nav:not(.is-open) a:hover,header.site-header nav:not(.is-open
 }
 
 /* Full-width Welcome & Home compositions */
+body[data-view="profiles"] #topnav,
+body[data-view="profiles"] #mobileNavBtn,
 body[data-view="profiles"] #side,
 body[data-view="profiles"] .subbar,
 body[data-view="profiles"] .mobile-bottom-nav,
 body[data-view="home"] #side {
   display: none !important;
+}
+body[data-view="profiles"] .appearance-select {
+  margin-left: auto;
 }
 body[data-view="profiles"] .layout,
 body[data-view="home"] .layout {
