@@ -28,35 +28,42 @@ function learningDashboard() {
   const pct = lessons.length ? Math.round((count / lessons.length) * 100) : 0;
   const correct = quizzes.filter(q => quizState[q.id] === true).length;
   const solved = read('practiceSolved', []).length;
+  const realSolved = read('realSolved', []).length;
   const recentIds = read('recentLessons', []);
   const recentItems = (Array.isArray(recentIds) ? recentIds : []).map(id => lessons.find(l => l.id === id)).filter(Boolean).slice(0, 5);
   const badges = [
     ['First lesson', count >= 1],
     ['Quiz specialist', correct >= 5],
-    ['SQL explorer', solved >= 5],
+    ['SQL explorer', solved + realSolved >= 5],
     ['Streak builder', streak >= 3]
   ];
   const syncLabel = window.EAMProfiles ? window.EAMProfiles.getSyncStatus() : 'Local progress';
-  return '<section class="panel"><div class="dashboard-head"><div><h2>' + (profile ? E(profile.name) + '’s learning' : 'Your learning') + '</h2><p class="muted mb-sm">' + E(syncLabel) + ' · ' + pct + '% curriculum complete.</p></div>' + progressRing(count, lessons.length) + '</div><div class="metrics">' +
-    metric(count + '/' + lessons.length, 'Lessons complete') + metric(count*10 + correct*5 + solved*15,'XP') +
-    metric(streak, 'Day streak') + metric(correct, 'Quizzes passed') + '</div>' + progress(count, lessons.length) +
+  return '<section class="panel"><div class="dashboard-head"><div><h2>' + (profile ? E(profile.name) + '’s progress' : 'Your progress') + '</h2><p class="muted mb-sm">' + E(syncLabel) + ' · ' + pct + '% curriculum complete.</p></div>' + progressRing(count, lessons.length) + '</div><div class="metrics">' +
+    metric(count + '/' + lessons.length, 'Lessons complete') + metric(solved + '/110', 'Synthetic SQL') +
+    metric(realSolved + '/55', 'Real 11.6 SQL') + metric(streak, 'Day streak') + metric(correct, 'Quizzes passed') + '</div>' + progress(count, lessons.length) +
     (recentItems.length ? '<div class="recent-lessons"><span class="muted">Recently visited</span>' + recentItems.map(l => lessonLink(l)).join('') + '</div>' : '') +
     '<div class="badge-row"><span class="muted">Milestones</span>' + badges.map(([label, earned]) => '<span class="badge-pill' + (earned ? ' is-earned' : '') + '">' + (earned ? ICON_CHECK : '') + '<span>' + E(label) + '</span></span>').join('') + '</div>' +
     '<details><summary>Completion by module</summary>' + Object.entries(groups).map(([name, items]) => {
       const n = items.filter(l => done.includes(l.id)).length;
       return '<p>' + A('module/' + U(name),name) + ' · ' + n + '/' + items.length + '</p>' + progress(n,items.length);
-    }).join('') + '</details>' + A('progress','Manage or back up progress') + '</section>';
+    }).join('') + '</details>' + A('progress','Open My Learning & exports') + '</section>';
 }
 function fieldHome() {
   const profile = window.EAMProfiles?.getActiveProfile();
   const task = nextLearningTask();
-  return '<section class="section home-start"><h1>' + E(profile ? profile.name + '’s learning' : 'Your learning') +
-    '</h1>' + A(resumeLink(task), task.label, 'button primary') + '</section>' +
-    tiles([['learn','Curriculum','Browse lessons by module.'],
-      ['sql','SQL Lab','Run a read-only training query.'],
-      ['technical','Technical Library','Explore tables, fields, and relationships.']])
+  const eyebrow = profile ? `Welcome back, ${E(profile.name)}` : 'Enterprise asset management';
+  const entryTiles = [
+    ['learn', 'Curriculum', `${lessons.length} lessons`, ICON_BOOK, 'Step-by-step functional & technical modules with diagrams and source evidence.'],
+    ['sql-real', 'Real 11.6 SQL Lab', '1,681 tables', ICON_DATABASE, 'Query real exported EAM 11.6 tables across 7 families and 55 graded exercises.'],
+    ['sql', 'Synthetic SQL Lab', '110 challenges', ICON_TERMINAL, 'Practice core joins and reporting with instant grading on training data.'],
+    ['technical', 'Technical Library', '4,034 objects', ICON_COMPASS, 'Inspect triggers, stored procedures, Visual ER explorer, and R5/U5 crosswalk.']
+  ];
+  return '<div class="front academy-hero"><div class="front-copy"><div class="eyebrow">' + eyebrow + '</div><h1>Learn EAM in practice.</h1><p>Swap the pump in the north pump room. Then open its history to see which unit owns the seal repair.</p><div class="hero-links">' + A(resumeLink(task), task.label, 'button primary') + A('pump', 'Explore the pump case study') + '</div></div>' + pumpScene('home') + '</div>'
+    + '<h2>Choose where to work</h2><div class="grid home-tiles">'
+    + entryTiles.map(([r, t, meta, icon, d]) => `<a class="tile entry-tile" href="#${r}"><div class="entry-head"><span class="entry-icon" aria-hidden="true">${icon}</span><span class="pill tabular">${E(meta)}</span></div><h3>${E(t)}</h3><p>${E(d)}</p></a>`).join('')
+    + '</div>'
     + learningDashboard()
-    + '<div class="row footer-links">' + A('coverage','Inspect curriculum coverage') + A('flows','Browse business process flows') + '</div>';
+    + '<div class="row footer-links">' + A('coverage','Inspect curriculum coverage') + A('flows','Browse business process flows') + '<a href="sql-formatter/">Offline SQL Formatter</a></div>';
 }
 let outlineObserver;
 function attachLessonContents() {

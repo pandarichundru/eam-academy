@@ -52,7 +52,7 @@ const guides = {
  ['Check enforcement and omissions','A named foreign key provides its child-to-parent column mapping. An index with the same column names supplies an access path and may have different uniqueness. The table catalog lists index names, column order and uniqueness flags. Included-column status, filtered predicates, sort direction and observed optimizer choices require more evidence than this export provides.']
  ]
 };
-const laborSQL='SELECT a.wo, a.activity, a.planned_hours,\n       COALESCE(SUM(l.hours), 0) AS booked_hours\nFROM activities AS a\nLEFT JOIN labor_entries AS l\n  ON l.wo = a.wo AND l.activity = a.activity\nGROUP BY a.wo, a.activity, a.planned_hours\nORDER BY a.wo, a.activity;';
+const laborSQL='SELECT a.ACT_EVENT, a.ACT_ACT, a.ACT_EST,\n       COALESCE(SUM(b.BOO_HOURS), 0) AS booked_hours\nFROM R5ACTIVITIES AS a\nLEFT JOIN R5BOOKEDHOURS AS b\n  ON b.BOO_EVENT = a.ACT_EVENT AND b.BOO_ACT = a.ACT_ACT\nGROUP BY a.ACT_EVENT, a.ACT_ACT, a.ACT_EST\nORDER BY a.ACT_EVENT, a.ACT_ACT;';
 const related={
  'Work-order labor':['Table:R5ACTIVITIES','Table:R5BOOKEDHOURS','Table:R5EVENTS'],
  'Issued parts view':['Code:4993','Table:R5TRANSLINES'],
@@ -74,7 +74,7 @@ function tablePage(t){
  if(t.in_fks.length)body+=panel('Tables that reference this record',t.in_fks.map(f=>para(f.explain)+connections(['Table:'+f.from])).join(''));
  body+=section('Columns and access paths',panel(t.cols.length+' column definitions',t.cols.map(([n,ty,nu,df,label,flags,exp])=>'<p><strong>'+esc(n)+'</strong> · '+esc(ty)+' · '+(nu?'nullable':'required')+'<br>'+esc([label,flags,exp,df?'Default '+df:''].filter(Boolean).join(' · '))+'</p>').join(''))+connections(t.indexes.map(i=>'Index:'+t.name+':'+i.name)));
  if(t.triggers.length)body+=section('Events on this table',t.triggers.map(v=>para(v.name+' — '+v.events.join(', ')+(v.disabled?' (disabled in export)':' (enabled in export)'))+connections(codeKeys(v.name))).join(''));
- return body+academy('table/'+encodeURIComponent(t.name),'Open the Academy table dictionary');
+ return body+'<div class="row">'+academy('table/'+encodeURIComponent(t.name),'Open table dictionary')+' · '+academy('sql-real/'+encodeURIComponent(t.name),'Query in Real-Data SQL Lab')+'</div>';
 }
 function indexPage(x,t){
  const cols=x.cols.map(id), where=cols.map((c,i)=>c+' = @value'+(i+1)).join('\n  AND ');
@@ -156,6 +156,7 @@ function bookmarkList(){
 
 function render(){
  let k;try{k=decodeURIComponent(location.hash.slice(1));}catch{k='?';}
+ if(k.startsWith('table/'))k='Table:'+k.slice(6);
  const o=objects.get(k);
  if(o){save('dbLast',{key:o.key,name:o.name});reader.innerHTML='<p>'+esc(o.type)+'</p><article><h1>'+esc(o.name)+'</h1><button id="bookmarkEntry"></button>'+objectMap(o)+(o.name==='Work-order labor'?joinLab():'')+(o.type==='Study'?study(o.name):o.type==='Table'?tablePage(o.data):o.type==='Index'?indexPage(o.data,o.parent):o.key.startsWith('Code:')?codePage(o.data):configPage(o))+'</article>';document.title=o.name+' · Database Reference';const bookmark=document.getElementById('bookmarkEntry');
  function showBookmark(){const on=saved('dbBookmarks',[]).includes(o.key);bookmark.textContent=on?'Bookmarked':'Bookmark entry';bookmark.setAttribute('aria-pressed',String(on));}

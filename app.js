@@ -45,22 +45,43 @@ function renderProfileMenu() {
     + `<button type="button" class="profile-drop-item" role="menuitem" id="menuSignOut">Sign out</button>`
     + `</div>`;
   const btn = $('profileMenuBtn'), drop = $('profileDropdown');
-  btn.onclick = ev => {
-    ev.stopPropagation();
-    const open = drop.hasAttribute('hidden');
+  const setDropOpen = (open, focusFirst = false) => {
     drop.toggleAttribute('hidden', !open);
     btn.setAttribute('aria-expanded', String(open));
+    if (open && focusFirst) drop.querySelector('.profile-drop-item')?.focus();
+  };
+  btn.onclick = ev => {
+    ev.stopPropagation();
+    setDropOpen(drop.hasAttribute('hidden'));
+  };
+  btn.onkeydown = ev => {
+    if (ev.key === 'ArrowDown') {
+      ev.preventDefault();
+      ev.stopPropagation();
+      setDropOpen(true, true);
+    } else if (ev.key === 'Escape' && !drop.hasAttribute('hidden')) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      setDropOpen(false);
+    }
+  };
+  drop.onkeydown = ev => {
+    const items = [...drop.querySelectorAll('.profile-drop-item')];
+    const idx = items.indexOf(document.activeElement);
+    if (ev.key === 'ArrowDown') { ev.preventDefault(); items[(idx + 1) % items.length]?.focus(); }
+    else if (ev.key === 'ArrowUp') { ev.preventDefault(); items[(idx - 1 + items.length) % items.length]?.focus(); }
+    else if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); setDropOpen(false); btn.focus(); }
   };
   $('menuSwitchProfile').onclick = () => {
-    drop.setAttribute('hidden', '');
+    setDropOpen(false);
     location.hash = 'profiles';
   };
   $('menuMyProgress').onclick = () => {
-    drop.setAttribute('hidden', '');
+    setDropOpen(false);
     location.hash = 'progress';
   };
   $('menuSignOut').onclick = () => {
-    drop.setAttribute('hidden', '');
+    setDropOpen(false);
     window.EAMProfiles.setActiveProfileId('');
     reloadProfileState();
     renderProfileMenu();
@@ -385,7 +406,7 @@ function renderNav(route, id) {
       + A('technical', 'Library Overview', route === 'technical' ? 'active' : '')
       + A('triggers', `Triggers — Full (${c.trigger ?? 2405})`, route === 'triggers' ? 'active' : '')
       + A('procedures', `Stored Procedures (${c.procedure ?? 1629})`, route === 'procedures' ? 'active' : '')
-      + A('codes', 'Views, Functions &amp; DDL', route === 'codes' || route === 'code' ? 'active' : '')
+      + A('codes', 'Views, Functions & DDL', route === 'codes' || route === 'code' ? 'active' : '')
       + '<hr><div class="eyebrow">Database &amp; Reference</div>'
       + A('tables', 'Database Dictionary (1,681)', route === 'tables' || route === 'table' ? 'active' : '')
       + A('er/R5EVENTS', 'Visual ER Explorer', route === 'er' ? 'active' : '')
@@ -1056,8 +1077,8 @@ function tablePage(t) {
   return H('Schema Reference · ' + area, t, title)
     + `<div class="row mb-md">${A('er/' + U(t), 'Open Visual ER Diagram', 'button primary')}${A('sql-real/' + U(t), 'Open in Real-Data SQL Lab', 'button')}${A('triggers/' + U(t), 'Search Triggers for ' + t, 'button')}${A('procedures/' + U(t), 'Search Procedures for ' + t, 'button')}${A('tables', 'All Tables', 'button')}</div>`
     + (t === 'R5EVENTS' ? '<p>' + A('lesson/L127', 'Worked training example · Find open work orders') + '</p>' : '')
-    + `<div id="tableRealExercises"></div>`
     + `<div id="tableFullDetail"><p class="muted">Loading full column dictionary, keys, relationships, and triggers for ${E(t)}…</p></div>`
+    + `<div id="tableRealExercises"></div>`
     + `<h2>Recovered SQL objects referencing ${E(t)}</h2><div id="tableCodeRefs"><p class="muted">Checking triggers, procedures &amp; views…</p></div>`;
 }
 
@@ -1310,21 +1331,93 @@ function sqlMobileTabsHtml() {
     + `<button type="button" class="chip" role="tab" aria-selected="false" data-sql-tab="results">Results</button>`
     + `</div>`;
 }
-function wireSqlMobileTabs() {
+const ICON_FORMAT = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="21" y1="6" x2="9" y2="6"></line><line x1="21" y1="12" x2="12" y2="12"></line><line x1="21" y1="18" x2="9" y2="18"></line><polyline points="4 9 7 12 4 15"></polyline></svg>';
+function setSqlMobileTab(tab) {
   const ws = document.querySelector('.sql-workspace');
   if (!ws) return;
-  ws.dataset.mobileTab = 'query';
-  document.querySelectorAll('[data-sql-tab]').forEach(btn => {
-    btn.onclick = () => {
-      const tab = btn.dataset.sqlTab;
-      ws.dataset.mobileTab = tab;
-      document.querySelectorAll('[data-sql-tab]').forEach(b => {
-        const on = b === btn;
-        b.classList.toggle('active', on);
-        b.setAttribute('aria-selected', String(on));
-      });
-    };
+  ws.dataset.mobileTab = tab;
+  document.querySelectorAll('[data-sql-tab]').forEach(b => {
+    const on = b.dataset.sqlTab === tab;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-selected', String(on));
   });
+}
+function isCompactSqlLayout() {
+  return window.matchMedia('(max-width: 900px)').matches;
+}
+function wireSqlMobileTabs() {
+  if (!document.querySelector('.sql-workspace')) return;
+  setSqlMobileTab('query');
+  document.querySelectorAll('[data-sql-tab]').forEach(btn => {
+    btn.onclick = () => setSqlMobileTab(btn.dataset.sqlTab);
+  });
+}
+function sqlEditorMarkup(engineLabel, sqlText, hasCheck, noteHint) {
+  return `<p class="mt-md mb-sm sql-query-only"><label for="sqlText">SQL statement</label></p>`
+    + `<div class="editor-shell"><div class="editor-head"><span>${E(engineLabel)}</span><span class="editor-hint"><kbd>⌘↵</kbd> Run · <kbd>⌘⇧F</kbd> Format</span></div><textarea id="sqlText" spellcheck="false">${E(sqlText)}</textarea></div>`
+    + `<div class="row mt-sm sql-query-only"><button id="runSQL" class="primary">${ICON_PLAY}<span>Run read-only query</span></button><button id="checkSQL" class="${hasCheck ? '' : 'is-hidden'}">${ICON_CHECK}<span>Check my output</span></button><button type="button" id="formatSQL">${ICON_FORMAT}<span>Format SQL</span></button><small>${E(noteHint)}</small></div>`
+    + `<div id="sqlFormatMsg" class="mt-sm sql-query-only" aria-live="polite"></div>`;
+}
+function focusCompactResults() {
+  if (!isCompactSqlLayout()) return;
+  setSqlMobileTab('results');
+  (document.querySelector('.sql-mobile-tabs') || document.querySelector('.sql-results-pane'))?.scrollIntoView({ block: 'start' });
+}
+function wireSqlWorkspace(curGen, { runningLabel, runQuery, formatResultMeta, onCheck }) {
+  const formatBtn = $('formatSQL'), fmtMsg = $('sqlFormatMsg'), sqlEl = $('sqlText');
+  if (formatBtn && sqlEl) {
+    formatBtn.onclick = () => {
+      if (fmtMsg) fmtMsg.innerHTML = '';
+      const eng = window.SQLFormatterEngine;
+      if (!eng || typeof eng.formatSQL !== 'function') {
+        if (fmtMsg) fmtMsg.innerHTML = `<div class="note warn">${ICON_ALERT} <span>Formatter unavailable offline.</span></div>`;
+        return;
+      }
+      const res = eng.formatSQL(sqlEl.value, { dialect: 'sqlite', indent: 2, keywordCase: 'upper', commaPosition: 'trailing' });
+      if (res.error) {
+        if (fmtMsg) fmtMsg.innerHTML = `<div class="note warn">${ICON_ALERT} <span>${E(res.error)}</span></div>`;
+        return;
+      }
+      if (res.formatted && res.formatted !== sqlEl.value) {
+        sqlEl.value = res.formatted;
+        sqlEl.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      formatBtn.innerHTML = `${ICON_CHECK}<span>Formatted</span>`;
+      setTimeout(() => { if ($('formatSQL') === formatBtn) formatBtn.innerHTML = `${ICON_FORMAT}<span>Format SQL</span>`; }, 1400);
+    };
+  }
+  if (sqlEl) {
+    sqlEl.onkeydown = e => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); $('runSQL')?.click(); }
+      else if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'f') { e.preventDefault(); $('formatSQL')?.click(); }
+    };
+  }
+  if ($('runSQL')) {
+    $('runSQL').onclick = async () => {
+      const b = $('runSQL'), q = $('sqlText').value;
+      focusCompactResults();
+      b.disabled = true; $('sqlResult').textContent = runningLabel; $('sqlCheckMsg').innerHTML = '';
+      if (fmtMsg) fmtMsg.innerHTML = '';
+      try {
+        const v = await runQuery(q);
+        if (curGen !== generation) return;
+        sqlHist = [q, ...sqlHist.filter(x => x !== q)].slice(0, 10);
+        write('sqlhist', sqlHist);
+        $('queryHistory').innerHTML = historyMarkup();
+        const extra = formatResultMeta ? formatResultMeta(v) : '';
+        $('sqlResult').innerHTML = `<div class="result-head"><span class="tabular"><strong>${v.rows.length} rows</strong>${v.truncated ? ' (truncated at 200)' : ''} · ${v.columns.length} columns${extra}</span><button id="saveCsv">${ICON_DOWNLOAD}<span>Export CSV</span></button></div>` + table(v.columns, v.rows);
+        $('saveCsv').onclick = () => downloadCsv(v);
+      } catch (e) {
+        if (curGen === generation) $('sqlResult').textContent = 'Query rejected or failed: ' + e.message;
+      } finally { b.disabled = false; }
+    };
+  }
+  if (onCheck && $('checkSQL')) {
+    $('checkSQL').onclick = async () => {
+      focusCompactResults();
+      await onCheck();
+    };
+  }
 }
 function sqlPage(id) {
   const l = sqlExampleById(id);
@@ -1332,8 +1425,7 @@ function sqlPage(id) {
     + `<div class="row mb-md">${A('sql', 'Synthetic Training Lab (28 tables)', 'chip active button')}${A('sql-real', 'Restored EAM 11.6 Lab (1,681 tables · Real Backup)', 'chip button')}<span class="pill ok">Active dataset: Synthetic Training DB</span></div>`
     + sqlMobileTabsHtml()
     + `<div class="sql-workspace" data-mobile-tab="query"><div class="panel sql-main-pane"><div class="sql-toolbar"><label for="sqlExample">Choose a report or lesson query</label><select id="sqlExample"><option value="">Custom query</option><optgroup label="EAM 11.6 vanilla reports">${vanillaReports.map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${E(x.title)}</option>`).join('')}</optgroup><optgroup label="Lesson queries">${lessons.filter(x => x.type === 'technical').map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${E(x.title)}</option>`).join('')}</optgroup></select></div>`
-    + `<p class="mt-md mb-sm"><label for="sqlText">SQL statement</label></p><div class="editor-shell"><div class="editor-head"><span>SQLite · Read-only</span><span class="editor-hint"><kbd>⌘↵</kbd> Run</span></div><textarea id="sqlText" spellcheck="false">${E(l?.sql || 'SELECT * FROM R5EVENTS ORDER BY EVT_CODE;')}</textarea></div>`
-    + `<div class="row mt-sm"><button id="runSQL" class="primary">${ICON_PLAY}<span>Run read-only query</span></button><button id="checkSQL" class="${l ? '' : 'is-hidden'}">${ICON_CHECK}<span>Check my output</span></button><small>SELECT / CTE · max 200 displayed rows</small></div>`
+    + sqlEditorMarkup('SQLite · Read-only', l?.sql || 'SELECT * FROM R5EVENTS ORDER BY EVT_CODE;', Boolean(l), 'SELECT / CTE · max 200 displayed rows')
     + `<p id="sqlExpected" class="note">${E(l?.verify || 'Select a lesson for an expected result.')}</p><div class="sql-results-pane"><div id="sqlCheckMsg"></div><div id="sqlResult"></div></div></div>`
     + '<aside class="panel sql-browser"><h2>Training schema</h2><div id="sqlSchema">Loading schema…</div></aside></div>'
     + '<div id="queryHistory">' + historyMarkup() + '</div>'
@@ -1392,8 +1484,7 @@ function realSqlPage(selectedTable = '', selectedExerciseId = '') {
     + `<div id="realBackupSummary" class="panel mb-md"><p class="muted">Loading backup manifest and family inventory…</p></div>`
     + sqlMobileTabsHtml()
     + `<div class="sql-workspace" data-mobile-tab="query"><div class="panel sql-main-pane"><div class="sql-toolbar"><label for="realSqlExample">Choose a real-data exercise (55 across 5 populated families)</label><select id="realSqlExample"><option value="">Custom query</option></select></div>`
-    + `<p class="mt-md mb-sm"><label for="sqlText">SQL statement</label></p><div class="editor-shell"><div class="editor-head"><span>SQLite · Read-only · Real Backup Exports</span><span class="editor-hint"><kbd>⌘↵</kbd> Run</span></div><textarea id="sqlText" spellcheck="false">${E(starter)}</textarea></div>`
-    + `<div class="row mt-sm"><button id="runSQL" class="primary">${ICON_PLAY}<span>Run read-only query</span></button><button id="checkSQL" class="${selectedExerciseId ? '' : 'is-hidden'}">${ICON_CHECK}<span>Check my output</span></button><small>One SELECT / WITH · max 200 displayed rows · 10s timeout</small></div>`
+    + sqlEditorMarkup('SQLite · Read-only · Real Backup Exports', starter, Boolean(selectedExerciseId), 'One SELECT / WITH · max 200 displayed rows · 10s timeout')
     + `<p id="sqlExpected" class="note">${selectedTable ? `Selected table: ${E(selectedTable)}. Click Run or choose an exercise.` : 'Select an exercise or write any read-only SELECT / WITH query.'}</p><div class="sql-results-pane"><div id="sqlCheckMsg"></div><div id="sqlResult"></div></div></div>`
     + `<aside class="panel sql-browser"><h2>Restored Schema (7 Families)</h2><div class="row mb-sm"><input id="realSchemaSearch" type="search" placeholder="Search tables or columns…"></div><label class="row mb-sm"><input type="checkbox" id="realPopulatedOnly"> <small>Populated tables only</small></label><div id="sqlSchema">Loading 1,681 tables…</div></aside></div>`
     + '<div id="queryHistory">' + historyMarkup() + '</div>';
@@ -1405,18 +1496,23 @@ function progressPage() {
   const qTot = Object.keys(quizState).length;
   const qOk = Object.values(quizState).filter(Boolean).length;
   const solved = read('practiceSolved', []);
+  const realSolved = read('realSolved', []);
   const drafts = read('practiceDrafts', {});
   const draftIds = Object.keys(drafts).filter(id => drafts[id]?.trim());
   const recentIds = read('recentLessons', []);
   const recentItems = (Array.isArray(recentIds) ? recentIds : []).map(id => lessons.find(l => l.id === id)).filter(Boolean).slice(0, 5);
   const task = nextLearningTask();
   const nextTitle = task.label, nextHref = resumeLink(task);
+  const nextCta = task.route === 'sql-real' ? 'Continue in Real-Data SQL Lab'
+    : task.route === 'sql' ? 'Continue in SQL Lab'
+      : task.route === 'exercise' ? 'Continue SQL exercise'
+        : (/^Continue/i.test(nextTitle) ? 'Continue lesson' : 'Start lesson');
 
   return H('Personal learning', profile ? `${profile.name}'s Learning` : 'Your learning progress', `${window.EAMProfiles ? window.EAMProfiles.getSyncStatus() : 'Local storage'} · Progress, bookmarks, notes, and saved SQL exercises.`)
-    + `<section class="panel mb-md"><div class="dashboard-head"><div><div class="eyebrow">Next step</div><h2>${E(nextTitle)}</h2><div class="row mt-sm">${A(nextHref, 'Open task', 'button primary')}</div></div>${progressRing(valid.length, lessons.length)}</div></section>`
+    + `<section class="panel mb-md"><div class="dashboard-head"><div><div class="eyebrow">Next step</div><h2>${E(nextTitle)}</h2><div class="row mt-sm">${A(nextHref, nextCta, 'button primary')}</div></div>${progressRing(valid.length, lessons.length)}</div></section>`
     + `<div class="grid mb-md">`
     + `<section class="panel"><h3>Recently visited lessons</h3>${recentItems.length ? recentItems.map(l => `<div class="list-item">${lessonLink(l)}</div>`).join('') : '<p class="muted">No lessons visited yet.</p>'}</section>`
-    + `<section class="panel"><h3>Saved SQL exercises (${solved.length} solved)</h3><p class="muted">${draftIds.length} in-progress draft(s)</p>${draftIds.length ? `<div class="row">${draftIds.slice(0, 8).map(id => A('exercise/' + id, 'Exercise #' + id, 'taglink')).join('')}</div>` : '<p class="muted">No saved drafts yet.</p>'}${A('practice', 'Browse 110 SQL exercises', 'button mt-sm')}</section>`
+    + `<section class="panel"><h3>Saved SQL exercises (${solved.length}/110 synthetic · ${realSolved.length}/55 real)</h3><p class="muted">${draftIds.length} in-progress draft(s)</p>${draftIds.length ? `<div class="row">${draftIds.slice(0, 8).map(id => A('exercise/' + id, 'Exercise #' + id, 'taglink')).join('')}</div>` : '<p class="muted">No saved drafts yet.</p>'}<div class="row mt-sm">${A('practice', 'Browse 110 SQL exercises', 'button')}${A('sql-real', 'Real-Data SQL Lab (55)', 'button')}</div></section>`
     + `</div>`
     + `<h2>Bookmarks (${marks.length})</h2>${lessons.filter(l => marks.includes(l.id)).map(l => `<div class="list-item">${lessonLink(l)}</div>`).join('') || '<p class="muted">No bookmarks yet.</p>'}`
     + `<h2>Revision notes</h2>${lessons.filter(l => notes[l.id]).map(l => `<div class="list-item">${lessonLink(l)}<p>${E(notes[l.id])}</p></div>`).join('') || '<p class="muted">No notes yet.</p>'}`
@@ -1654,41 +1750,27 @@ async function route() {
           const button = e.target.closest('[data-load-sql]');
           if (button) $('sqlText').value = sqlHist[Number(button.dataset.loadSql)];
         };
-        $('sqlText').onkeydown = e => {
-          if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); $('runSQL').click(); }
-        };
-        $('runSQL').onclick = async () => {
-          const b = $('runSQL'), q = $('sqlText').value;
-          b.disabled = true; $('sqlResult').textContent = 'Running…'; $('sqlCheckMsg').innerHTML = '';
-          try {
-            const v = await api('/api/sql', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sql: q }) });
-            if (current !== generation) return;
-            sqlHist = [q, ...sqlHist.filter(x => x !== q)].slice(0, 10);
-            write('sqlhist', sqlHist);
-            $('queryHistory').innerHTML = historyMarkup();
-            $('sqlResult').innerHTML = `<div class="result-head"><span class="tabular"><strong>${v.rows.length} rows</strong>${v.truncated ? ' (truncated at 200)' : ''} · ${v.columns.length} columns</span><button id="saveCsv">${ICON_DOWNLOAD}<span>Export CSV</span></button></div>` + table(v.columns, v.rows);
-            $('saveCsv').onclick = () => downloadCsv(v);
-          } catch (e) {
-            if (current === generation) $('sqlResult').textContent = 'Query rejected or failed: ' + e.message;
-          } finally { b.disabled = false; }
-        };
-        if ($('checkSQL')) $('checkSQL').onclick = async () => {
-          const l = sqlExampleById($('sqlExample').value);
-          if (!l) return;
-          const msg = $('sqlCheckMsg');
-          msg.innerHTML = '<p class="muted">Comparing output against expected lesson query…</p>';
-          try {
-            const [got, exp] = await Promise.all([
-              api('/api/sql', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sql: $('sqlText').value }) }),
-              api('/api/sql', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sql: l.sql }) }),
-            ]);
-            const norm = r => JSON.stringify(r.rows);
-            const ok = !got.truncated && !exp.truncated && got.columns.length === exp.columns.length && norm(got) === norm(exp);
-            msg.innerHTML = ok
-              ? `<div class="note ok">${ICON_CHECK} <span>Output matches expected result (${exp.rows.length} rows, ${exp.columns.length} columns).</span></div>`
-              : `<div class="note warn">${ICON_ALERT} <span>Result differs: got ${got.rows.length} rows × ${got.columns.length} cols, expected ${exp.rows.length} rows × ${exp.columns.length} cols. Check joins, filters, or ORDER BY.</span></div>`;
-          } catch (e) { msg.innerHTML = `<div class="note warn">Check failed: ${E(e.message)}</div>`; }
-        };
+        wireSqlWorkspace(current, {
+          runningLabel: 'Running…',
+          runQuery: q => api('/api/sql', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sql: q }) }),
+          onCheck: async () => {
+            const l = sqlExampleById($('sqlExample').value);
+            if (!l) return;
+            const msg = $('sqlCheckMsg');
+            msg.innerHTML = '<p class="muted">Comparing output against expected lesson query…</p>';
+            try {
+              const [got, exp] = await Promise.all([
+                api('/api/sql', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sql: $('sqlText').value }) }),
+                api('/api/sql', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ sql: l.sql }) }),
+              ]);
+              const norm = r => JSON.stringify(r.rows);
+              const ok = !got.truncated && !exp.truncated && got.columns.length === exp.columns.length && norm(got) === norm(exp);
+              msg.innerHTML = ok
+                ? `<div class="note ok">${ICON_CHECK} <span>Output matches expected result (${exp.rows.length} rows, ${exp.columns.length} columns).</span></div>`
+                : `<div class="note warn">${ICON_ALERT} <span>Result differs: got ${got.rows.length} rows × ${got.columns.length} cols, expected ${exp.rows.length} rows × ${exp.columns.length} cols. Check joins, filters, or ORDER BY.</span></div>`;
+            } catch (e) { msg.innerHTML = `<div class="note warn">Check failed: ${E(e.message)}</div>`; }
+          },
+        });
         api('/api/schema').then(v => {
           if (current !== generation) return;
           $('sqlSchema').innerHTML = v.tables.map(t => {
@@ -1800,6 +1882,7 @@ async function route() {
           });
         };
 
+        let renderRealOptions = () => {};
         Promise.all([loadRealManifest(), loadRealExercises()]).then(([manifest, exData]) => {
           if (current !== generation) return;
           realManifest = manifest;
@@ -1811,9 +1894,14 @@ async function route() {
           const byFam = {};
           for (const ex of realExercises) (byFam[ex.family] ||= []).push(ex);
           const sel = $('realSqlExample');
-          sel.innerHTML = '<option value="">Custom query</option>' + Object.entries(byFam).map(([fam, list]) =>
-            `<optgroup label="${E(fam.toUpperCase())} (${list.length} exercises)">${list.map(x => `<option value="${E(x.id)}" ${x.id === selectedExId ? 'selected' : ''}>[${E(x.difficulty)}] ${E(x.title)}</option>`).join('')}</optgroup>`
-          ).join('');
+          renderRealOptions = () => {
+            const cur = sel.value || selectedExId;
+            const solvedRealSet = new Set(read('realSolved', []));
+            sel.innerHTML = '<option value="">Custom query</option>' + Object.entries(byFam).map(([fam, list]) =>
+              `<optgroup label="${E(fam.toUpperCase())} (${list.length} exercises)">${list.map(x => `<option value="${E(x.id)}" ${x.id === cur ? 'selected' : ''}>${solvedRealSet.has(x.id) ? '✓ ' : ''}[${E(x.difficulty)}] ${E(x.title)}</option>`).join('')}</optgroup>`
+            ).join('');
+          };
+          renderRealOptions();
 
           if (selectedExId) {
             const ex = realExercises.find(x => x.id === selectedExId);
@@ -1837,43 +1925,34 @@ async function route() {
           const button = e.target.closest('[data-load-sql]');
           if (button) $('sqlText').value = sqlHist[Number(button.dataset.loadSql)];
         };
-        $('sqlText').onkeydown = e => {
-          if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); $('runSQL').click(); }
-        };
-        $('runSQL').onclick = async () => {
-          const b = $('runSQL'), q = $('sqlText').value;
-          b.disabled = true; $('sqlResult').textContent = 'Loading referenced tables and running read-only query…'; $('sqlCheckMsg').innerHTML = '';
-          try {
-            const v = await runTrainingQuery(q, 'real', realManifest ? realManifest.tables : null);
-            if (current !== generation) return;
-            sqlHist = [q, ...sqlHist.filter(x => x !== q)].slice(0, 10);
-            write('sqlhist', sqlHist);
-            $('queryHistory').innerHTML = historyMarkup();
-            const loadedInfo = v.loadedTables?.length ? ` · loaded: ${E(v.loadedTables.join(', '))}` : '';
-            $('sqlResult').innerHTML = `<div class="result-head"><span class="tabular"><strong>${v.rows.length} rows</strong>${v.truncated ? ' (truncated at 200)' : ''} · ${v.columns.length} columns${loadedInfo}</span><button id="saveCsv">${ICON_DOWNLOAD}<span>Export CSV</span></button></div>` + table(v.columns, v.rows);
-            $('saveCsv').onclick = () => downloadCsv(v);
-          } catch (e) {
-            if (current === generation) $('sqlResult').textContent = 'Query rejected or failed: ' + e.message;
-          } finally { b.disabled = false; }
-        };
-        $('checkSQL').onclick = async () => {
-          const ex = realExercises.find(x => x.id === $('realSqlExample').value);
-          if (!ex) return;
-          const msg = $('sqlCheckMsg');
-          msg.innerHTML = '<p class="muted">Comparing output against reference query…</p>';
-          try {
-            const tbls = realManifest ? realManifest.tables : null;
-            const [got, exp] = await Promise.all([
-              runTrainingQuery($('sqlText').value, 'real', tbls),
-              runTrainingQuery(ex.sql, 'real', tbls),
-            ]);
-            const norm = r => JSON.stringify(ex.ordered ? r.rows : [...r.rows].sort());
-            const ok = !got.truncated && !exp.truncated && got.columns.length === exp.columns.length && norm(got) === norm(exp);
-            msg.innerHTML = ok
-              ? `<div class="note ok">${ICON_CHECK} <span>Output matches expected result (${exp.rows.length} rows, ${exp.columns.length} columns).</span></div>`
-              : `<div class="note warn">${ICON_ALERT} <span>Result differs: got ${got.rows.length} rows × ${got.columns.length} cols, expected ${exp.rows.length} rows × ${exp.columns.length} cols. Check joins, filters, or ORDER BY.</span></div>`;
-          } catch (e) { msg.innerHTML = `<div class="note warn">Check failed: ${E(e.message)}</div>`; }
-        };
+        wireSqlWorkspace(current, {
+          runningLabel: 'Loading referenced tables and running read-only query…',
+          runQuery: q => runTrainingQuery(q, 'real', realManifest ? realManifest.tables : null),
+          formatResultMeta: v => (v.loadedTables?.length ? ` · loaded: ${E(v.loadedTables.join(', '))}` : ''),
+          onCheck: async () => {
+            const ex = realExercises.find(x => x.id === $('realSqlExample').value);
+            if (!ex) return;
+            const msg = $('sqlCheckMsg');
+            msg.innerHTML = '<p class="muted">Comparing output against reference query…</p>';
+            try {
+              const tbls = realManifest ? realManifest.tables : null;
+              const [got, exp] = await Promise.all([
+                runTrainingQuery($('sqlText').value, 'real', tbls),
+                runTrainingQuery(ex.sql, 'real', tbls),
+              ]);
+              const norm = r => JSON.stringify(ex.ordered ? r.rows : [...r.rows].sort());
+              const ok = !got.truncated && !exp.truncated && got.columns.length === exp.columns.length && norm(got) === norm(exp);
+              if (ok) {
+                const nextRealSolved = [...new Set([...read('realSolved', []), ex.id])];
+                write('realSolved', nextRealSolved);
+                renderRealOptions();
+              }
+              msg.innerHTML = ok
+                ? `<div class="note ok">${ICON_CHECK} <span>Output matches expected result (${exp.rows.length} rows, ${exp.columns.length} columns). Saved to your progress.</span></div>`
+                : `<div class="note warn">${ICON_ALERT} <span>Result differs: got ${got.rows.length} rows × ${got.columns.length} cols, expected ${exp.rows.length} rows × ${exp.columns.length} cols. Check joins, filters, or ORDER BY.</span></div>`;
+            } catch (e) { msg.innerHTML = `<div class="note warn">Check failed: ${E(e.message)}</div>`; }
+          },
+        });
         break;
       }
       case 'assess':
@@ -1885,7 +1964,7 @@ async function route() {
       case 'progress':
         main.innerHTML = progressPage();
         $('exportProgress').onclick = () => {
-          const a = document.createElement('a'), url = URL.createObjectURL(new Blob([JSON.stringify({ resumeTask: read('resumeTask', null), workspaceDrafts: read('workspaceDrafts', {}), readingPositions: read('readingPositions', {}), activity: read('activity', []), lastLesson: read('lastLesson', ''), activePath: read('activePath', ''), sqlHist, done, marks, notes, quiz: quizState, practiceSolved: read('practiceSolved', []), practiceDrafts: read('practiceDrafts', {}) }, null, 2)], { type: 'application/json' }));
+          const a = document.createElement('a'), url = URL.createObjectURL(new Blob([JSON.stringify({ resumeTask: read('resumeTask', null), workspaceDrafts: read('workspaceDrafts', {}), readingPositions: read('readingPositions', {}), activity: read('activity', []), lastLesson: read('lastLesson', ''), activePath: read('activePath', ''), sqlHist, done, marks, notes, quiz: quizState, practiceSolved: read('practiceSolved', []), realSolved: read('realSolved', []), practiceDrafts: read('practiceDrafts', {}) }, null, 2)], { type: 'application/json' }));
           a.href = url; a.download = 'eam-learning-progress.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
         };
         $('importFile').onchange = async e => {
@@ -1903,6 +1982,7 @@ async function route() {
             for (const key of ['lastLesson', 'activePath']) if (typeof d[key] === 'string') write(key, d[key]);
             if (Array.isArray(d.sqlHist)) { sqlHist = d.sqlHist.filter(v => typeof v === 'string').slice(0, 10); write('sqlhist', sqlHist); }
             if (Array.isArray(d.practiceSolved)) write('practiceSolved', [...new Set(d.practiceSolved.filter(id => Number.isInteger(id) && id >= 1))]);
+            if (Array.isArray(d.realSolved)) write('realSolved', [...new Set(d.realSolved.filter(id => typeof id === 'string' && id.trim() && id.length <= 64))]);
             if (d.practiceDrafts && typeof d.practiceDrafts === 'object') write('practiceDrafts', Object.fromEntries(Object.entries(d.practiceDrafts).filter(([id, sql]) => Number.isInteger(+id) && +id >= 1 && typeof sql === 'string' && sql.length <= 20000)));
             if (Array.isArray(d.done)) { done = d.done; write('done', done); }
             if (Array.isArray(d.marks)) { marks = d.marks; write('marks', marks); }
@@ -1915,7 +1995,7 @@ async function route() {
           if (!confirm('Clear all local completion, bookmarks, notes, quiz scores, and SQL practice history?')) return;
           done = []; marks = []; notes = {}; quizState = {}; sqlHist = [];
           write('sqlhist', []); write('activity', []);
-          write('practiceSolved', []); write('practiceDrafts', {}); write('lastExercise', 0); write('resumeTask', null); write('workspaceDrafts', {}); write('readingPositions', {}); write('dbBookmarks', []); write('dbLast', null); write('activePath', ''); write('lastLesson', '');
+          write('practiceSolved', []); write('realSolved', []); write('practiceDrafts', {}); write('lastExercise', 0); write('resumeTask', null); write('workspaceDrafts', {}); write('readingPositions', {}); write('dbBookmarks', []); write('dbLast', null); write('activePath', ''); write('lastLesson', '');
           write('done', done); write('marks', marks); write('notes', notes); write('quiz', quizState);
           route();
         };
@@ -2012,11 +2092,32 @@ function setMobileNav(open) {
   $('mobileNavBtn')?.setAttribute('aria-expanded', String(open));
   $('mobileMoreBtn')?.setAttribute('aria-expanded', String(open));
 }
+function closeNavDropdowns(returnFocus = false) {
+  let originBtn = null;
+  document.querySelectorAll('.nav-dropdown:not([hidden])').forEach(d => {
+    originBtn = originBtn || d.closest('.nav-group')?.querySelector('.nav-group-btn');
+    d.setAttribute('hidden', '');
+  });
+  document.querySelectorAll('.nav-group-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+  if (returnFocus && originBtn) originBtn.focus();
+}
+function closeProfileMenu(returnFocus = false) {
+  const drop = $('profileDropdown'), btn = $('profileMenuBtn');
+  if (drop && !drop.hasAttribute('hidden')) {
+    drop.setAttribute('hidden', '');
+    btn?.setAttribute('aria-expanded', 'false');
+    if (returnFocus) btn?.focus();
+    return true;
+  }
+  return false;
+}
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault(); openTaskSearch(); return;
   }
   if (e.key === 'Escape') {
+    if (closeProfileMenu(true)) return;
+    if (document.querySelector('.nav-dropdown:not([hidden])')) { closeNavDropdowns(true); return; }
     if ($('topnav')?.classList.contains('is-open')) { setMobileNav(false); $('mobileNavBtn')?.focus(); return; }
     if ($('side').classList.contains('open')) { setDrawer(false); $('menu').focus(); return; }
   }
@@ -2036,22 +2137,35 @@ $('topnav')?.addEventListener('click', e => {
     const group = gbtn.closest('.nav-group');
     const drop = group.querySelector('.nav-dropdown');
     const open = drop.hasAttribute('hidden');
-    document.querySelectorAll('.nav-dropdown').forEach(d => d.setAttribute('hidden', ''));
-    document.querySelectorAll('.nav-group-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+    closeNavDropdowns(false);
     if (open) { drop.removeAttribute('hidden'); gbtn.setAttribute('aria-expanded', 'true'); }
     return;
   }
   if (e.target.closest('a')) {
-    document.querySelectorAll('.nav-dropdown').forEach(d => d.setAttribute('hidden', ''));
-    document.querySelectorAll('.nav-group-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+    closeNavDropdowns(false);
     setMobileNav(false);
   }
 });
-document.addEventListener('click', e => {
-  if (!e.target.closest('.nav-group')) {
-    document.querySelectorAll('.nav-dropdown').forEach(d => d.setAttribute('hidden', ''));
-    document.querySelectorAll('.nav-group-btn').forEach(b => b.setAttribute('aria-expanded', 'false'));
+$('topnav')?.addEventListener('keydown', e => {
+  const gbtn = e.target.closest('.nav-group-btn');
+  const inDrop = e.target.closest('.nav-dropdown');
+  if (gbtn && e.key === 'ArrowDown') {
+    e.preventDefault();
+    const drop = gbtn.closest('.nav-group')?.querySelector('.nav-dropdown');
+    closeNavDropdowns(false);
+    drop?.removeAttribute('hidden');
+    gbtn.setAttribute('aria-expanded', 'true');
+    drop?.querySelector('a[href]')?.focus();
+  } else if (inDrop) {
+    const links = [...inDrop.querySelectorAll('a[href]')];
+    const idx = links.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown') { e.preventDefault(); links[(idx + 1) % links.length]?.focus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); links[(idx - 1 + links.length) % links.length]?.focus(); }
+    else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeNavDropdowns(true); }
   }
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('.nav-group')) closeNavDropdowns(false);
 });
 window.addEventListener('hashchange', route);
 
