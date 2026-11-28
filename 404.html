@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Find your lesson · EAM Academy</title>
+  <link rel="stylesheet" href="/eam-academy/style.css">
+</head>
+<body>
+  <main class="reader">
+    <h1>Find your lesson</h1>
+    <p>This address could not be opened. You can find lessons by title or module in the curriculum.</p>
+    <a href="/eam-academy/#learn">Browse the curriculum</a>
+  </main>
+  <script>
+    // The source-branch edition uses hash routes. Preserve saved lesson links
+    // if the pre-rendered Pages build is not the edition currently served.
+    const lesson = location.pathname.match(/^\/eam-academy\/learn\/(intro\d{2}|l\d{3})(?:\/index\.html|\/)?$/i);
+    if (lesson) location.replace('/eam-academy/#lesson/' + lesson[1].toUpperCase());
+  </script>
+</body>
+</html>
