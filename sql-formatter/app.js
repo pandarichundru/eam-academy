@@ -8,6 +8,7 @@
   const cursorStats = document.getElementById('cursorStats');
   const btnFormat = document.getElementById('btnFormat');
   const btnMinify = document.getElementById('btnMinify');
+  const btnSample = document.getElementById('btnSample');
   const btnCopy = document.getElementById('btnCopy');
   const btnClear = document.getElementById('btnClear');
   const btnTheme = document.getElementById('btnTheme');
@@ -16,6 +17,8 @@
   const optCase = document.getElementById('optCase');
   const optComma = document.getElementById('optComma');
   const shortcutHint = document.getElementById('shortcutHint');
+
+  const SAMPLE_SQL = "with open_orders as (select e.evt_code, e.evt_desc, e.evt_object, e.evt_created, case when e.evt_priority = '1' then 'Urgent' else 'Normal' end as prio from r5events e where e.evt_status = 'Open' and e.evt_created between '2026-01-01' and '2026-12-31') select o.obj_code, o.obj_desc, w.evt_code, w.prio, row_number() over (partition by o.obj_code order by w.evt_created) as seq from r5objects o left join open_orders w on w.evt_object = o.obj_code order by o.obj_code, w.evt_code;";
 
   const isMac = /Mac|iPhone|iPad/i.test(navigator.platform || navigator.userAgent || '');
   shortcutHint.textContent = isMac ? '⌘⇧F' : 'Ctrl+Shift+F';
@@ -49,13 +52,23 @@
     statusBar.appendChild(div);
   }
 
-  function renderEditor() {
+  let lastLineCount = 0;
+  let rafId = 0;
+  function renderEditor(immediate = false) {
     const val = input.value;
-    highlight.innerHTML = window.SQLFormatterEngine.highlightHTML(val, optDialect.value) + (val.endsWith('\n') ? ' ' : '');
     const lineCount = Math.max(1, val.split('\n').length);
-    const nums = [];
-    for (let i = 1; i <= lineCount; i++) nums.push(`<div>${i}</div>`);
-    gutter.innerHTML = nums.join('');
+    if (lineCount !== lastLineCount) {
+      lastLineCount = lineCount;
+      const nums = new Array(lineCount);
+      for (let i = 0; i < lineCount; i++) nums[i] = `<div>${i + 1}</div>`;
+      gutter.innerHTML = nums.join('');
+    }
+    const paint = () => {
+      highlight.innerHTML = window.SQLFormatterEngine.highlightHTML(val, optDialect.value) + (val.endsWith('\n') ? ' ' : '');
+    };
+    if (rafId) cancelAnimationFrame(rafId);
+    if (immediate || val.length <= 12000) paint();
+    else rafId = requestAnimationFrame(paint);
     updateCursorStats();
   }
 
@@ -79,17 +92,20 @@
       showNotice('', '');
       return;
     }
+    const t0 = performance.now();
     const res = window.SQLFormatterEngine.formatSQL(input.value, getOptions());
+    const ms = (performance.now() - t0).toFixed(1);
     if (res.error) {
       showNotice(res.error, 'error');
       return;
     }
     input.value = res.formatted;
-    renderEditor();
-    showNotice('SQL formatted.', 'ok');
+    renderEditor(true);
+    const msg = `Formatted ${res.statements} statement${res.statements === 1 ? '' : 's'} in ${ms} ms.`;
+    showNotice(msg, 'ok');
     setTimeout(() => {
-      if (statusBar.textContent === 'SQL formatted.') showNotice('', '');
-    }, 1800);
+      if (statusBar.textContent === msg) showNotice('', '');
+    }, 2000);
   }
 
   function doMinify() {
@@ -158,19 +174,25 @@
 
   btnFormat.addEventListener('click', doFormat);
   btnMinify.addEventListener('click', doMinify);
+  btnSample.addEventListener('click', () => {
+    input.value = SAMPLE_SQL;
+    showNotice('', '');
+    renderEditor(true);
+    input.focus();
+  });
   btnCopy.addEventListener('click', doCopy);
   btnClear.addEventListener('click', doClear);
   btnTheme.addEventListener('click', () => {
     dark = !dark;
     applyTheme();
   });
-  optDialect.addEventListener('change', renderEditor);
+  optDialect.addEventListener('change', () => renderEditor(true));
   optIndent.addEventListener('change', () => {
     input.style.tabSize = optIndent.value === '4' ? '4' : '2';
     highlight.style.tabSize = input.style.tabSize;
   });
 
   // Initial sample query (purely illustrative; never persisted)
-  input.value = "with open_orders as (select e.evt_code, e.evt_desc, e.evt_object, case when e.evt_priority = '1' then 'Urgent' else 'Normal' end as prio from r5events e where e.evt_status = 'Open' and e.evt_org = 'PLANT01') select o.obj_code, o.obj_desc, w.evt_code, w.prio from r5objects o left join open_orders w on w.evt_object = o.obj_code order by o.obj_code, w.evt_code;";
-  renderEditor();
+  input.value = SAMPLE_SQL;
+  renderEditor(true);
 })();

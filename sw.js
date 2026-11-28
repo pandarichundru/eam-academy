@@ -64,8 +64,8 @@ const files = [
   "workshops.js"
 ];
 const prefix = 'eam-academy:' + self.registration.scope + ':';
-const version = prefix + '2';
-const cacheName = version + ':r5-vanilla-v2';
+const version = prefix + '3';
+const cacheName = version + ':r5-vanilla-v3';
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(cacheName).then(cache => cache.addAll(files.map(file => new Request(file, {cache:'reload'})))).then(() => self.skipWaiting()));
 });
@@ -77,7 +77,8 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET' || !url.href.startsWith(self.registration.scope)) return;
   const key = event.request.mode === 'navigate' && url.href === self.registration.scope ? new URL('index.html',self.registration.scope).href : event.request;
   const matchOptions = {ignoreSearch: url.pathname.endsWith('/style.css')};
-  const freshShell = event.request.mode === 'navigate' || /\.(html|js|css|db|json)$/.test(url.pathname);
+  const isDataAsset = url.pathname.includes('/data/') && url.pathname.endsWith('.json');
+  const freshShell = !isDataAsset && (event.request.mode === 'navigate' || /\.(html|js|css|db)$/.test(url.pathname));
   event.respondWith(caches.open(cacheName).then(async cache => {
     if (freshShell) {
       try {

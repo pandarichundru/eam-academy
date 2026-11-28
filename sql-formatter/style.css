@@ -150,6 +150,33 @@ html, body {
   gap: 10px;
 }
 
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 500;
+  transition:
+    background-color var(--dur-hover) var(--ease-standard),
+    color var(--dur-hover) var(--ease-standard),
+    transform var(--dur-press) var(--ease-standard);
+}
+
+.back-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text);
+}
+
+.back-btn:active {
+  transform: translateY(1px);
+}
+
 .brandmark {
   display: inline-flex;
   align-items: center;

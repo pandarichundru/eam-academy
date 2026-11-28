@@ -1213,9 +1213,23 @@ function quoteIdentIfNeeded(name) {
 
 let realManifestPromise = null;
 let realExercisesPromise = null;
+let realTableNamesPromise = null;
 function loadRealManifest() {
-  return realManifestPromise || (realManifestPromise = fetch('data/manifest.json', { cache: 'default' }).then(r => {
+  return realManifestPromise || (realManifestPromise = fetch('data/manifest-index.json', { cache: 'default' }).then(r => {
     if (!r.ok) throw Error('Restored database manifest unavailable.');
+    return r.json();
+  }).then(m => {
+    m.tables.forEach(t => {
+      if (t.columns.length && Array.isArray(t.columns[0])) {
+        t.columns = t.columns.map(([name, sql_type]) => ({ name, sql_type }));
+      }
+    });
+    return m;
+  }));
+}
+function loadRealTableNames() {
+  return realTableNamesPromise || (realTableNamesPromise = fetch('data/table-names.json', { cache: 'default' }).then(r => {
+    if (!r.ok) throw Error('Table index unavailable.');
     return r.json();
   }));
 }
@@ -1417,11 +1431,11 @@ async function route() {
       case 'er': {
         main.innerHTML = erPage(id || 'R5EVENTS');
         $('erPick').onchange = e => { location.hash = 'er/' + U(e.target.value); };
-        loadRealManifest().then(manifest => {
+        loadRealTableNames().then(rows => {
           if (current !== generation || !$('erPick')) return;
           const cur = id || 'R5EVENTS';
           const existing = new Set([...$('erPick').options].map(o => o.value));
-          const extra = manifest.tables.filter(t => !existing.has(t.table)).map(t => `<option value="${E(t.table)}" ${t.table === cur ? 'selected' : ''}>${E(t.table)} [${E(t.family)}]</option>`).join('');
+          const extra = rows.filter(([tbl]) => !existing.has(tbl)).map(([tbl, fam]) => `<option value="${E(tbl)}" ${tbl === cur ? 'selected' : ''}>${E(tbl)} [${E(fam)}]</option>`).join('');
           if (extra) $('erPick').insertAdjacentHTML('beforeend', extra);
         }).catch(() => {});
         const erSvg = main.querySelector('.er-svg');

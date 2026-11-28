@@ -42,6 +42,8 @@
     'NATURAL JOIN', 'CROSS APPLY', 'OUTER APPLY'
   ]);
 
+  const MAX_INPUT_CHARS = 500000;
+
   function getKeywordSet(dialect) {
     const set = new Set(BASE_KEYWORDS);
     (DIALECT_EXTRAS[dialect] || []).forEach(k => set.add(k));
@@ -339,6 +341,7 @@
 
     let inSelectCols = false;
     let multiColSelect = false;
+    let inBetween = false;
 
     for (let i = 0; i < tokens.length; i++) {
       const tok = tokens[i];
@@ -403,6 +406,19 @@
 
       if (tok.type === 'keyword') {
         const u = tok.upper;
+        const topFrame = parenStack[parenStack.length - 1];
+        const insideFunc = topFrame && !topFrame.isSubquery;
+
+        if (u === 'BETWEEN' && !insideFunc) {
+          inBetween = true;
+          appendTok(text);
+          continue;
+        }
+        if (u === 'AND' && inBetween) {
+          inBetween = false;
+          appendTok(text);
+          continue;
+        }
 
         if (u === 'CASE') {
           appendTok(text);
@@ -422,21 +438,20 @@
           continue;
         }
 
-        if (MAJOR_CLAUSES.has(u) && (!parenStack.length || parenStack[parenStack.length - 1].isSubquery)) {
+        if (MAJOR_CLAUSES.has(u) && !insideFunc) {
           if (curLine.trim()) pushLine();
+          inBetween = false;
           currentClause = u;
           if (u === 'SELECT') {
             inSelectCols = true;
             multiColSelect = selectHasMultipleColumns(i + 1);
             curLine = text;
             if (multiColSelect) {
-              // Skip optional DISTINCT/TOP onto same SELECT line
               if (next && next.type === 'keyword' && (next.upper === 'DISTINCT' || next.upper === 'ALL')) {
                 i++;
                 appendTok(applyKeywordCase(next, kwCase));
               }
               pushLine();
-              // Next tokens will be indented by 1 via pushLine(1) or manual pad
               curLine = indentUnit;
             }
           } else {
@@ -447,23 +462,22 @@
           continue;
         }
 
-        if (JOIN_STARTERS.has(u) && (!parenStack.length || parenStack[parenStack.length - 1].isSubquery)) {
+        if (JOIN_STARTERS.has(u) && !insideFunc) {
           if (curLine.trim()) pushLine();
+          inBetween = false;
           inSelectCols = false;
           currentClause = u;
           curLine = text;
           continue;
         }
 
-        if ((u === 'AND' || u === 'OR') && (currentClause === 'WHERE' || currentClause === 'HAVING' || JOIN_STARTERS.has(currentClause))) {
-          if (!parenStack.length || parenStack[parenStack.length - 1].isSubquery) {
-            pushLine();
-            curLine = indentUnit + text;
-            continue;
-          }
+        if ((u === 'AND' || u === 'OR') && !insideFunc && (currentClause === 'WHERE' || currentClause === 'HAVING' || JOIN_STARTERS.has(currentClause))) {
+          pushLine();
+          curLine = indentUnit + text;
+          continue;
         }
 
-        if (u === 'ON' && JOIN_STARTERS.has(currentClause) && (!parenStack.length || parenStack[parenStack.length - 1].isSubquery)) {
+        if (u === 'ON' && !insideFunc && JOIN_STARTERS.has(currentClause)) {
           pushLine();
           curLine = indentUnit + text;
           continue;
@@ -479,10 +493,13 @@
   }
 
   function formatSQL(sql, options = {}) {
-    if (!sql || !sql.trim()) return { formatted: '', error: null };
+    if (!sql || !sql.trim()) return { formatted: '', statements: 0, error: null };
+    if (sql.length > MAX_INPUT_CHARS) {
+      return { formatted: sql, statements: 0, error: `Input exceeds ${MAX_INPUT_CHARS.toLocaleString()} character safety limit.` };
+    }
     const dialect = options.dialect || 'standard';
     const tokRes = tokenize(sql, dialect);
-    if (tokRes.error) return { formatted: sql, error: tokRes.error };
+    if (tokRes.error) return { formatted: sql, statements: 0, error: tokRes.error };
 
     const stmts = splitStatements(tokRes.tokens);
     const formatted = stmts
@@ -490,11 +507,14 @@
       .filter(Boolean)
       .join(';\n\n') + (sql.trim().endsWith(';') && stmts.length ? ';' : '');
 
-    return { formatted, error: null };
+    return { formatted, statements: stmts.length, error: null };
   }
 
   function minifySQL(sql, options = {}) {
     if (!sql || !sql.trim()) return { minified: '', error: null };
+    if (sql.length > MAX_INPUT_CHARS) {
+      return { minified: sql, error: `Input exceeds ${MAX_INPUT_CHARS.toLocaleString()} character safety limit.` };
+    }
     const dialect = options.dialect || 'standard';
     const tokRes = tokenize(sql, dialect);
     if (tokRes.error) return { minified: sql, error: tokRes.error };
@@ -520,7 +540,13 @@
   }
 
   function highlightHTML(sql, dialect = 'standard') {
-    const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const esc = s => s
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+    if (sql.length > MAX_INPUT_CHARS) return esc(sql);
     const tokRes = tokenize(sql, dialect);
     if (tokRes.error) return esc(sql);
     return tokRes.tokens.map(tok => {
