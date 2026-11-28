@@ -341,113 +341,210 @@ const sqlReading = {
 
 const sqlDeepDive = {
   L127: {
+    grain: '1 row = 1 work order / event (PK: EVT_CODE)',
+    realTable: 'R5EVENTS',
+    execOrder: '1. FROM R5EVENTS → 2. WHERE EVT_STATUS = \'Open\' → 3. SELECT columns → 4. ORDER BY EVT_CODE',
     clauses: [
-      ['SELECT', 'Projects specific columns (EVT_CODE, EVT_DESC, EVT_OBJECT, EVT_STATUS) instead of SELECT *, keeping output readable and focused on the work-order grain.'],
-      ['FROM R5EVENTS', 'Reads the work-order/event header table where each row represents one work order or event.'],
-      ['WHERE EVT_STATUS = \'Open\'', 'Filters rows before sorting so only active/open work orders remain.'],
-      ['ORDER BY EVT_CODE', 'Guarantees deterministic output ordering by the primary work-order identifier.']
+      ['SELECT EVT_CODE, EVT_DESC, EVT_OBJECT, EVT_STATUS', 'Projects only the 4 required columns instead of SELECT *, reducing memory, I/O, and network transfer while keeping the output stable if columns are added later.'],
+      ['FROM R5EVENTS', 'Reads the work-order/event header table where each row represents one work order, PM event, or inspection event.'],
+      ['WHERE EVT_STATUS = \'Open\'', 'Evaluated before SELECT and ORDER BY. Filters out closed/cancelled history early so downstream sorting only touches active work.'],
+      ['ORDER BY EVT_CODE', 'Guarantees deterministic ordering. Without ORDER BY, SQL engines return rows in arbitrary heap/index scan order.']
     ],
     columns: [
-      ['EVT_CODE', 'Unique work order / event number (Primary Key of R5EVENTS).'],
-      ['EVT_DESC', 'Short work order description shown in EAM list and header views.'],
-      ['EVT_OBJECT', 'Equipment or location code the work order targets (FK to R5OBJECTS.OBJ_CODE).'],
-      ['EVT_STATUS', 'Lifecycle status code (e.g., Open, Released, Closed).']
+      ['EVT_CODE', 'Primary Key. Unique work order / event identifier across the EAM organization.'],
+      ['EVT_DESC', 'Short work order summary displayed in list grids and mobile screens.'],
+      ['EVT_OBJECT', 'Foreign Key to R5OBJECTS.OBJ_CODE identifying the target asset or location.'],
+      ['EVT_STATUS', 'Lifecycle status code (e.g. Open, Released, Closed) governed by R5UCODES / status authorizations.']
     ],
-    pitfall: 'Omitting ORDER BY can return rows in arbitrary storage order; omitting EVT_STATUS returns historical closed work orders.'
+    antiPattern: {
+      bad: 'SELECT * FROM R5EVENTS WHERE UPPER(EVT_STATUS) = \'OPEN\';',
+      why: 'Two production bugs: (1) SELECT * breaks downstream consumers when columns change and wastes I/O; (2) wrapping EVT_STATUS in UPPER() disables B-tree index seeks (non-SARGable), forcing a full table scan.'
+    },
+    pitfall: 'Omitting ORDER BY produces non-deterministic pagination; wrapping indexed columns in functions prevents index seeks.',
+    perf: 'In SQL Server (116_van.bak), keep predicates SARGable (col = literal) so indexes on EVT_STATUS / EVT_ORG can seek directly.',
+    interview: ['Why can you not filter by a SELECT alias inside the WHERE clause?', 'Because SQL evaluates WHERE before SELECT. Use a CTE or subquery if you need to filter on a computed alias.']
   },
   L128: {
+    grain: '1 row = 1 work order enriched with its 1 matching equipment master row (N:1 join)',
+    realTable: 'R5OBJECTS',
+    execOrder: '1. FROM R5EVENTS → 2. JOIN R5OBJECTS ON PK → 3. SELECT → 4. ORDER BY',
     clauses: [
-      ['FROM R5EVENTS AS e', 'Starts at the work-order grain (many work orders can reference one piece of equipment).'],
-      ['JOIN R5OBJECTS AS o ON o.OBJ_CODE = e.EVT_OBJECT', 'Attaches the matching equipment master row by its primary key (in multi-org EAM, also match e.EVT_OBJECT_ORG = o.OBJ_ORG).']
+      ['FROM R5EVENTS AS e', 'Starts at the child/many side (many work orders can reference one piece of equipment).'],
+      ['JOIN R5OBJECTS AS o ON o.OBJ_CODE = e.EVT_OBJECT', 'N:1 lookup onto the parent equipment Primary Key. Guaranteed not to multiply work-order rows because OBJ_CODE is unique per org.']
     ],
     columns: [
-      ['OBJ_CODE / OBJ_DESC', 'Equipment identifier and human-readable asset description in R5OBJECTS.'],
+      ['OBJ_CODE / OBJ_ORG', 'Composite natural key of R5OBJECTS in multi-organization EAM databases.'],
+      ['OBJ_DESC', 'Human-readable asset description; never join on descriptions because they are not unique.'],
       ['OBJ_OBTYPE', 'Object type: A = Asset, L = Location, P = Position, S = System.']
     ],
-    pitfall: 'Joining on description (OBJ_DESC) instead of key (OBJ_CODE) breaks when two assets share a description.'
+    antiPattern: {
+      bad: 'SELECT e.EVT_CODE, o.OBJ_DESC FROM R5EVENTS e JOIN R5OBJECTS o ON o.OBJ_DESC = e.EVT_DESC;',
+      why: 'Joining on descriptions instead of keys silently drops records when text differs and causes Cartesian fan-out when two assets share a name like "Centrifugal Pump".'
+    },
+    pitfall: 'In multi-org EAM, joining on OBJ_CODE alone without EVT_OBJECT_ORG = OBJ_ORG can match the wrong site\'s asset.',
+    perf: 'Joining child FK → parent PK uses a clustered/unique index seek on R5OBJECTS (O(log N) per row).',
+    interview: ['When does an INNER JOIN change the row count of the left table?', 'Whenever the join key is not unique on the right table (fan-out) or when the left row has NULL/unmatched FK values (dropped rows).']
   },
   L129: {
+    grain: '1 row = 1 equipment record (preserving idle assets with 0 work orders)',
+    realTable: 'R5EVENTCOST',
+    execOrder: '1. FROM R5OBJECTS → 2. LEFT JOIN R5EVENTS → 3. LEFT JOIN R5EVENTCOST → 4. GROUP BY → 5. SELECT → 6. ORDER BY',
     clauses: [
-      ['FROM R5OBJECTS AS o LEFT JOIN R5EVENTS AS e', 'Starts from equipment so idle assets with zero work orders are preserved with COUNT(e.EVT_CODE) = 0.'],
-      ['LEFT JOIN R5EVENTCOST AS c ON c.EVO_EVENT = e.EVT_CODE', 'Attaches rolled-up work order costs without dropping orders that have no cost row yet.'],
-      ['GROUP BY o.OBJ_CODE, o.OBJ_DESC', 'Collapses rows to one summary row per equipment record.']
+      ['FROM R5OBJECTS AS o LEFT JOIN R5EVENTS AS e', 'Anchors the query on R5OBJECTS so equipment with zero work orders remains in the result set with NULL event columns.'],
+      ['LEFT JOIN R5EVENTCOST AS c ON c.EVO_EVENT = e.EVT_CODE', 'Preserves work orders that have not yet posted a cost rollup row.'],
+      ['COUNT(e.EVT_CODE) vs COUNT(*)', 'COUNT(e.EVT_CODE) ignores NULLs and returns 0 for idle assets; COUNT(*) counts the NULL-padded row as 1!'],
+      ['COALESCE(SUM(c.EVO_TOTAL), 0)', 'Replaces NULL sums with 0 so totals are numeric and sortable.']
     ],
     columns: [
-      ['EVO_EVENT / EVO_TOTAL', 'Work order reference and total rolled-up maintenance cost in R5EVENTCOST.'],
-      ['COALESCE(SUM(c.EVO_TOTAL), 0)', 'Converts NULL (no cost rows) into 0 so arithmetic and sorting stay clean.']
+      ['EVO_EVENT / EVO_TOTAL', 'Work order FK and total rolled-up cost (labor + material + services + tools) in R5EVENTCOST.'],
+      ['OBJ_CODE / OBJ_DESC', 'Grouping key defining the asset-level output grain.']
     ],
-    pitfall: 'Using COUNT(*) instead of COUNT(e.EVT_CODE) with a LEFT JOIN would count an idle asset as having 1 work order!'
+    antiPattern: {
+      bad: 'SELECT o.OBJ_CODE, COUNT(*) AS orders FROM R5OBJECTS o LEFT JOIN R5EVENTS e ON e.EVT_OBJECT = o.OBJ_CODE GROUP BY o.OBJ_CODE;',
+      why: 'COUNT(*) counts NULL-padded LEFT JOIN rows, reporting 1 work order for an idle asset that actually has 0!'
+    },
+    pitfall: 'Using COUNT(*) on a LEFT JOIN or placing a right-table filter in WHERE (turning the LEFT JOIN into an INNER JOIN).',
+    perf: 'Filter right-table predicates inside the ON clause (not WHERE) to preserve outer-join semantics without extra subqueries.',
+    interview: ['Why does WHERE e.EVT_STATUS = \'Open\' after a LEFT JOIN drop idle assets?', 'Because idle assets have e.EVT_STATUS IS NULL, and NULL = \'Open\' evaluates to UNKNOWN (filtered out by WHERE). Put it in the ON clause instead.']
   },
   L130: {
+    grain: '1 row = 1 work-order activity (Composite PK: ACT_EVENT + ACT_ACT)',
+    realTable: 'R5ACTIVITIES',
+    execOrder: '1. FROM R5EVENTS → 2. JOIN R5ACTIVITIES → 3. LEFT JOIN R5BOOKEDHOURS (2-col key) → 4. GROUP BY',
     clauses: [
-      ['JOIN R5ACTIVITIES AS a ON a.ACT_EVENT = e.EVT_CODE', 'Expands each work order to its task/activity lines.'],
-      ['LEFT JOIN R5BOOKEDHOURS AS b ON b.BOO_EVENT = a.ACT_EVENT AND b.BOO_ACT = a.ACT_ACT', 'Uses the full composite key (work order + activity number) so labor hours attach to the exact task.']
+      ['JOIN R5ACTIVITIES AS a ON a.ACT_EVENT = e.EVT_CODE', 'Expands each work order to its task lines (10, 20, 30...).'],
+      ['LEFT JOIN R5BOOKEDHOURS AS b ON b.BOO_EVENT = a.ACT_EVENT AND b.BOO_ACT = a.ACT_ACT', 'Matches the full 2-column composite key so labor hours attach only to the exact activity they were booked against.']
     ],
     columns: [
-      ['ACT_EVENT / ACT_ACT', 'Composite primary key of R5ACTIVITIES (work order code + activity sequence 10, 20, ...).'],
-      ['BOO_HOURS', 'Actual labor hours booked in R5BOOKEDHOURS.']
+      ['ACT_EVENT / ACT_ACT', 'Composite Primary Key of R5ACTIVITIES. ACT_ACT (10, 20, ...) repeats across different work orders.'],
+      ['BOO_EVENT / BOO_ACT / BOO_HOURS', 'Work order, activity sequence, and actual booked labor hours in R5BOOKEDHOURS.']
     ],
-    pitfall: 'Joining R5BOOKEDHOURS on BOO_EVENT alone (forgetting BOO_ACT) multiplies every labor row across every activity on that order.'
+    antiPattern: {
+      bad: 'LEFT JOIN R5BOOKEDHOURS b ON b.BOO_EVENT = a.ACT_EVENT',
+      why: 'Omitting BOO_ACT joins every labor entry on the work order to EVERY activity on that work order — multiplying total labor hours by the number of activities (classic fan-out bug).'
+    },
+    pitfall: 'Partial composite-key joins silently inflate SUM(BOO_HOURS) while still returning plausible-looking numbers.',
+    perf: 'Composite PK/FK indexes in SQL Server require the leading key (ACT_EVENT) and secondary key (ACT_ACT) together for an exact range/point seek.',
+    interview: ['How do you detect a fan-out join bug in an aggregated report?', 'Compare SUM(hours) before and after adding the join; if the total increases after joining a detail table, your join key is under-specified.']
   },
   L131: {
+    grain: '1 row = 1 part in 1 storeroom (Composite PK: STO_PART + STO_STORE)',
+    realTable: 'R5STOCK',
+    execOrder: '1. FROM R5STOCK → 2. JOIN R5PARTS → 3. WHERE s.STO_QTY < s.STO_REORDER → 4. ORDER BY',
     clauses: [
-      ['FROM R5STOCK AS s JOIN R5PARTS AS p ON p.PAR_CODE = s.STO_PART', 'Combines store-level stock balances with part catalog descriptions and UOMs.'],
-      ['WHERE s.STO_QTY < s.STO_REORDER', 'Identifies part-store combinations currently below their reorder point.']
+      ['FROM R5STOCK AS s JOIN R5PARTS AS p ON p.PAR_CODE = s.STO_PART', 'Enriches store-level inventory balances with part descriptions and units of measure.'],
+      ['WHERE s.STO_QTY < s.STO_REORDER', 'Evaluates shortage at the exact part-store grain before any reporting rollup.']
     ],
     columns: [
-      ['STO_PART / STO_STORE', 'Composite key of R5STOCK: one row per part per storeroom.'],
-      ['STO_QTY / STO_REORDER', 'On-hand quantity and minimum reorder threshold in that store.']
+      ['STO_PART / STO_STORE', 'Composite Primary Key of R5STOCK: inventory is tracked per part per storeroom.'],
+      ['STO_QTY / STO_REORDER', 'Current on-hand quantity and minimum reorder point for that storeroom.']
     ],
-    pitfall: 'Aggregating across all stores before comparing to STO_REORDER hides a shortage in one storeroom behind surplus in another.'
+    antiPattern: {
+      bad: 'SELECT STO_PART, SUM(STO_QTY), SUM(STO_REORDER) FROM R5STOCK GROUP BY STO_PART HAVING SUM(STO_QTY) < SUM(STO_REORDER);',
+      why: 'Surplus stock in a remote warehouse masks an urgent stockout at the main plant storeroom.'
+    },
+    pitfall: 'Evaluating reorder thresholds after aggregating across storerooms hides local shortages.',
+    perf: 'Compare numeric columns directly without arithmetic on the indexed column when possible.',
+    interview: ['What is the difference between R5PARTS and R5STOCK?', 'R5PARTS is the global/org part catalog (1 row per part); R5STOCK is storeroom inventory (1 row per part per store).']
   },
   L132: {
+    grain: '1 row = 1 stock record (STO_PART + STO_STORE) with pre-aggregated reservations',
+    realTable: 'R5PICKLISTS',
+    execOrder: '1. CTE reserved (GROUP BY part, store) → 2. FROM R5STOCK → 3. LEFT JOIN reserved → 4. SELECT net_available',
     clauses: [
-      ['WITH reserved AS (...)', 'Pre-aggregates open pick-list reservations by part and store in a CTE before joining to R5STOCK.'],
-      ['s.STO_QTY - COALESCE(r.res_qty, 0)', 'Computes net available quantity, treating unreserved stock rows as 0 reserved.']
+      ['WITH reserved AS (... GROUP BY PIP_PART, PIC_STORE)', 'Collapses multiple open pick-list lines to the exact same (part, store) grain as R5STOCK BEFORE joining.'],
+      ['s.STO_QTY - COALESCE(r.res_qty, 0)', 'Computes net available stock without losing unreserved parts (NULL becomes 0).']
     ],
     columns: [
-      ['PIP_PART / PIP_QTY', 'Part code and reserved quantity on R5PICKLISTPARTS.'],
-      ['PIC_STORE', 'Storeroom header on R5PICKLISTS.']
+      ['PIP_PICKLIST / PIP_PART / PIP_QTY', 'Pick-list header FK, part code, and reserved quantity in R5PICKLISTPARTS.'],
+      ['PIC_STORE', 'Storeroom code on R5PICKLISTS header.']
     ],
-    pitfall: 'Joining R5STOCK directly to R5PICKLISTPARTS without pre-aggregating duplicates stock rows when multiple pick lists reserve the same part.'
+    antiPattern: {
+      bad: 'SELECT s.STO_PART, s.STO_QTY - SUM(p.PIP_QTY) FROM R5STOCK s LEFT JOIN R5PICKLISTPARTS p ON p.PIP_PART = s.STO_PART GROUP BY s.STO_PART, s.STO_QTY;',
+      why: 'Two bugs: (1) omits store scope (PIC_STORE = STO_STORE), subtracting MAIN reservations from REMOTE stock; (2) joining two 1:N tables before aggregating duplicates STO_QTY.'
+    },
+    pitfall: 'Always aggregate child tables to the parent grain in a CTE before subtracting from parent quantities.',
+    perf: 'CTE pre-aggregation shrinks the hash/merge join input to one row per active (part, store).',
+    interview: ['Why use a CTE here instead of joining R5STOCK -> R5PICKLISTS -> R5PICKLISTPARTS directly?', 'Because a direct join creates a fan-out if a part has multiple pick lists, inflating SUM(s.STO_QTY) if you are not careful.']
   },
   L133: {
+    grain: '1 row = 1 purchase order line (Composite PK: ORL_ORDER + ORL_ORDLINE)',
+    realTable: 'R5ORDERLINES',
+    execOrder: '1. CTE rec (GROUP BY DKL_ORDER, DKL_ORDLINE) → 2. FROM R5ORDERLINES → 3. LEFT JOIN rec → 4. SELECT open_qty',
     clauses: [
-      ['FROM R5ORDERLINES AS ol LEFT JOIN rec ON ...', 'Starts from PO lines and left-joins aggregated dock receipts by (ORL_ORDER, ORL_ORDLINE).'],
-      ['ol.ORL_ORDQTY - COALESCE(rec.recv_qty, 0)', 'Calculates remaining open quantity to receive.']
+      ['WITH rec AS (... GROUP BY DKL_ORDER, DKL_ORDLINE)', 'Aggregates partial dock deliveries to the PO-line grain before joining.'],
+      ['LEFT JOIN rec ...', 'Keeps PO lines with zero receipts so open_qty = ORL_ORDQTY - 0.']
     ],
     columns: [
-      ['ORL_ORDER / ORL_ORDLINE', 'Composite primary key of R5ORDERLINES.'],
-      ['DKL_RECVQTY', 'Quantity received on dock receiving lines (R5DOCKLINES).']
+      ['ORL_ORDER / ORL_ORDLINE / ORL_ORDQTY', 'PO number, line number, and ordered quantity on R5ORDERLINES.'],
+      ['DKL_RECVQTY', 'Received quantity per dock receipt line on R5DOCKLINES.']
     ],
-    pitfall: 'Using an INNER JOIN hides purchase order lines that have zero receipts so far.'
+    antiPattern: {
+      bad: 'JOIN R5DOCKLINES d ON d.DKL_ORDER = ol.ORL_ORDER AND d.DKL_ORDLINE = ol.ORL_ORDLINE',
+      why: 'An INNER JOIN silently drops every PO line that has not had a delivery yet — the exact open lines procurement needs to expedite!'
+    },
+    pitfall: 'Using INNER JOIN when reconciling expected vs. actual transactions hides zero-activity open items.',
+    perf: 'Pre-aggregating R5DOCKLINES by (DKL_ORDER, DKL_ORDLINE) aligns with its FK index.',
+    interview: ['How would you filter for only partially or unreceived PO lines?', 'Add WHERE ol.ORL_ORDQTY > COALESCE(rec.recv_qty, 0) after the LEFT JOIN.']
   },
   L134: {
+    grain: '1 row = 1 meter reading compared to the preceding reading on the same meter',
+    realTable: 'R5READINGS',
+    execOrder: '1. FROM R5READINGS → 2. SELECT + WINDOW LAG() OVER (PARTITION BY ... ORDER BY ...) → 3. ORDER BY',
     clauses: [
-      ['LAG(REA_READING) OVER (PARTITION BY REA_METER ORDER BY REA_DATE, REA_ID)', 'Reads the previous reading for the same meter in chronological/ID order.']
+      ['PARTITION BY REA_METER', 'Resets the window boundary for every meter so readings from different meters never mix.'],
+      ['ORDER BY REA_DATE, REA_ID', 'Establishes a deterministic tie-broken sequence when two readings occur on the same date.'],
+      ['LAG(REA_READING)', 'Accesses the previous row\'s value without a costly self-join; returns NULL for each meter\'s first reading.']
     ],
     columns: [
-      ['REA_METER / REA_DATE / REA_READING', 'Meter code, reading timestamp, and cumulative meter value in R5READINGS.']
+      ['REA_METER / REA_DATE / REA_READING', 'Meter identifier, reading timestamp, and cumulative reading value in R5READINGS.']
     ],
-    pitfall: 'Omitting PARTITION BY REA_METER compares one meter\'s reading against a completely different asset\'s meter.'
+    antiPattern: {
+      bad: 'LAG(REA_READING) OVER (ORDER BY REA_DATE)',
+      why: 'Without PARTITION BY REA_METER, the first reading of Meter B is subtracted from the last reading of Meter A — producing meaningless negative or huge deltas.'
+    },
+    pitfall: 'Window functions execute AFTER WHERE and GROUP BY; wrap in a CTE if you want to filter on the computed delta.',
+    perf: 'A composite index on (REA_METER, REA_DATE, REA_ID) lets the engine stream LAG() in a single ordered pass without a sort.',
+    interview: ['Why does the first reading of every meter have NULL delta?', 'Because there is no preceding row in that meter\'s partition; NULL honestly represents "no prior baseline" rather than 0.']
   },
   L135: {
+    grain: '1 row = 1 requisition scoped to a specific organization & status',
+    realTable: 'R5REQUISITIONS',
+    execOrder: '1. FROM R5REQUISITIONS → 2. JOIN R5ORGANIZATION → 3. WHERE org + status → 4. ORDER BY',
     clauses: [
-      ['JOIN R5ORGANIZATION AS org ON org.ORG_CODE = req.REQ_ORG', 'Attaches organization metadata and enforces organization scope in WHERE.']
+      ['JOIN R5ORGANIZATION AS org ON org.ORG_CODE = req.REQ_ORG', 'Attaches organization currency and description context.'],
+      ['WHERE req.REQ_ORG = \'PLANT01\' AND req.REQ_STATUS = \'Approved\'', 'Enforces multi-organization isolation and approval status together.']
     ],
     columns: [
-      ['REQ_CODE / REQ_ORG / REQ_STATUS', 'Requisition number, owning organization, and approval status in R5REQUISITIONS.']
+      ['REQ_CODE / REQ_ORG / REQ_STATUS', 'Requisition ID, owning organization (MOS boundary), and approval status.'],
+      ['ORG_CODE / ORG_CURR', 'Organization master key and base currency in R5ORGANIZATION.']
     ],
-    pitfall: 'In multi-organization EAM databases, omitting *_ORG in joins or filters leaks records across sites.'
+    antiPattern: {
+      bad: 'SELECT REQ_CODE FROM R5REQUISITIONS WHERE REQ_STATUS = \'Approved\';',
+      why: 'In multi-site EAM (Multi-Org Security), omitting *_ORG mixes requisitions across plants and currencies.'
+    },
+    pitfall: 'Assuming codes are globally unique across organizations; always carry *_ORG in joins and filters.',
+    perf: 'Leading the WHERE predicate with REQ_ORG matches EAM\'s multi-org composite indexes.',
+    interview: ['What is Multi-Org Security (MOS) in EAM SQL?', 'A data-isolation pattern where operational tables carry *_ORG and queries/joins must scope by organization to prevent cross-site data leakage.']
   },
   L136: {
+    grain: '1 row = 1 table DDL / catalog metadata record',
+    realTable: 'R5USERTABCOLUMNS',
+    execOrder: '1. Query system catalog (sqlite_master / INFORMATION_SCHEMA) → 2. Verify PKs, FKs, and types',
     clauses: [
-      ['SELECT sql FROM sqlite_master WHERE name = \'R5ACTIVITIES\'', 'Inspects physical DDL (primary keys, foreign keys, and column types) before writing joins.']
+      ['SELECT sql FROM sqlite_master WHERE name = \'R5ACTIVITIES\'', 'Reads the exact physical schema definition rather than guessing column names or key cardinality.']
     ],
     columns: [
-      ['sqlite_master (SQLite) / INFORMATION_SCHEMA (SQL Server)', 'System catalog views used to verify exact key columns before querying production or restored data.']
+      ['sqlite_master (SQLite)', 'Stores exact CREATE TABLE / INDEX DDL in SQLite training & real-data labs.'],
+      ['INFORMATION_SCHEMA / sys.tables (SQL Server)', 'Enterprise catalog views used in 116_van.bak to inventory 1,681 tables and 34,711 columns.']
     ],
-    pitfall: 'Guessing join columns from UI labels instead of checking physical PKs/FKs is the #1 cause of Cartesian fan-out bugs.'
+    antiPattern: {
+      bad: 'Writing multi-table joins from memory without checking PK/FK definitions.',
+      why: 'Assuming a single-column PK on a composite-key table (like R5ACTIVITIES or R5STOCK) causes silent row multiplication.'
+    },
+    pitfall: 'Always inspect PKs, unique constraints, and NULLability before writing production reports.',
+    perf: 'Catalog queries are metadata-only and instantaneous; use them to verify indexed join paths before running heavy queries.',
+    interview: ['What 3 things do you check in schema metadata before joining two EAM tables?', '1) Primary/Unique keys (to know the grain), 2) Composite org keys (*_ORG), and 3) NULLability (to decide INNER vs LEFT JOIN and COALESCE).']
   }
 };
 
@@ -474,12 +571,20 @@ function stageLinks(stage) {
     A('sql/' + stage.sql,'Run example') + A('exercise/' + stage.exercise,'Practice challenge') + '</div>';
 }
 function sqlCourse() {
-  return H('SQL learning', 'Read, explain and test a query', 'Each lesson uses the same local SQLite training database. Work in sequence, inspect clause-by-clause breakdowns, or switch to the Restored EAM 11.6 Lab (1,681 real tables).')
+  return H('SQL learning', 'Read, explain and test a query', 'Master EAM SQL from first principles: logical execution order, relational grain, composite keys, anti-patterns, and performance. Practice in the Synthetic Lab or jump to the Restored EAM 11.6 Lab (1,681 real tables).')
     + '<div class="row footer-links">' + A('practice','Open SQL Exercises','button primary') + A('sql','Synthetic SQL Lab','button') + A('sql-real','Restored EAM 11.6 Lab (1,681 tables)','button') + A('technical','Technical library','button') + A('workshop/' + U('Database and SQL'),'Join troubleshooting workshop','button') + '</div>'
+    + `<section class="section"><h2>Logical SQL Execution Pipeline</h2><p class="muted">SQL is written top-to-bottom (<code>SELECT ... FROM ... WHERE ...</code>), but the engine executes it in the order below — which explains why <code>WHERE</code> cannot reference a <code>SELECT</code> alias and why <code>LEFT JOIN</code> filters in <code>WHERE</code> drop NULL rows.</p><div class="diagram"><span>1. FROM / JOIN</span><span class="diagram-arrow">${ICON_FLOW_ARROW}</span><span>2. WHERE</span><span class="diagram-arrow">${ICON_FLOW_ARROW}</span><span>3. GROUP BY</span><span class="diagram-arrow">${ICON_FLOW_ARROW}</span><span>4. HAVING</span><span class="diagram-arrow">${ICON_FLOW_ARROW}</span><span>5. SELECT</span><span class="diagram-arrow">${ICON_FLOW_ARROW}</span><span>6. WINDOW (OVER)</span><span class="diagram-arrow">${ICON_FLOW_ARROW}</span><span>7. ORDER BY / LIMIT</span></div></section>`
+    + `<section class="section"><h2>EAM 11.6 Join Grain Cheat Sheet</h2>${table(['Pattern', 'When to use in EAM', 'Classic bug if done wrong'], [
+      ['N:1 Lookup (INNER JOIN)', 'Work order → Equipment (EVT_OBJECT = OBJ_CODE)', 'Joining on description instead of key causes duplicates.'],
+      ['1:N Summary (LEFT JOIN + COUNT(col))', 'Equipment → Work orders including idle assets', 'COUNT(*) counts NULL-padded rows as 1 instead of 0.'],
+      ['Composite Key Join', 'Activity → Booked Hours (BOO_EVENT + BOO_ACT)', 'Omitting ACT multiplies hours by activity count.'],
+      ['CTE Pre-Aggregation', 'Stock − Reserved Pick Lists (part + store grain)', 'Joining two 1:N tables before GROUP BY inflates stock.'],
+      ['Window Partitioning', 'Meter Reading Delta (PARTITION BY REA_METER)', 'Omitting PARTITION BY subtracts across different meters.'],
+    ])}</section>`
     + '<h2>Five-stage SQL learning path</h2><div class="stage-list">' + sqlStages.map((stage, idx) => '<div class="panel stage-card"><div class="eyebrow tabular">Stage ' + String(idx + 1).padStart(2, '0') + '</div><h3>' + E(stage.title) +
       '</h3><p class="mb-sm">' + E(stage.question) + '</p><p class="muted">' + E(stage.grain) + '</p>' + stageLinks(stage) + '</div>').join('') + '</div>'
     + '<div class="mt-md mb-md">' + A('exercise/30','Fix a query that counts an idle asset as an order','button') + '</div>'
-    + '<h2>All SQL lessons</h2>' + lessons.filter(l => l.type === 'technical').map(l => '<section class="list-item"><h3>' + lessonLink(l) + '</h3><p class="muted">' + E(sqlReading[l.id]?.[0] || l.concept) + '</p>' + (sqlDeepDive[l.id] ? `<p><small class="muted"><strong>Key pitfall:</strong> ${E(sqlDeepDive[l.id].pitfall)}</small></p>` : '') + '<div class="row">' + A('sql/' + l.id,'Run in Synthetic Lab') + A('sql-real','Explore in Real-Data Lab') + '</div></section>').join('');
+    + '<h2>All SQL lessons (with grain, anti-patterns &amp; deep-dives)</h2>' + lessons.filter(l => l.type === 'technical').map(l => '<section class="list-item"><h3>' + lessonLink(l) + '</h3><p class="muted">' + E(sqlDeepDive[l.id]?.grain || sqlReading[l.id]?.[0] || l.concept) + '</p>' + (sqlDeepDive[l.id] ? `<p><small class="muted"><strong>Key pitfall:</strong> ${E(sqlDeepDive[l.id].pitfall)}</small></p>` : '') + '<div class="row">' + A('sql/' + l.id,'Run in Synthetic Lab') + (sqlDeepDive[l.id]?.realTable ? A('sql-real/' + U(sqlDeepDive[l.id].realTable), 'Inspect ' + sqlDeepDive[l.id].realTable + ' in Real-Data Lab') : A('sql-real','Explore in Real-Data Lab')) + '</div></section>').join('');
 }
 
 function coveragePage(moduleName) {
@@ -542,7 +647,7 @@ function lessonPage(id) {
     + (pumpSteps.some(([step]) => step === id) ? '<p class="note">' + A('pump','Case study · From pump to preventive work order') + '</p>' : '')
     + (sqlResults[id] ? '<details class="sql-output"><summary>Inspect the expected training output</summary>' + table(sqlResults[id].columns,sqlResults[id].rows) + '</details>' : '')
     + (sqlReading[id] ? '<section class="section"><h2>How to read this query</h2><div class="callout-panel"><strong>' + E(sqlReading[id][0]) + '</strong><p class="mt-sm">' + E(sqlReading[id][1]) + '</p><h3>Try a variation</h3><p class="mb-sm">' + E(sqlReading[id][2]) + '</p></div></section>' : '')
-    + (sqlDeepDive[id] ? `<section class="section"><h2>Clause-by-clause explanation &amp; column meanings</h2>${table(['SQL Clause', 'What it does & why'], sqlDeepDive[id].clauses)}<h3 class="mt-md">Column meanings in EAM</h3>${table(['Column', 'Meaning in EAM 11.6'], sqlDeepDive[id].columns)}<div class="note warn mt-sm">${ICON_ALERT}<span><strong>Common pitfall:</strong> ${E(sqlDeepDive[id].pitfall)}</span></div></section>` : '')
+    + (sqlDeepDive[id] ? `<section class="section"><h2>Engineering deep-dive · Grain, Execution &amp; Anti-Patterns</h2><div class="panel mb-md"><p><strong>Output grain:</strong> ${E(sqlDeepDive[id].grain)}</p><p><strong>Logical execution order:</strong> <code>${E(sqlDeepDive[id].execOrder)}</code></p><p class="muted mb-sm"><strong>Performance &amp; indexing:</strong> ${E(sqlDeepDive[id].perf)}</p>${sqlDeepDive[id].realTable ? A('sql-real/' + U(sqlDeepDive[id].realTable), 'Inspect ' + sqlDeepDive[id].realTable + ' in Real-Data SQL Lab', 'button') : ''}</div><h3>Clause-by-clause breakdown</h3>${table(['SQL Clause', 'What it does & why'], sqlDeepDive[id].clauses)}<h3 class="mt-md">Column meanings in EAM 11.6</h3>${table(['Column', 'Meaning & key role'], sqlDeepDive[id].columns)}<h3 class="mt-md">Broken anti-pattern vs. production rule</h3><div class="note warn">${ICON_ALERT}<div><pre class="mb-sm">${E(sqlDeepDive[id].antiPattern.bad)}</pre><p class="mb-sm">${E(sqlDeepDive[id].antiPattern.why)}</p></div></div><details class="mt-sm"><summary>Senior engineer self-check: ${E(sqlDeepDive[id].interview[0])}</summary><p>${E(sqlDeepDive[id].interview[1])}</p></details></section>` : '')
     + `<section class="section"><h2>What you will learn</h2><p>${E(l.concept)}</p><p>By the end, you should be able to explain the business purpose, describe the steps for the scenario, and identify how to check the result.</p></section>`
     + `<section class="section"><h2>Business scenario</h2><div class="scenario">${E(l.scenario)}</div><p class="muted">Fictional PLANT01 example for learning; not a live EAM transaction.</p></section>`
     + (l.reading ? '<section class="section"><h2>Read the sources</h2><ul>' + l.reading.map(([label, url]) => '<li>' + ext(url, label) + '</li>').join('') + '</ul></section>' : '')
