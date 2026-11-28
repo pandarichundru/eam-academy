@@ -15,7 +15,7 @@
   const ACTIVE_KEY = 'eam3:activeProfile';
   const PROFILE_KEYS = [
     'done', 'marks', 'notes', 'quiz', 'sqlhist', 'activity',
-    'lastLesson', 'recentLessons', 'activePath', 'practiceSolved',
+    'lastLesson', 'recentLessons', 'activePath', 'practiceSolved', 'realSolved',
     'practiceDrafts', 'lastExercise', 'dbBookmarks', 'dbLast', 'missedOnly',
     'resumeTask', 'workspaceDrafts', 'readingPositions'
   ];
@@ -105,6 +105,7 @@
     const act = new Set(readFor(profileId, 'activity', []));
     const quiz = readFor(profileId, 'quiz', {});
     const solved = readFor(profileId, 'practiceSolved', []);
+    const realSolved = readFor(profileId, 'realSolved', []);
     const lastId = readFor(profileId, 'lastLesson', '');
     const d = new Date();
     const dayStr = dt => [dt.getFullYear(), String(dt.getMonth() + 1).padStart(2, '0'), String(dt.getDate()).padStart(2, '0')].join('-');
@@ -120,6 +121,7 @@
       streak,
       quizCorrect,
       solvedCount: Array.isArray(solved) ? solved.length : 0,
+      realSolvedCount: Array.isArray(realSolved) ? realSolved.length : 0,
       lastLessonId: typeof lastId === 'string' ? lastId : '',
     };
   }

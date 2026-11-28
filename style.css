@@ -3293,6 +3293,7 @@ header.site-header nav:not(.is-open) a:hover,header.site-header nav:not(.is-open
 }
 
 /* Full-width Welcome & Home compositions */
+body[data-view="profiles"] #menu,
 body[data-view="profiles"] #topnav,
 body[data-view="profiles"] #mobileNavBtn,
 body[data-view="profiles"] #side,
@@ -3352,19 +3353,26 @@ code, .taglink, .col-dict-table td { overflow-wrap: anywhere; }
   .sql-workspace[data-mobile-tab="schema"] .sql-main-pane { display: none; }
   .sql-workspace[data-mobile-tab="results"] .sql-browser,
   .sql-workspace[data-mobile-tab="results"] .sql-toolbar,
+  .sql-workspace[data-mobile-tab="results"] .sql-query-only,
   .sql-workspace[data-mobile-tab="results"] .editor-shell,
   .sql-workspace[data-mobile-tab="results"] #runSQL,
   .sql-workspace[data-mobile-tab="results"] #checkSQL,
+  .sql-workspace[data-mobile-tab="results"] #formatSQL,
   .sql-workspace[data-mobile-tab="results"] #sqlExpected { display: none; }
   #topnav.is-open .nav-group { display: block; width: 100%; }
   #topnav.is-open .nav-dropdown { position: static; box-shadow: none; border: 0; padding-left: 12px; display: block !important; }
   .mobile-bottom-nav { padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px)); }
   .mobile-bottom-nav a, .mobile-bottom-nav button { min-height: 44px; }
+  .footer-sep { display: none; }
 }
 @media (max-width: 500px) {
+  header.site-header { padding: 0 12px; gap: 8px; }
+  #mobileNavBtn { padding: 6px 10px; }
   .profile-grid { grid-template-columns: 1fr; }
   .profile-card { flex-direction: row; justify-content: flex-start; text-align: left; padding: 12px 14px; }
   .profile-card-text { align-items: flex-start; }
-  .appearance-select { padding: 4px 6px; font-size: 12px; max-width: 78px; }
+  .appearance-select { padding: 4px 8px; font-size: 12px; max-width: none; }
+  .brand { font-size: 14px; }
+  .brand small { display: none; }
   #realBackupSummary { padding: 10px 12px; font-size: 12px; }
 }

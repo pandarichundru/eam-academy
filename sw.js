@@ -57,6 +57,7 @@ const files = [
   "library.js",
   "manifest.webmanifest",
   "profiles.js",
+  "sql-formatter/sql-engine.js",
   "learning-tools.js",
   "query-client.js",
   "quizzes.json",
