@@ -348,7 +348,7 @@ function enhanceCodeBlocks(root) {
 const H = (tag, title, desc = '') => `<div class="eyebrow">${E(tag)}</div><h1>${E(title)}</h1>${desc ? `<p class="muted">${E(desc)}</p>` : ''}`;
 const A = (route, label, cls = '') => `<a ${cls ? `class="${cls}"` : ''} href="#${route}">${E(label)}</a>`;
 const ext = (url, label) => `<a class="ext-link" href="${E(url)}" target="_blank" rel="noopener noreferrer"><span>${E(label)}</span>${ICON_EXTERNAL}</a>`;
-const table = (headers, rows) => `<div class="scroll"><table><thead><tr>${headers.map(v => `<th scope="col">${E(v)}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(v => `<td>${v === null || v === undefined ? '<span class="null-val">NULL</span>' : v==='' ? '<span class="empty-value">Empty string</span>' : E(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+const table = (headers, rows) => `<div class="scroll"><table><thead><tr>${headers.map(v => `<th scope="col">${E(v)}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(v => `<td class="${typeof v === 'number' ? 'num' : ''}">${v === null || v === undefined ? '<span class="null-val">NULL</span>' : v==='' ? '<span class="empty-value">Empty string</span>' : E(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 const tiles = items => `<div class="grid">${items.map(([r, t, d]) => `<a class="tile" href="#${r}"><h3>${E(t)}</h3><p>${E(d)}</p></a>`).join('')}</div>`;
 const progress = (n, total) => `<div class="bar" role="progressbar" aria-label="Completion" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${n}"><i style="width:${total ? n / total * 100 : 0}%"></i></div>`;
 const lessonLink = l => `<a class="lesson-link${done.includes(l.id) ? ' is-done' : ''}" href="#lesson/${E(l.id)}">${done.includes(l.id) ? ICON_CHECK : ''}<span>${E(l.title)}</span></a>`;
@@ -1406,7 +1406,7 @@ function wireSqlWorkspace(curGen, { runningLabel, runQuery, formatResultMeta, on
   }
   if ($('runSQL')) {
     $('runSQL').onclick = async () => {
-      const b = $('runSQL'), q = $('sqlText').value;
+      const b = $('runSQL'), q = sqlEl.selectionStart!==sqlEl.selectionEnd ? sqlEl.value.slice(sqlEl.selectionStart,sqlEl.selectionEnd) : sqlEl.value;
       focusCompactResults();
       b.disabled = true; $('sqlResult').textContent = runningLabel; $('sqlCheckMsg').innerHTML = '';
       if (fmtMsg) fmtMsg.innerHTML = '';
@@ -1429,6 +1429,11 @@ function wireSqlWorkspace(curGen, { runningLabel, runQuery, formatResultMeta, on
           try{await navigator.clipboard.writeText([row(v.columns),row(v.columns.map(()=> '---')),...v.rows.map(row)].join('\n'));$('resultState').textContent='Copied';}
           catch{$('resultState').textContent='Clipboard unavailable';}
         };
+        $('sqlResult').querySelector('.scroll')?.addEventListener('dblclick',async event=>{
+          const cell=event.target.closest('td');if(!cell)return;
+          const value=v.rows[cell.parentElement.sectionRowIndex][cell.cellIndex];
+          try{await navigator.clipboard.writeText(String(value??'NULL'));$('resultState').textContent='Cell copied';}catch{$('resultState').textContent='Clipboard unavailable';}
+        });
         sqlEl.oninput=()=>{if($('resultState'))$('resultState').textContent=sqlEl.value===q?'':'Showing the previous query';};
         sqlEl.oninput();
       } catch (e) {
@@ -1567,6 +1572,7 @@ function renderAssess(m) {
 }
 
 async function route() {
+  releaseCompanion();
   stopTrackingTask();
   const current = ++generation;
   const hash = location.hash.slice(1) || document.body.dataset.initialRoute || 'home';
@@ -1977,6 +1983,7 @@ async function route() {
               ]);
               const norm = r => JSON.stringify(ex.ordered ? r.rows : [...r.rows].sort());
               const ok = !got.truncated && !exp.truncated && got.columns.length === exp.columns.length && norm(got) === norm(exp);
+              if(current!==generation)return;
               if (ok) {
                 const nextRealSolved = [...new Set([...read('realSolved', []), ex.id])];
                 write('realSolved', nextRealSolved);
@@ -2006,7 +2013,16 @@ async function route() {
           const f = e.target.files?.[0];
           if (!f) return;
           try {
+            if(f.size>8*1024*1024)throw Error('Profile backup exceeds 8 MB');
             const d = JSON.parse(await f.text());
+            if(current!==generation)return;
+            if(!d||typeof d!=='object'||Array.isArray(d))throw Error('Expected a profile backup object');
+            for(const key of ['done','marks']){
+              if(d[key] && (!Array.isArray(d[key])||!d[key].every(id=>typeof id==='string')))throw Error('Invalid '+key+' list');
+            }
+            for(const [key,type] of [['notes','string'],['quiz','boolean']]){
+              if(d[key] && (typeof d[key]!=='object'||Array.isArray(d[key])||!Object.values(d[key]).every(value=>typeof value===type)))throw Error('Invalid '+key+' entries');
+            }
             if (d.resumeTask && ['sql','sql-real','exercise','lesson'].includes(d.resumeTask.route) &&
                 typeof d.resumeTask.id === 'string' && typeof d.resumeTask.label === 'string') write('resumeTask', d.resumeTask);
             if (d.workspaceDrafts && typeof d.workspaceDrafts === 'object') write('workspaceDrafts',
@@ -2054,7 +2070,8 @@ async function route() {
         const estimate=document.createElement('small');
         estimate.textContent=Math.max(1,Math.ceil(article.innerText.trim().split(/\s+/).length/220))+' min read';
         main.querySelector('.lesson-meta').append(estimate);
-        $('focusLesson').onclick=e=>{const on=document.body.classList.toggle('reader-focus');e.currentTarget.setAttribute('aria-pressed',String(on));};
+        $('focusLesson').onclick=e=>{const on=document.body.classList.toggle('reader-focus');e.currentTarget.setAttribute('aria-pressed',String(on));document.dispatchEvent(new Event('readerlayout'));};
+        attachCompanion(article);
         updateReadingProgress();
       }
       document.body.classList.toggle('nav-folded',read('navFolded',false));

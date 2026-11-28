@@ -82,15 +82,12 @@
       </header>
       <div class="pumpsim-sheet">
         ${illustration()}
-        <div class="pumpsim-callouts" aria-hidden="true">
-          <span class="pumpsim-callout">Volute</span>
-          <span class="pumpsim-callout is-amber">Mechanical seal</span>
-          <span class="pumpsim-callout">Coupling</span>
-          <span class="pumpsim-callout">Motor</span>
+        <div class="pumpsim-callouts" aria-label="Pump components">
+          ${Object.keys(componentNotes).map(name=>interactive?`<button type="button" class="pumpsim-callout" data-component="${name}" aria-pressed="false">${name}</button>`:`<span class="pumpsim-callout">${name}</span>`).join('')}
         </div>
         <div class="pumpsim-position"><span>Duty position</span> <b>CW-DUTY</b></div>
       </div>
-      ${interactive ? `<div class="pumpsim-controls">
+      ${interactive ? `<p data-component-note hidden aria-live="polite"></p><div class="pumpsim-controls">
         <p aria-live="polite" aria-atomic="true" data-pump-message><strong>P-101A</strong> is installed at <code>CW-DUTY</code>.</p>
         <button type="button" class="pumpsim-swap" data-pump-swap>${swapIcon}<span>Swap pump</span></button>
       </div>
@@ -102,6 +99,12 @@
     </section>`;
   };
 
+  const componentNotes = {
+    'Volute':'The spiral casing collects water leaving the impeller and directs it toward the outlet.',
+    'Mechanical seal':'The seal limits leakage around the rotating shaft. The example repair belongs to the physical pump.',
+    'Coupling':'The coupling transmits rotation from the motor shaft to the pump shaft.',
+    'Motor':'The electric motor drives the pump through the coupling.'
+  };
   const exampleHistories = {
     A: [['05 May', 'Replaced the leaking mechanical seal at CW-DUTY. One seal was issued to the repair order.']],
     B: [['12 May', 'Inspected the spare pump in stores.']]
@@ -128,6 +131,12 @@
   }
 
   document.addEventListener('click', event => {
+    const part=event.target.closest('[data-component]');
+    if(part){
+      const scene=part.closest('[data-pump-scene]'),note=scene.querySelector('[data-component-note]');
+      scene.querySelectorAll('[data-component]').forEach(b=>b.setAttribute('aria-pressed',String(b===part)));
+      note.hidden=false;note.textContent=componentNotes[part.dataset.component];return;
+    }
     const button = event.target.closest('button[data-pump-swap], button[data-pump-history]');
     if (!button) return;
     const scene = button.closest('[data-pump-scene]');

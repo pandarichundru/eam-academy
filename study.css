@@ -171,3 +171,8 @@ body.db-reference{font-family:var(--font-sans);background:var(--layer-00);color:
 .db-reference .dbshell article{background:var(--layer-01);border-color:var(--border-subtle)}
 .dbshell h1{font-size:clamp(1.6rem,3vw,2rem)}.dbshell nav{position:sticky;top:0;background:var(--layer-00);padding-block:.5rem;z-index:2}
 }
+@layer views{
+.lesson-companion{border-bottom:1px solid var(--border);padding-block:12px}.lesson-companion .row button[aria-pressed=true]{color:var(--interactive);border-color:currentColor}
+.lesson-companion>[hidden]{display:none}.lesson-companion .study-figure{padding:.65rem}
+@media(min-width:1500px){.lesson-layout:has(.lesson-companion){grid-template-columns:minmax(0,1fr) clamp(21rem,25vw,28rem)}}
+}
