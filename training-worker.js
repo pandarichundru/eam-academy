@@ -49,7 +49,7 @@ function qIdent(name) {
 async function loadRealDatabase(engine, sql, passedTables) {
   let tables = passedTables;
   if (!Array.isArray(tables)) {
-    const res = await fetch('data/manifest.json', { cache: 'default' });
+    const res = await fetch('data/manifest-index.json', { cache: 'default' });
     if (!res.ok) throw Error('Real-data manifest unavailable.');
     const manifest = await res.json();
     tables = manifest.tables || [];
