@@ -108,3 +108,35 @@ document.addEventListener('change', event => {
     event.target.closest('[data-calendar-lab]').querySelector('.lab-record').innerHTML = calendarDates(Number(event.target.value));
   }
 });
+
+function presentLesson(lesson) {
+  const diagram = lesson.diagram;
+  const labels = diagram?.labels || (lesson.walkthrough?.length ? lesson.walkthrough.map((_,i)=>'Step '+(i+1)) : ['Query','Check the result']);
+  const notes = diagram ? lesson.diagramNotes : (lesson.walkthrough?.length ? lesson.walkthrough : [lesson.sql,lesson.verify]);
+  const dialog = document.createElement('dialog');
+  dialog.className = 'trainer-screen'; dialog.setAttribute('aria-label','Present '+lesson.title);
+  dialog.innerHTML = `<div class="trainer-inner"><header><span>${E(lesson.module)}</span><button data-exit>End presentation</button></header><h2>${E(lesson.title)}</h2><p>${E(diagram?.question || lesson.concept)}</p><div class="trainer-map" data-kind="${E(diagram?.kind||'flow')}"></div><div class="trainer-answer" aria-live="polite"></div><footer><button data-prev>Previous</button><span data-count></span><button data-next>Next</button><button data-reveal>Show explanation</button></footer></div>`;
+  let current = 0, revealed = false;
+  const find = selector => dialog.querySelector(selector);
+  function draw() {
+    find('.trainer-map').innerHTML = labels.map((label,i)=>`<span class="${i===current?'current':''}" style="visibility:${i<=current?'visible':'hidden'}">${E(label)}</span>`).join('');
+    find('.trainer-answer').textContent = revealed ? notes[current] : '';
+    find('[data-count]').textContent = (current+1)+' / '+labels.length;
+    find('[data-prev]').disabled = current===0;find('[data-next]').disabled = current===labels.length-1;
+    find('[data-reveal]').textContent = revealed?'Hide explanation':'Show explanation';
+  }
+  function move(offset){current=Math.max(0,Math.min(labels.length-1,current+offset));revealed=false;draw();}
+  find('[data-prev]').onclick=()=>move(-1);find('[data-next]').onclick=()=>move(1);
+  find('[data-reveal]').onclick=()=>{revealed=!revealed;draw();};
+  find('[data-exit]').onclick=()=>dialog.close();
+  const end=()=>dialog.close();
+  dialog.addEventListener('keydown',event=>{
+    if(['ArrowLeft','ArrowRight'].includes(event.key)){event.preventDefault();move(event.key==='ArrowRight'?1:-1);}
+  });
+  dialog.addEventListener('close',()=>{window.removeEventListener('hashchange',end);dialog.remove();},{once:true});
+  window.addEventListener('hashchange',end);document.body.append(dialog);draw();dialog.showModal();
+}
+document.addEventListener('click',event=>{
+  const button=event.target.closest('[data-present-lesson]');
+  if(button){const lesson=lessons.find(l=>l.id===button.dataset.presentLesson);if(lesson)presentLesson(lesson);}
+});
