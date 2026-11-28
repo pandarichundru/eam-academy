@@ -61,6 +61,7 @@ const files = [
   "manifest.webmanifest",
   "profiles.js",
   "sql-formatter/sql-engine.js",
+  "sql-autocomplete.js",
   "learning-tools.js",
   "query-client.js",
   "quizzes.json",
@@ -70,7 +71,7 @@ const files = [
   "workshops.js"
 ];
 const prefix = 'eam-academy:' + self.registration.scope + ':';
-const version = prefix + '3';
+const version = prefix + '4';
 const cacheName = version + ':learner-workspace-v1';
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(cacheName).then(cache => cache.addAll(files.map(file => new Request(file, {cache:'reload'})))).then(() => self.skipWaiting()));

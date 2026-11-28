@@ -1364,6 +1364,88 @@ function focusCompactResults() {
   setSqlMobileTab('results');
   (document.querySelector('.sql-mobile-tabs') || document.querySelector('.sql-results-pane'))?.scrollIntoView({ block: 'start' });
 }
+
+/* ── SQL result keyboard-nav helper (called after each result render) ──── */
+function wireResultGrid(container) {
+  if (!container) return;
+  const allCells = () => Array.from(container.querySelectorAll('td[role="gridcell"]'));
+  const cells = allCells();
+  if (cells.length) cells[0].tabIndex = 0;
+
+  container.addEventListener('keydown', e => {
+    const focused = document.activeElement;
+    if (!focused || focused.getAttribute('role') !== 'gridcell') return;
+    const ri = Number(focused.dataset.ri);
+    const ci = Number(focused.dataset.ci);
+    const rows = container.querySelectorAll('tbody tr');
+    const colCount = rows[0]?.querySelectorAll('td').length ?? 0;
+    const rowCount = rows.length;
+
+    let targetRi = ri, targetCi = ci;
+    if (e.key === 'ArrowRight')       { e.preventDefault(); targetCi = Math.min(ci + 1, colCount - 1); }
+    else if (e.key === 'ArrowLeft')   { e.preventDefault(); targetCi = Math.max(ci - 1, 0); }
+    else if (e.key === 'ArrowDown')   { e.preventDefault(); targetRi = Math.min(ri + 1, rowCount - 1); }
+    else if (e.key === 'ArrowUp')     { e.preventDefault(); targetRi = Math.max(ri - 1, 0); }
+    else if (e.key === 'Home')        { e.preventDefault(); targetCi = 0; }
+    else if (e.key === 'End')         { e.preventDefault(); targetCi = colCount - 1; }
+    else if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'c') {
+      e.preventDefault();
+      const val = focused.dataset.val ?? focused.textContent;
+      copyToClipboard(val, 'Cell copied');
+      return;
+    } else if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'c') {
+      e.preventDefault();
+      const row = focused.closest('tr');
+      if (row) {
+        const vals = Array.from(row.querySelectorAll('td[role="gridcell"]')).map(td => td.dataset.val ?? '');
+        copyToClipboard(vals.join('\t'), 'Row copied');
+      }
+      return;
+    } else { return; }
+
+    const target = container.querySelector(`td[data-ri="${targetRi}"][data-ci="${targetCi}"]`);
+    if (target) {
+      allCells().forEach(c => { c.tabIndex = -1; });
+      target.tabIndex = 0;
+      target.focus();
+    }
+  });
+}
+
+/* ── Clipboard helper with toast ─────────────────────────────────────────── */
+function copyToClipboard(text, msg) {
+  const notify = () => {
+    const liveEl = document.getElementById('sqlCopyStatus');
+    if (liveEl) { liveEl.textContent = msg; setTimeout(() => { liveEl.textContent = ''; }, 2000); }
+    showCopyToast(msg);
+  };
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(text).then(notify).catch(() => fallbackCopy(text, notify));
+  } else { fallbackCopy(text, notify); }
+}
+
+function fallbackCopy(text, cb) {
+  const ta = document.createElement('textarea');
+  ta.value = text; ta.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); cb?.(); } catch (_) {}
+  document.body.removeChild(ta);
+}
+
+function showCopyToast(msg) {
+  let toast = document.getElementById('sqlCopyToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'sqlCopyToast';
+    toast.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.classList.add('is-visible');
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => toast.classList.remove('is-visible'), 1600);
+}
+
 function wireSqlWorkspace(curGen, { runningLabel, runQuery, formatResultMeta, onCheck }) {
   const formatBtn = $('formatSQL'), fmtMsg = $('sqlFormatMsg'), sqlEl = $('sqlText');
   const starter = sqlEl.defaultValue;
@@ -1810,8 +1892,14 @@ async function route() {
             } catch (e) { msg.innerHTML = `<div class="note warn">Check failed: ${E(e.message)}</div>`; }
           },
         });
+        // Attach SQL autocomplete for the synthetic lab
+        const syntheticAc = window.SqlAutocomplete?.attach($('sqlText'), () => ({ tables: [] }));
         api('/api/schema').then(v => {
           if (current !== generation) return;
+          // Update autocomplete schema when it loads
+          syntheticAc?.updateSchema({
+            tables: v.tables.map(t => ({ name: t.name, columns: t.columns.map(c => ({ name: c.name, sql_type: c.type || '' })) }))
+          });
           $('sqlSchema').innerHTML = v.tables.map(t => {
             const pk = t.columns.filter(c => c.pk).sort((a, b) => a.pk - b.pk).map(c => c.name);
             const purpose = crosswalk.find(row => row[0] === t.name)?.[2] || '';
@@ -1995,6 +2083,8 @@ async function route() {
             } catch (e) { msg.innerHTML = `<div class="note warn">Check failed: ${E(e.message)}</div>`; }
           },
         });
+        // Attach SQL autocomplete for the real lab; schema updates once manifest loads
+        const realAc = window.SqlAutocomplete?.attach($('sqlText'), () => realManifest ? { tables: realManifest.tables.map(t => ({ name: t.table, columns: t.columns })) } : { tables: [] });
         break;
       }
       case 'assess':
