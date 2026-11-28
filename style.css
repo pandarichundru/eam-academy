@@ -3090,3 +3090,145 @@ header.site-header nav:not(.is-open) a:hover,header.site-header nav:not(.is-open
 .lab-results{margin:0}
 }
 @media(prefers-reduced-motion:no-preference){#practiceOutput:not(:empty),.match-grid .matched,.challenge-aid[open]>p{animation:labReveal .24s ease-out}@keyframes labReveal{from{opacity:.5;transform:translateY(3px)}to{opacity:1;transform:none}}}
+
+/* ==========================================================================
+   Learner Profiles — Welcome Screen, Navbar Avatar & Recent Lessons
+   ========================================================================== */
+.profile-menu {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.profile-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 5px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--dur-hover) var(--ease-standard), border-color var(--dur-hover) var(--ease-standard);
+}
+.profile-trigger:hover { background: var(--bg-hover); border-color: var(--border-strong); }
+.profile-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+.profile-avatar.lg {
+  width: 48px;
+  height: 48px;
+  font-size: 16px;
+}
+.profile-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 210px;
+  padding: 6px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-float);
+  z-index: 60;
+  animation: viewEnter var(--dur-dropdown) var(--ease-entrance);
+}
+.profile-dropdown[hidden] { display: none; }
+.profile-drop-head {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+.profile-drop-head strong { display: block; font-size: 13px; }
+.profile-drop-head small { color: var(--text-muted); font-size: 11px; }
+.profile-drop-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--dur-hover) var(--ease-standard);
+}
+.profile-drop-item:hover { background: var(--bg-hover); }
+
+.profile-welcome-wrap {
+  max-width: 780px;
+  margin: 32px auto;
+  padding: 32px 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--bg-elevated);
+  text-align: center;
+  animation: viewEnter var(--dur-standard) var(--ease-entrance);
+}
+.profile-welcome-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.profile-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+.profile-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--bg-sidebar);
+  color: var(--text);
+  cursor: pointer;
+  text-align: center;
+  transition:
+    transform var(--dur-hover) var(--ease-standard),
+    border-color var(--dur-hover) var(--ease-standard),
+    background-color var(--dur-hover) var(--ease-standard),
+    box-shadow var(--dur-hover) var(--ease-standard);
+}
+.profile-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-strong);
+  background: var(--bg-elevated);
+  box-shadow: var(--shadow-float);
+}
+.profile-card:active { transform: translateY(0); }
+.profile-card strong { font-size: 16px; }
+.profile-card small { color: var(--text-muted); font-size: 12px; }
+.recent-lessons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+@media (max-width: 720px) {
+  .profile-grid { grid-template-columns: 1fr; }
+  .profile-name-label { display: none; }
+}

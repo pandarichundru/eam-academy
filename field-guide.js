@@ -19,21 +19,28 @@ function logActivity() {
   if (!days.includes(today)) write('activity', [...days, today]);
 }
 function learningDashboard() {
+  const profile = window.EAMProfiles?.getActiveProfile();
   const days = new Set(read('activity', [])), date = new Date();
   if (!days.has(activityDay(date))) date.setDate(date.getDate()-1);
   let streak = 0;
   while (days.has(activityDay(date))) { streak++; date.setDate(date.getDate()-1); }
   const count = lessons.filter(l => done.includes(l.id)).length;
+  const pct = lessons.length ? Math.round((count / lessons.length) * 100) : 0;
   const correct = quizzes.filter(q => quizState[q.id] === true).length;
   const solved = read('practiceSolved', []).length;
+  const recentIds = read('recentLessons', []);
+  const recentItems = (Array.isArray(recentIds) ? recentIds : []).map(id => lessons.find(l => l.id === id)).filter(Boolean).slice(0, 5);
   const badges = [
     ['First lesson', count >= 1],
     ['Quiz specialist', correct >= 5],
-    ['SQL explorer', solved >= 5]
+    ['SQL explorer', solved >= 5],
+    ['Streak builder', streak >= 3]
   ];
-  return '<section class="panel"><div class="dashboard-head"><div><h2>Your learning</h2><p class="muted mb-sm">Local progress, quiz accuracy, and SQL practice stored in this browser.</p></div>' + progressRing(count, lessons.length) + '</div><div class="metrics">' +
+  const syncLabel = window.EAMProfiles ? window.EAMProfiles.getSyncStatus() : 'Local progress';
+  return '<section class="panel"><div class="dashboard-head"><div><h2>' + (profile ? E(profile.name) + '’s learning' : 'Your learning') + '</h2><p class="muted mb-sm">' + E(syncLabel) + ' · ' + pct + '% curriculum complete.</p></div>' + progressRing(count, lessons.length) + '</div><div class="metrics">' +
     metric(count + '/' + lessons.length, 'Lessons complete') + metric(count*10 + correct*5 + solved*15,'XP') +
-    metric(streak, 'Day streak') + '</div>' + progress(count, lessons.length) +
+    metric(streak, 'Day streak') + metric(correct, 'Quizzes passed') + '</div>' + progress(count, lessons.length) +
+    (recentItems.length ? '<div class="recent-lessons"><span class="muted">Recently visited</span>' + recentItems.map(l => lessonLink(l)).join('') + '</div>' : '') +
     '<div class="badge-row"><span class="muted">Milestones</span>' + badges.map(([label, earned]) => '<span class="badge-pill' + (earned ? ' is-earned' : '') + '">' + (earned ? ICON_CHECK : '') + '<span>' + E(label) + '</span></span>').join('') + '</div>' +
     '<details><summary>Completion by module</summary>' + Object.entries(groups).map(([name, items]) => {
       const n = items.filter(l => done.includes(l.id)).length;
@@ -41,6 +48,7 @@ function learningDashboard() {
     }).join('') + '</details>' + A('progress','Manage or back up progress') + '</section>';
 }
 function fieldHome() {
+  const profile = window.EAMProfiles?.getActiveProfile();
   const last = lessons.find(l => l.id === read('lastLesson',''));
   const dbLast=read("dbLast",null),lastExercise=read("lastExercise",0);
   const entryTiles = [
@@ -49,8 +57,9 @@ function fieldHome() {
     ['paths', 'Role-based paths', `${Object.keys(roles).length} role paths`, ICON_COMPASS, 'Follow a curriculum organized around your responsibilities.'],
     ['reference', 'Reference library', '1,681 R5 tables', ICON_DATABASE, 'Look up guides, fields, database tables and relationships.']
   ];
-  const primary = last ? A('lesson/' + last.id, 'Continue learning', 'button primary') : A('lesson/INTRO01', 'Start learning EAM', 'button primary');
-  return '<div class="front academy-hero"><div class="front-copy"><div class="eyebrow">Enterprise asset management</div><h1>Learn EAM in practice.</h1><p>Swap the pump in the north pump room. Then open its history to see which unit owns the seal repair.</p><div class="hero-links">' + primary + A('pump','Explore the pump case study') + '</div></div>' + pumpScene('home') + '</div>'
+  const primary = last ? A('lesson/' + last.id, 'Continue: ' + last.title, 'button primary') : A('lesson/INTRO01', 'Start learning EAM', 'button primary');
+  const eyebrow = profile ? `Welcome back, ${E(profile.name)}` : 'Enterprise asset management';
+  return '<div class="front academy-hero"><div class="front-copy"><div class="eyebrow">' + eyebrow + '</div><h1>Learn EAM in practice.</h1><p>Swap the pump in the north pump room. Then open its history to see which unit owns the seal repair.</p><div class="hero-links">' + primary + A('pump','Explore the pump case study') + '</div></div>' + pumpScene('home') + '</div>'
     + ((lastExercise||dbLast)?'<div class="resume-band">'+(lastExercise?A('exercise/'+Number(lastExercise),'Continue exercise '+Number(lastExercise)):'')+(dbLast?'<a href="data/database-reference.html#'+encodeURIComponent(dbLast.key)+'">Last database entry · '+E(dbLast.name)+'</a>':'')+'</div>':'')
     + '<h2>Choose your starting point</h2><div class="grid home-tiles">'
     + entryTiles.map(([r, t, meta, icon, d]) => `<a class="tile entry-tile" href="#${r}"><div class="entry-head"><span class="entry-icon" aria-hidden="true">${icon}</span><span class="pill tabular">${E(meta)}</span></div><h3>${E(t)}</h3><p>${E(d)}</p></a>`).join('')

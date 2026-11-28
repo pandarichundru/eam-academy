@@ -3,13 +3,98 @@ const $ = id => document.getElementById(id);
 const E = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const U = encodeURIComponent;
 const HMark = v => E(v).replace(/\[\[H\]\]/g, '<mark>').replace(/\[\[\/H\]\]/g, '</mark>');
-const read = (k, d) => { try { return JSON.parse(localStorage.getItem('eam3:' + k)) ?? d; } catch { return d; } };
-const write = (k, v) => { try { localStorage.setItem('eam3:' + k, JSON.stringify(v)); } catch {} };
+const read = (k, d) => {
+  const pid = window.EAMProfiles?.getActiveProfileId();
+  if (pid) return window.EAMProfiles.readFor(pid, k, d);
+  try { return JSON.parse(localStorage.getItem('eam3:' + k)) ?? d; } catch { return d; }
+};
+const write = (k, v) => {
+  const pid = window.EAMProfiles?.getActiveProfileId();
+  if (pid) { window.EAMProfiles.writeFor(pid, k, v); return; }
+  try { localStorage.setItem('eam3:' + k, JSON.stringify(v)); } catch {}
+};
 
 let recoveryAudit;
 let lessons = [], catalog = {}, extended = {}, enrichment = {}, codeMeta = {}, quizzes = [], groups = {};
-let done = read('done', []), marks = read('marks', []), notes = read('notes', {}), quizState = read('quiz', {}), sqlHist = read('sqlhist', []);
+let done = [], marks = [], notes = {}, quizState = {}, sqlHist = [];
 let generation = 0;
+
+function reloadProfileState() {
+  done = read('done', []);
+  marks = read('marks', []);
+  notes = read('notes', {});
+  quizState = read('quiz', {});
+  sqlHist = read('sqlhist', []);
+}
+reloadProfileState();
+
+function renderProfileMenu() {
+  const host = $('profileMenu');
+  if (!host || !window.EAMProfiles) return;
+  const p = window.EAMProfiles.getActiveProfile();
+  if (!p) { host.innerHTML = ''; return; }
+  const syncLabel = window.EAMProfiles.getSyncStatus();
+  host.innerHTML = `<button type="button" class="profile-trigger" id="profileMenuBtn" aria-expanded="false" aria-haspopup="menu">`
+    + `<span class="profile-avatar" aria-hidden="true">${E(p.initials)}</span>`
+    + `<span class="profile-name-label">${E(p.name)}</span>`
+    + `</button>`
+    + `<div class="profile-dropdown" id="profileDropdown" role="menu" hidden>`
+    + `<div class="profile-drop-head"><strong>${E(p.name)}</strong><small>${E(syncLabel)}</small></div>`
+    + `<button type="button" class="profile-drop-item" role="menuitem" id="menuSwitchProfile">Switch profile</button>`
+    + `<button type="button" class="profile-drop-item" role="menuitem" id="menuMyProgress">My learning progress</button>`
+    + `<button type="button" class="profile-drop-item" role="menuitem" id="menuSignOut">Sign out</button>`
+    + `</div>`;
+  const btn = $('profileMenuBtn'), drop = $('profileDropdown');
+  btn.onclick = ev => {
+    ev.stopPropagation();
+    const open = drop.hasAttribute('hidden');
+    drop.toggleAttribute('hidden', !open);
+    btn.setAttribute('aria-expanded', String(open));
+  };
+  $('menuSwitchProfile').onclick = () => {
+    drop.setAttribute('hidden', '');
+    location.hash = 'profiles';
+  };
+  $('menuMyProgress').onclick = () => {
+    drop.setAttribute('hidden', '');
+    location.hash = 'progress';
+  };
+  $('menuSignOut').onclick = () => {
+    drop.setAttribute('hidden', '');
+    window.EAMProfiles.setActiveProfileId('');
+    reloadProfileState();
+    renderProfileMenu();
+    route();
+  };
+}
+
+document.addEventListener('click', ev => {
+  const drop = $('profileDropdown'), btn = $('profileMenuBtn');
+  if (drop && !drop.hasAttribute('hidden') && !ev.target.closest('#profileMenu')) {
+    drop.setAttribute('hidden', '');
+    btn?.setAttribute('aria-expanded', 'false');
+  }
+});
+
+function profileWelcomeScreen() {
+  const cards = window.EAMProfiles.LEARNERS.map(p => {
+    const s = window.EAMProfiles.getProfileSummary(p.id, lessons.length);
+    const meta = s.completed > 0
+      ? `${s.pct}% complete · ${s.completed}/${lessons.length} lessons${s.streak ? ` · ${s.streak}d streak` : ''}`
+      : 'Ready to start learning';
+    return `<button type="button" class="profile-card" data-select-profile="${E(p.id)}">`
+      + `<span class="profile-avatar lg" aria-hidden="true">${E(p.initials)}</span>`
+      + `<strong>${E(p.name)}</strong>`
+      + `<small>${E(meta)}</small>`
+      + `</button>`;
+  }).join('');
+  return `<section class="profile-welcome-wrap" aria-labelledby="welcomeHeading">`
+    + `<div class="profile-welcome-logo"><span class="brandmark" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="2.5"></rect><path d="M5.5 6h5M5.5 8.2h3.5M5.5 10.4h5"></path></svg></span><span class="brand-text">EAM <b>Academy</b></span></div>`
+    + `<h1 id="welcomeHeading">Who's learning today?</h1>`
+    + `<p class="muted">Select your profile to continue with your own curriculum progress, quizzes, notes, and bookmarks.</p>`
+    + `<div class="profile-grid">${cards}</div>`
+    + `</section>`;
+}
 
 const roles = {
   'Beginner': ['Introduction to EAM', 'Fundamentals', 'Equipment management', 'Work management'],
@@ -628,7 +713,10 @@ function quizBlock(qList) {
 function lessonPage(id) {
   const l = lessons.find(v => v.id === id);
   if (!l) return H('Not found', 'Lesson not found');
-  write('lastLesson', l.id); logActivity();
+  write('lastLesson', l.id);
+  const recent = read('recentLessons', []);
+  write('recentLessons', [l.id, ...(Array.isArray(recent) ? recent.filter(x => x !== l.id) : [])].slice(0, 5));
+  logActivity();
   const activePath = read('activePath','');
   const pathModules = roles[activePath];
   const inPath = Array.isArray(pathModules) && pathModules.includes(l.module);
@@ -1298,6 +1386,25 @@ async function route() {
   const r = pos < 0 ? hash : hash.slice(0, pos);
   let id = '';
   try { id = pos < 0 ? '' : decodeURIComponent(hash.slice(pos + 1)); } catch {}
+  renderProfileMenu();
+  if (window.EAMProfiles && (!window.EAMProfiles.getActiveProfileId() || r === 'profiles')) {
+    document.body.dataset.view = 'profiles';
+    renderNav('home', '');
+    const main = $('main');
+    main.innerHTML = profileWelcomeScreen();
+    main.querySelectorAll('[data-select-profile]').forEach(btn => {
+      btn.onclick = async () => {
+        const pid = btn.dataset.selectProfile;
+        window.EAMProfiles.setActiveProfileId(pid);
+        reloadProfileState();
+        renderProfileMenu();
+        window.EAMProfiles.pullFromSupabase(pid, () => { reloadProfileState(); renderProfileMenu(); route(); });
+        if (r === 'profiles') location.hash = 'home';
+        else route();
+      };
+    });
+    return;
+  }
   document.body.dataset.view = r;
   renderNav(r, id);
   const main = $('main');
