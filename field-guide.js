@@ -49,24 +49,14 @@ function fieldHome() {
     ['paths', 'Role-based paths', `${Object.keys(roles).length} role paths`, ICON_COMPASS, 'Follow a curriculum organized around your responsibilities.'],
     ['reference', 'Reference library', '1,681 R5 tables', ICON_DATABASE, 'Look up guides, fields, database tables and relationships.']
   ];
-  return '<div class="front"><div class="front-copy"><div class="eyebrow">Enterprise asset management</div><h1>Learn EAM in practice.</h1><p>Explore the work behind an asset, trace the records it creates, and use SQL to explain what happened.</p><form id="refSearch"><input type="search" id="refQ" aria-label="Search the academy" placeholder="Search a topic, process or R5 table"><button class="primary">Search</button></form><div class="row footer-links">' + (last ? A('lesson/' + last.id,'Continue learning','button primary') : A('lesson/INTRO01','Start here · What is EAM?','button primary')) + '</div></div>'
-    + '<a class="feature" href="#pump"><small>FEATURED CASE STUDY</small><h2>From pump to preventive work order</h2>'
-    + '<svg class="feature-schematic" viewBox="0 0 320 44" fill="none" aria-hidden="true">'
-    + '<line x1="28" y1="22" x2="144" y2="22" stroke="currentColor" stroke-opacity="0.3" stroke-width="1.25" stroke-dasharray="3 3"/>'
-    + '<line x1="176" y1="22" x2="290" y2="22" stroke="currentColor" stroke-opacity="0.3" stroke-width="1.25"/>'
-    + '<polyline points="285,18 291,22 285,26" stroke="currentColor" stroke-opacity="0.55" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>'
-    + '<circle cx="20" cy="22" r="7" stroke="currentColor" stroke-width="1.4"/><circle cx="20" cy="22" r="2.2" fill="currentColor"/>'
-    + '<rect x="148" y="14" width="24" height="16" rx="4" stroke="currentColor" stroke-width="1.4"/><path d="M155 22h10" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>'
-    + '<circle cx="300" cy="22" r="7" stroke="currentColor" stroke-width="1.4"/><path d="M297 22l2 2 4-4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>'
-    + '</svg>'
-    + '<div class="asset-flow"><span>Asset <b>PUMP-001</b></span><span>Schedule <b>PUMP30</b></span><span>Interval <b>30 days</b></span></div><strong>Explore the case study</strong></a></div>'
-    + (last ? '<div class="resume-band"><span>Continue where you left off</span>' + A('lesson/' + last.id,last.title) + '</div>' : '<div class="resume-band"><span>Start with the fundamentals</span>' + lessonLink(lessons[0]) + '</div>')
+  const primary = last ? A('lesson/' + last.id, 'Continue learning', 'button primary') : A('lesson/INTRO01', 'Start learning EAM', 'button primary');
+  return '<div class="front academy-hero"><div class="front-copy"><div class="eyebrow">Enterprise asset management</div><h1>Learn EAM in practice.</h1><p>Swap the pump in the north pump room. Then open its history to see which unit owns the seal repair.</p><div class="hero-links">' + primary + A('pump','Explore the pump case study') + '</div></div>' + pumpScene('home') + '</div>'
     + ((lastExercise||dbLast)?'<div class="resume-band">'+(lastExercise?A('exercise/'+Number(lastExercise),'Continue exercise '+Number(lastExercise)):'')+(dbLast?'<a href="data/database-reference.html#'+encodeURIComponent(dbLast.key)+'">Last database entry · '+E(dbLast.name)+'</a>':'')+'</div>':'')
-    + learningDashboard()
     + '<h2>Choose your starting point</h2><div class="grid home-tiles">'
     + entryTiles.map(([r, t, meta, icon, d]) => `<a class="tile entry-tile" href="#${r}"><div class="entry-head"><span class="entry-icon" aria-hidden="true">${icon}</span><span class="pill tabular">${E(meta)}</span></div><h3>${E(t)}</h3><p>${E(d)}</p></a>`).join('')
     + '</div>'
     + '<div class="section-head"><h2>Practice with a business problem</h2>' + A('workshops','All workshops') + '</div>' + workshopCards([workshops[2],workshops[4],workshops[3]])
+    + learningDashboard()
     + '<div class="row footer-links">' + A('coverage','Inspect curriculum coverage') + A('flows','Browse business process flows') + '</div>';
 }
 let outlineObserver;
@@ -92,7 +82,7 @@ function attachLessonContents() {
     const jump = () => {
       details.open = false;
       h.focus({ preventScroll: true });
-      h.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      h.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
     };
     const btn = document.createElement('button');
     btn.type = 'button'; btn.textContent = h.textContent;

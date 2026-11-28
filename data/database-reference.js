@@ -93,6 +93,8 @@ const tips={
 function codePage(d){
  const lines=(d.body||'').split(/\r?\n/);
  const refs=(d.tables||'').split(/,\s*/).map(s=>'Table:'+s.trim()).filter(k=>objects.has(k));
+ const trace=renderObjectTrace(d,esc,evidence.unmatched);
+ if(trace)return trace+section('Referenced tables',connections(refs)||para('The catalog lists no matching table references for this candidate.'))+panel('Recovered SQL · '+lines.length+' lines',block(d.body))+academy('code/'+d.id,'Open annotated Academy source');
  const patterns=[['Declaration',/\b(?:CREATE|ALTER)\s+(?:PROC(?:EDURE)?|TRIGGER|FUNCTION|VIEW|TABLE)\b/i],['Row sources and joins',/\b(?:FROM|JOIN)\s+\S/i],['Conditions and return paths',/\b(?:WHERE|HAVING|IF|RETURN)\b/i],['Changes and calls',/\b(?:UPDATE|INSERT\s+INTO|DELETE\s+FROM|EXEC(?:UTE)?)\s+\S/i]];
  return para('Recovered '+d.kind+' candidate '+d.candidate+' at recorded offset '+d.offset+'. '+(evidence.unmatched.includes(d.id)?'Its prefix could not be matched at the recorded offset.':'The beginning of this candidate matched bytes in the supplied backup.'))+section('Read this candidate',para(tips[d.kind]||'Inspect the recovered text and its surrounding context before treating the inferred object name or type as a declaration.'))+patterns.map(([h,re])=>{const hits=lines.map((s,i)=>re.test(s)?(i+1)+'  '+s.trim():'').filter(Boolean).slice(0,6);return hits.length?panel(h,block(hits.join('\n'))):'';}).join('')+section('Trace the evidence',para('The excerpts are textual matches and may include comments or generated SQL. Follow their branches in the complete recovered candidate. Referenced table names are navigation leads.')+connections(refs))+panel('Recovered SQL · '+lines.length+' lines',block(d.body))+academy('code/'+d.id,'Open annotated Academy source');
 }
@@ -122,6 +124,7 @@ function objectMap(o){
   question='Which columns can I use to look up rows in '+o.parent.name+'?';
   steps=d.cols.map((c,i)=>['Key position '+(i+1),c]);
  }else if(o.key.startsWith('Code:')){
+  if (d.kind==='trigger'||d.kind==='procedure') return '';
   question='What does the recovered '+d.kind+' text show?';
   const lines=(d.body||'').split(/\r?\n/);
   const pick=r=>lines.find(l=>r.test(l))?.trim().slice(0,150)||'Inspect recovered source';

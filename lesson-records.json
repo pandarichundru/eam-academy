@@ -1,0 +1,2909 @@
+{
+  "INTRO01": [
+    {
+      "table": "R5OBJECTS",
+      "meaning": "Equipment Master (Assets, Positions, Systems & Locations)",
+      "basis": "Identify the physical pump whose seal failed. Fields in the schema export: OBJ_CODE, OBJ_ORG, OBJ_SERIALNO.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "OBJ_CODE",
+          "OBJ_ORG"
+        ]
+      }
+    },
+    {
+      "table": "R5EVENTS",
+      "meaning": "Work Orders, PMs, Inspections & Service Events",
+      "basis": "Find the repair report and its completion date for that equipment. Fields in the schema export: EVT_CODE, EVT_OBJECT, EVT_OBJECT_ORG, EVT_REPORTED, EVT_COMPLETED.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "EVT_CODE"
+        ]
+      }
+    },
+    {
+      "table": "R5TRANSLINES",
+      "meaning": "Inventory & Material Transaction Lines",
+      "basis": "Follow the seal issued for the repair to its work-order activity. Fields in the schema export: TRL_EVENT, TRL_ACT, TRL_PART, TRL_QTY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "TRL_TRANS",
+          "TRL_LINE"
+        ]
+      },
+      "relationship": {
+        "kind": "Declared foreign key",
+        "target": "R5ACTIVITIES",
+        "columns": [
+          [
+            "TRL_EVENT",
+            "ACT_EVENT"
+          ],
+          [
+            "TRL_ACT",
+            "ACT_ACT"
+          ]
+        ],
+        "evidence": "Constraint R5FOK5_TRL in the exported schema."
+      }
+    }
+  ],
+  "INTRO02": [
+    {
+      "table": "R5OBJECTS",
+      "meaning": "Equipment Master (Assets, Positions, Systems & Locations)",
+      "basis": "The serialized pump is an individually identifiable piece of equipment. Fields in the schema export: OBJ_CODE, OBJ_ORG, OBJ_SERIALNO.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "OBJ_CODE",
+          "OBJ_ORG"
+        ]
+      }
+    },
+    {
+      "table": "R5BINSTOCK",
+      "meaning": "Bin-Level Inventory Balances",
+      "basis": "The interchangeable seals have a quantity at a stocking location. Fields in the schema export: BIS_PART, BIS_PART_ORG, BIS_STORE, BIS_BIN, BIS_LOT, BIS_QTY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "BIS_STORE",
+          "BIS_PART",
+          "BIS_PART_ORG",
+          "BIS_BIN",
+          "BIS_LOT"
+        ]
+      }
+    }
+  ],
+  "INTRO03": [
+    {
+      "table": "R5OBJECTS",
+      "meaning": "Equipment Master (Assets, Positions, Systems & Locations)",
+      "basis": "Compare the two physical pump records with the installation fields. A replacement has its own equipment identity and serial number. Fields in the schema export: OBJ_CODE, OBJ_ORG, OBJ_SERIALNO, OBJ_POSITION, OBJ_POSITION_ORG, OBJ_LOCATION, OBJ_LOCATION_ORG.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "OBJ_CODE",
+          "OBJ_ORG"
+        ]
+      }
+    },
+    {
+      "table": "R5STRUCTURES",
+      "meaning": "Equipment Parent-Child Hierarchies",
+      "basis": "Read the child and parent identifiers together to trace where each unit fits in the equipment hierarchy. Fields in the schema export: STC_CHILD, STC_CHILD_ORG, STC_PARENT, STC_PARENT_ORG.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "STC_CHILD",
+          "STC_CHILD_ORG",
+          "STC_PARENT",
+          "STC_PARENT_ORG"
+        ]
+      }
+    }
+  ],
+  "INTRO04": [
+    {
+      "table": "R5OBJECTS",
+      "meaning": "Equipment Master (Assets, Positions, Systems & Locations)",
+      "basis": "Use commissioning and withdrawal dates to place the pump in its service life. Fields in the schema export: OBJ_CODE, OBJ_COMMISS, OBJ_WITHDRAW, OBJ_STATUS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "OBJ_CODE",
+          "OBJ_ORG"
+        ]
+      }
+    }
+  ],
+  "INTRO05": [
+    {
+      "table": "R5EVENTS",
+      "meaning": "Work Orders, PMs, Inspections & Service Events",
+      "basis": "Trace the reported leak through the work-order header. Fields in the schema export: EVT_CODE, EVT_STATUS, EVT_REPORTED, EVT_COMPLETED.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "EVT_CODE"
+        ]
+      }
+    },
+    {
+      "table": "R5BOOKEDHOURS",
+      "meaning": "Booked Labor Hours & Timecards",
+      "basis": "The technician’s actual labor appears as time entries for the job. Fields in the schema export: BOO_EVENT, BOO_ACT, BOO_HOURS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "BOO_CODE"
+        ]
+      },
+      "relationship": {
+        "kind": "Candidate join",
+        "target": "R5ACTIVITIES",
+        "columns": [
+          [
+            "BOO_EVENT",
+            "ACT_EVENT"
+          ],
+          [
+            "BOO_ACT",
+            "ACT_ACT"
+          ]
+        ],
+        "evidence": "The booking index lists event and activity together. The schema export does not identify this pair as a foreign-key constraint."
+      }
+    },
+    {
+      "table": "R5TRANSLINES",
+      "meaning": "Inventory & Material Transaction Lines",
+      "basis": "Inspect the material line for the replacement seal. Fields in the schema export: TRL_EVENT, TRL_ACT, TRL_PART, TRL_QTY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "TRL_TRANS",
+          "TRL_LINE"
+        ]
+      },
+      "relationship": {
+        "kind": "Declared foreign key",
+        "target": "R5ACTIVITIES",
+        "columns": [
+          [
+            "TRL_EVENT",
+            "ACT_EVENT"
+          ],
+          [
+            "TRL_ACT",
+            "ACT_ACT"
+          ]
+        ],
+        "evidence": "Constraint R5FOK5_TRL in the exported schema."
+      }
+    }
+  ],
+  "INTRO06": [
+    {
+      "table": "R5PPMOBJECTS",
+      "meaning": "PM-to-Equipment Assignments",
+      "basis": "Scheduled maintenance can become due at a date or usage reading on a particular unit. Fields in the schema export: PPO_PPM, PPO_OBJECT, PPO_DUE, PPO_METERDUE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PPO_PK",
+          "PPO_REVISION"
+        ]
+      },
+      "relationship": {
+        "kind": "Declared foreign key",
+        "target": "R5PPMS",
+        "columns": [
+          [
+            "PPO_PPM",
+            "PPM_CODE"
+          ],
+          [
+            "PPO_REVISION",
+            "PPM_REVISION"
+          ]
+        ],
+        "evidence": "Constraint R5FOK1_PPO in the exported schema."
+      }
+    },
+    {
+      "table": "R5EVENTS",
+      "meaning": "Work Orders, PMs, Inspections & Service Events",
+      "basis": "Compare a reported fault with work that references a PM schedule. Fields in the schema export: EVT_CODE, EVT_REPORTED, EVT_OBJECT, EVT_PPM.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "EVT_CODE"
+        ]
+      }
+    }
+  ],
+  "INTRO07": [
+    {
+      "table": "R5EVENTCOST",
+      "meaning": "Eventcost",
+      "basis": "Inspect the recorded costs for the completed repair. Fields in the schema export: EVO_EVENT, EVO_LABOR, EVO_MATERIAL, EVO_TOTAL.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "EVO_EVENT"
+        ]
+      }
+    },
+    {
+      "table": "R5PPMOBJECTS",
+      "meaning": "PM-to-Equipment Assignments",
+      "basis": "Look up when the next planned inspection is due on the equipment. Fields in the schema export: PPO_OBJECT, PPO_PPM, PPO_DUE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PPO_PK",
+          "PPO_REVISION"
+        ]
+      },
+      "relationship": {
+        "kind": "Declared foreign key",
+        "target": "R5PPMS",
+        "columns": [
+          [
+            "PPO_PPM",
+            "PPM_CODE"
+          ],
+          [
+            "PPO_REVISION",
+            "PPM_REVISION"
+          ]
+        ],
+        "evidence": "Constraint R5FOK1_PPO in the exported schema."
+      }
+    }
+  ],
+  "L001": [
+    {
+      "table": "R5PRODUCTVERSION",
+      "meaning": "Productversion",
+      "basis": "Use the product version and patch to select the matching help edition. Fields in the schema export: PVS_PRODUCTCODE, PVS_VERSION, PVS_BUILD, PVS_PATCH.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PVS_PRODUCTCODE"
+        ]
+      }
+    }
+  ],
+  "L002": [
+    {
+      "table": "R5PERMISSIONS",
+      "meaning": "Permissions",
+      "basis": "The screen permissions for a group help explain which record actions are available. Fields in the schema export: PRM_GROUP, PRM_FUNCTION, PRM_INSERT, PRM_UPDATE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PRM_FUNCTION",
+          "PRM_GROUP"
+        ]
+      }
+    }
+  ],
+  "L003": [
+    {
+      "table": "R5LOCALEHOTKEYS",
+      "meaning": "Localehotkeys",
+      "basis": "Inspect the shortcut assignment for the relevant locale and command. Fields in the schema export: LHK_LOCALE, LHK_CODE, LHK_DEFAULT, LHK_KEY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "LHK_LOCALE",
+          "LHK_CODE"
+        ]
+      }
+    }
+  ],
+  "L004": [
+    {
+      "table": "R5USERS",
+      "meaning": "EAM Application Users",
+      "basis": "Check the account language, locale and accessibility setting. Fields in the schema export: USR_CODE, USR_LANG, USR_LOCALE, USR_508.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "USR_CODE"
+        ]
+      }
+    }
+  ],
+  "L005": [
+    {
+      "table": "R5DOCENTITIES",
+      "meaning": "Document-to-Record Associations",
+      "basis": "An attachment association ties a document identifier to an entity and record code. Fields in the schema export: DAE_DOCUMENT, DAE_RENTITY, DAE_CODE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "DAE_DOCUMENT",
+          "DAE_CODE",
+          "DAE_RENTITY"
+        ]
+      }
+    },
+    {
+      "table": "R5DOCUMENTS",
+      "meaning": "Document & Attachment Master",
+      "basis": "Open the document identity and revision behind the attachment. Fields in the schema export: DOC_CODE, DOC_FILENAME, DOC_REVISION.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "DOC_CODE"
+        ]
+      }
+    }
+  ],
+  "L006": [
+    {
+      "table": "R5ADDETAILS",
+      "meaning": "Long Comments & Notes",
+      "basis": "Read the comment text alongside the record, line and author. Fields in the schema export: ADD_RENTITY, ADD_CODE, ADD_LINE, ADD_TEXT, ADD_USER.",
+      "keys": {
+        "kind": "Logical key",
+        "columns": [
+          "ADD_CODE",
+          "ADD_RENTITY",
+          "ADD_TYPE",
+          "ADD_LANG",
+          "ADD_LINE"
+        ]
+      }
+    }
+  ],
+  "L007": [
+    {
+      "table": "R5ELECSIGN",
+      "meaning": "Elecsign",
+      "basis": "Trace who signed the record and what kind of signature was recorded. Fields in the schema export: ELS_ENTCODE, ELS_ENTITY, ELS_USER, ELS_DATE, ELS_SIGNTYPE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "ELS_CODE"
+        ]
+      }
+    }
+  ],
+  "L008": [
+    {
+      "table": "R5DDDATASPY",
+      "meaning": "Dddataspy",
+      "basis": "Distinguish the saved filter definition from the records displayed by its grid. Fields in the schema export: DDS_DDSPYNAME, DDS_OWNER, DDS_GRIDID, DDS_FILTERSTRXML.",
+      "keys": {
+        "kind": "Logical key",
+        "columns": [
+          "DDS_OWNER",
+          "DDS_DDSPYNAME",
+          "DDS_TYPE",
+          "DDS_GRIDID",
+          "DDS_DDSPYFILTER"
+        ]
+      }
+    }
+  ],
+  "L009": [
+    {
+      "table": "R5OBJECTS",
+      "meaning": "Equipment Master (Assets, Positions, Systems & Locations)",
+      "basis": "Start with the equipment identity and type before interpreting where it is installed. Fields in the schema export: OBJ_CODE, OBJ_ORG, OBJ_OBTYPE, OBJ_POSITION, OBJ_LOCATION.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "OBJ_CODE",
+          "OBJ_ORG"
+        ]
+      }
+    }
+  ],
+  "L010": [
+    {
+      "table": "R5CLASSES",
+      "meaning": "Entity Classification Codes",
+      "basis": "Choose an equipment class in the intended entity and organization. Fields in the schema export: CLS_ENTITY, CLS_CODE, CLS_ORG, CLS_DESC.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "CLS_ENTITY",
+          "CLS_CODE",
+          "CLS_ORG"
+        ]
+      }
+    },
+    {
+      "table": "R5ORGANIZATION",
+      "meaning": "Organizations (Multi-Org Security Units)",
+      "basis": "Check the ownership context before creating the equipment. Fields in the schema export: ORG_CODE, ORG_COMMON.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "ORG_CODE"
+        ]
+      }
+    }
+  ],
+  "L011": [
+    {
+      "table": "R5CLOSINGCODEHIERARCHY",
+      "meaning": "Closingcodehierarchy",
+      "basis": "Trace which closing codes and code types appear together in a hierarchy. Fields in the schema export: CCH_PARENTCLOSINGCODE, CCH_PARENTCLOSINGCODETYPE, CCH_CHILDCLOSINGCODE, CCH_CHILDCLOSINGCODETYPE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "CCH_PARENTCLOSINGCODE",
+          "CCH_PARENTCLOSINGCODETYPE",
+          "CCH_CHILDCLOSINGCODE",
+          "CCH_CHILDCLOSINGCODETYPE"
+        ]
+      }
+    }
+  ],
+  "L012": [
+    {
+      "table": "R5OBJECTS",
+      "meaning": "Equipment Master (Assets, Positions, Systems & Locations)",
+      "basis": "Inspect the asset identifier, serial number and commissioning date for the new unit. Fields in the schema export: OBJ_CODE, OBJ_ORG, OBJ_SERIALNO, OBJ_COMMISS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "OBJ_CODE",
+          "OBJ_ORG"
+        ]
+      }
+    }
+  ],
+  "L013": [
+    {
+      "table": "R5OBJECTS",
+      "meaning": "Equipment Master (Assets, Positions, Systems & Locations)",
+      "basis": "Compare the installed unit’s position reference with its own serial number. Fields in the schema export: OBJ_OBTYPE, OBJ_POSITION, OBJ_POSITION_ORG, OBJ_SERIALNO.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "OBJ_CODE",
+          "OBJ_ORG"
+        ]
+      }
+    }
+  ],
+  "L014": [
+    {
+      "table": "R5STRUCTURES",
+      "meaning": "Equipment Parent-Child Hierarchies",
+      "basis": "Follow the system’s hierarchy links and inspect the rollup setting on each link. Fields in the schema export: STC_PARENT, STC_PARENT_ORG, STC_CHILD, STC_CHILD_ORG, STC_ROLLUP.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "STC_CHILD",
+          "STC_CHILD_ORG",
+          "STC_PARENT",
+          "STC_PARENT_ORG"
+        ]
+      }
+    }
+  ],
+  "L015": [
+    {
+      "table": "R5OBJECTS",
+      "meaning": "Equipment Master (Assets, Positions, Systems & Locations)",
+      "basis": "Identify the location record or the location assigned to an item of equipment. Fields in the schema export: OBJ_OBTYPE, OBJ_CODE, OBJ_ORG, OBJ_LOCATION, OBJ_LOCATION_ORG.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "OBJ_CODE",
+          "OBJ_ORG"
+        ]
+      }
+    }
+  ],
+  "L016": [
+    {
+      "table": "R5OBJLINEARREF",
+      "meaning": "Objlinearref",
+      "basis": "Locate a defect along an equipment segment by its start and end points. Fields in the schema export: LRF_OBJCODE, LRF_OBJORG, LRF_FROMPOINT, LRF_TOPOINT.",
+      "keys": {
+        "kind": "Logical key",
+        "columns": [
+          "LRF_ID"
+        ]
+      }
+    }
+  ],
+  "L017": [
+    {
+      "table": "R5WARCOVERAGES",
+      "meaning": "Warcoverages",
+      "basis": "Compare the equipment and repair date with the period of warranty coverage. Fields in the schema export: WCV_WARRANTY, WCV_OBJECT, WCV_STARTDATE, WCV_EXPIRATIONDATE.",
+      "keys": {
+        "kind": "Logical key",
+        "columns": [
+          "WCV_SEQNO"
+        ]
+      }
+    }
+  ],
+  "L018": [
+    {
+      "table": "R5WARCLAIMS",
+      "meaning": "Warclaims",
+      "basis": "Trace the warranty claim from the associated work to the claimed and closed amounts. Fields in the schema export: WCL_CODE, WCL_WARRANTY, WCL_EVENT, WCL_CLAIMAMOUNT, WCL_CLOSEAMOUNT.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "WCL_CODE"
+        ]
+      }
+    }
+  ],
+  "L019": [
+    {
+      "table": "R5STRUCTURES",
+      "meaning": "Equipment Parent-Child Hierarchies",
+      "basis": "Inspect the direction of the equipment relationship and its roll settings. Fields in the schema export: STC_CHILD, STC_CHILD_ORG, STC_PARENT, STC_PARENT_ORG, STC_ROLLDOWN, STC_ROLLUP.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "STC_CHILD",
+          "STC_CHILD_ORG",
+          "STC_PARENT",
+          "STC_PARENT_ORG"
+        ]
+      }
+    }
+  ],
+  "L020": [
+    {
+      "table": "R5STRUCTURES",
+      "meaning": "Equipment Parent-Child Hierarchies",
+      "basis": "Read both ends of a hierarchy link to identify the installation being reviewed. Fields in the schema export: STC_CHILD, STC_PARENT, STC_CHILDTYPE, STC_PARENTTYPE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "STC_CHILD",
+          "STC_CHILD_ORG",
+          "STC_PARENT",
+          "STC_PARENT_ORG"
+        ]
+      }
+    }
+  ],
+  "L021": [
+    {
+      "table": "R5METERS",
+      "meaning": "Equipment Logical Meters",
+      "basis": "Identify the meter on the equipment and the unit used for its last value. Fields in the schema export: MET_CODE, MET_OBJECT, MET_TYPE, MET_UOM, MET_LAST.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "MET_CODE"
+        ]
+      }
+    }
+  ],
+  "L022": [
+    {
+      "table": "R5READINGS",
+      "meaning": "Equipment Meter Readings",
+      "basis": "Compare successive dated readings for the same meter. Fields in the schema export: REA_METER, REA_OBJECT, REA_DATE, REA_READING, REA_DIFF.",
+      "keys": {
+        "kind": "Logical key",
+        "columns": [
+          "REA_OBJECT",
+          "REA_DATE",
+          "REA_CALCUOM",
+          "REA_METER"
+        ]
+      }
+    }
+  ],
+  "L023": [
+    {
+      "table": "R5OBJECTS",
+      "meaning": "Equipment Master (Assets, Positions, Systems & Locations)",
+      "basis": "Inspect equipment records in both organizations when tracing a transfer. Fields in the schema export: OBJ_CODE, OBJ_ORG, OBJ_TRANSFERDATE, OBJ_STATUS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "OBJ_CODE",
+          "OBJ_ORG"
+        ]
+      }
+    }
+  ],
+  "L024": [
+    {
+      "table": "R5EQUIPCONFIGSTRUCTURES",
+      "meaning": "Equipconfigstructures",
+      "basis": "Examine the child configuration and revision policy under a configured parent. Fields in the schema export: ECS_PARENT, ECS_CHILD, ECS_CHILD_ORG, ECS_USEAPPROVEDREV.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "ECS_PK"
+        ]
+      }
+    }
+  ],
+  "L025": [
+    {
+      "table": "R5EQUIPMENTRANKINGS",
+      "meaning": "Equipmentrankings",
+      "basis": "Find the score and calculation date for an equipment ranking. Fields in the schema export: EQR_OBJCODE, EQR_OBJORG, EQR_RANKINGCODE, EQR_RANKINGSCORE, EQR_VALUESLASTCALCULATED.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "EQR_RANKINGCODE",
+          "EQR_RANKINGORG",
+          "EQR_RANKINGREVISION",
+          "EQR_OBJCODE",
+          "EQR_OBJORG"
+        ]
+      }
+    }
+  ],
+  "L026": [
+    {
+      "table": "R5CURRENCIES",
+      "meaning": "Currency Codes",
+      "basis": "Check the currency code before interpreting a price or amount. Fields in the schema export: CUR_CODE, CUR_DESC, CUR_NOTUSED.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "CUR_CODE"
+        ]
+      }
+    }
+  ],
+  "L027": [
+    {
+      "table": "R5LOTS",
+      "meaning": "Inventory Lot & Batch Tracking",
+      "basis": "Distinguish the EAM lot identifier from the manufacturer’s batch number. Fields in the schema export: LOT_CODE, LOT_MANLOT, LOT_EXPIRED.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "LOT_CODE"
+        ]
+      }
+    }
+  ],
+  "L028": [
+    {
+      "table": "R5CONVUOM",
+      "meaning": "Convuom",
+      "basis": "Identify the source unit, target unit and conversion multiplier for the part. Fields in the schema export: CNV_PART, CNV_UOMFROM, CNV_UOMTO, CNV_MULTIPLY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "CNV_PART",
+          "CNV_PART_ORG",
+          "CNV_SUPPLIER",
+          "CNV_SUPPLIER_ORG",
+          "CNV_UOMFROM",
+          "CNV_UOMTO"
+        ]
+      }
+    }
+  ],
+  "L029": [
+    {
+      "table": "R5STORES",
+      "meaning": "Storerooms & Warehouses",
+      "basis": "Check which organization and pricing context apply to the stockroom. Fields in the schema export: STR_CODE, STR_ORG, STR_LOCATION, STR_PRICETYPE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "STR_CODE"
+        ]
+      }
+    }
+  ],
+  "L030": [
+    {
+      "table": "R5BINS",
+      "meaning": "Warehouse Bins & Storage Locations",
+      "basis": "Look up the bin within its own store before locating the stock. Fields in the schema export: BIN_STORE, BIN_CODE, BIN_FORSTOCK.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "BIN_STORE",
+          "BIN_CODE"
+        ]
+      }
+    }
+  ],
+  "L031": [
+    {
+      "table": "R5PARTS",
+      "meaning": "Parts & Materials Master Catalog",
+      "basis": "Inspect the part’s unit and tracking flags before recording quantities. Fields in the schema export: PAR_CODE, PAR_ORG, PAR_UOM, PAR_BYASSET, PAR_BYLOT.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PAR_CODE",
+          "PAR_ORG"
+        ]
+      }
+    }
+  ],
+  "L032": [
+    {
+      "table": "R5PARTPRICES",
+      "meaning": "Partprices",
+      "basis": "Compare price measures for the same part in the selected organization. Fields in the schema export: PPR_PART, PPR_PART_ORG, PPR_ORG, PPR_AVGPRICE, PPR_LASTPRICE, PPR_STDPRICE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PPR_PART",
+          "PPR_PART_ORG",
+          "PPR_ORG"
+        ]
+      }
+    }
+  ],
+  "L033": [
+    {
+      "table": "R5PARTS",
+      "meaning": "Parts & Materials Master Catalog",
+      "basis": "Check whether the spare part is marked repairable and has a recorded core value. Fields in the schema export: PAR_CODE, PAR_REPAIRABLE, PAR_COREVALUE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PAR_CODE",
+          "PAR_ORG"
+        ]
+      }
+    }
+  ],
+  "L034": [
+    {
+      "table": "R5PARTPART",
+      "meaning": "Partpart",
+      "basis": "Inspect the recorded part pair and compatibility setting before considering a substitution. Fields in the schema export: PAP_PARTA, PAP_PARTA_ORG, PAP_PARTB, PAP_PARTB_ORG, PAP_COMPAT.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PAP_PARTA",
+          "PAP_PARTA_ORG",
+          "PAP_PARTB",
+          "PAP_PARTB_ORG"
+        ]
+      }
+    }
+  ],
+  "L035": [
+    {
+      "table": "R5COMPANIES",
+      "meaning": "Suppliers, Vendors, Contractors & Customers",
+      "basis": "Read supplier identity, currency and payment terms in their organization context. Fields in the schema export: COM_CODE, COM_ORG, COM_DESC, COM_CURR, COM_PAYMENTTERMS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "COM_CODE",
+          "COM_ORG"
+        ]
+      }
+    }
+  ],
+  "L036": [
+    {
+      "table": "R5CATALOGUE",
+      "meaning": "Catalogue",
+      "basis": "Follow the internal part to a supplier reference, purchasing unit and price. Fields in the schema export: CAT_PART, CAT_SUPPLIER, CAT_REF, CAT_PURUOM, CAT_PURPRICE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "CAT_PART",
+          "CAT_PART_ORG",
+          "CAT_SUPPLIER",
+          "CAT_SUPPLIER_ORG"
+        ]
+      }
+    }
+  ],
+  "L037": [
+    {
+      "table": "R5STOCK",
+      "meaning": "Store-Level Stock & Reorder Parameters",
+      "basis": "Compare on-hand quantity and replenishment settings for this part at this store. Fields in the schema export: STO_PART, STO_STORE, STO_QTY, STO_MINLEV, STO_ORDLEV, STO_ORDQTY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "STO_PART",
+          "STO_PART_ORG",
+          "STO_STORE"
+        ]
+      }
+    }
+  ],
+  "L038": [
+    {
+      "table": "R5LOWSTOCKREQUISITIONS",
+      "meaning": "Lowstockrequisitions",
+      "basis": "Review the stock and requested quantities in the low-stock generation session. Fields in the schema export: LRQ_SESSIONID, LRQ_STORE, LRQ_PART, LRQ_STOCKQTY, LRQ_REQQTY."
+    }
+  ],
+  "L039": [
+    {
+      "table": "R5TRANSACTIONS",
+      "meaning": "Inventory & Material Transaction Headers",
+      "basis": "Inspect the receipt’s transaction type, posting context and purchase-order reference. Fields in the schema export: TRA_CODE, TRA_RTYPE, TRA_DATE, TRA_ORDER, TRA_STATUS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "TRA_CODE"
+        ]
+      }
+    }
+  ],
+  "L040": [
+    {
+      "table": "R5MATLPARTS",
+      "meaning": "Matlparts",
+      "basis": "Read the requested part quantity on the material-list revision. Fields in the schema export: MLP_MATLIST, MLP_MATLREV, MLP_PART, MLP_QTY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "MLP_MATLIST",
+          "MLP_MATLREV",
+          "MLP_LINE"
+        ]
+      }
+    },
+    {
+      "table": "R5TRANSLINES",
+      "meaning": "Inventory & Material Transaction Lines",
+      "basis": "Compare the separate issue-line quantity with the planned requirement. Fields in the schema export: TRL_EVENT, TRL_ACT, TRL_PART, TRL_QTY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "TRL_TRANS",
+          "TRL_LINE"
+        ]
+      },
+      "relationship": {
+        "kind": "Declared foreign key",
+        "target": "R5ACTIVITIES",
+        "columns": [
+          [
+            "TRL_EVENT",
+            "ACT_EVENT"
+          ],
+          [
+            "TRL_ACT",
+            "ACT_ACT"
+          ]
+        ],
+        "evidence": "Constraint R5FOK5_TRL in the exported schema."
+      }
+    }
+  ],
+  "L041": [
+    {
+      "table": "R5TRANSACTIONS",
+      "meaning": "Inventory & Material Transaction Headers",
+      "basis": "Read the originating and receiving endpoints on the store-transfer transaction. Fields in the schema export: TRA_CODE, TRA_FROMCODE, TRA_TOCODE, TRA_RTYPE, TRA_STATUS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "TRA_CODE"
+        ]
+      }
+    },
+    {
+      "table": "R5TRANSLINES",
+      "meaning": "Inventory & Material Transaction Lines",
+      "basis": "Inspect the part, posting store and movement direction on the dispatch line. Fields in the schema export: TRL_TRANS, TRL_STORE, TRL_PART, TRL_QTY, TRL_IO.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "TRL_TRANS",
+          "TRL_LINE"
+        ]
+      },
+      "relationship": {
+        "kind": "Declared foreign key",
+        "target": "R5TRANSACTIONS",
+        "columns": [
+          [
+            "TRL_TRANS",
+            "TRA_CODE"
+          ]
+        ],
+        "evidence": "Constraint R5FOK8_TRL in the exported schema."
+      }
+    }
+  ],
+  "L042": [
+    {
+      "table": "R5TRANSLINES",
+      "meaning": "Inventory & Material Transaction Lines",
+      "basis": "Check the destination store, bin and movement direction on the receipt line. Fields in the schema export: TRL_TRANS, TRL_STORE, TRL_PART, TRL_BIN, TRL_IO, TRL_QTY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "TRL_TRANS",
+          "TRL_LINE"
+        ]
+      },
+      "relationship": {
+        "kind": "Declared foreign key",
+        "target": "R5TRANSACTIONS",
+        "columns": [
+          [
+            "TRL_TRANS",
+            "TRA_CODE"
+          ]
+        ],
+        "evidence": "Constraint R5FOK8_TRL in the exported schema."
+      }
+    }
+  ],
+  "L043": [
+    {
+      "table": "R5PICKLISTPARTS",
+      "meaning": "Picklistparts",
+      "basis": "Compare the requested pick quantity with the quantity recorded as issued. Fields in the schema export: PIP_PICKLIST, PIP_PART, PIP_QTY, PIP_ISSUEQTY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PIP_PICKLIST",
+          "PIP_PART",
+          "PIP_PART_ORG"
+        ]
+      }
+    }
+  ],
+  "L044": [
+    {
+      "table": "R5STOCKTAKELINES",
+      "meaning": "Stocktakelines",
+      "basis": "Compare the expected and physically counted quantities at the same bin. Fields in the schema export: STL_TRANS, STL_PART, STL_BIN, STL_EXPQTY, STL_PHYQTY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "STL_TRANS",
+          "STL_LINE"
+        ]
+      }
+    }
+  ],
+  "L045": [
+    {
+      "table": "R5STOCK",
+      "meaning": "Store-Level Stock & Reorder Parameters",
+      "basis": "Find the ABC classification for the part in the selected store. Fields in the schema export: STO_PART, STO_STORE, STO_ABCCLASS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "STO_PART",
+          "STO_PART_ORG",
+          "STO_STORE"
+        ]
+      }
+    }
+  ],
+  "L046": [
+    {
+      "table": "R5RESERVATIONS",
+      "meaning": "Reservations",
+      "basis": "Identify which work-order activity needs the reserved stock. Fields in the schema export: RES_EVENT, RES_ACT, RES_PART, RES_STORE, RES_QTY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "RES_EVENT",
+          "RES_ACT",
+          "RES_PART",
+          "RES_PART_ORG",
+          "RES_STORE"
+        ]
+      }
+    }
+  ],
+  "L047": [
+    {
+      "table": "R5REQUISITIONS",
+      "meaning": "Purchase Requisition Headers",
+      "basis": "Inspect the demand header and its current authorization context. Fields in the schema export: REQ_CODE, REQ_ORG, REQ_STATUS, REQ_DATE, REQ_AUTH.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "REQ_CODE"
+        ]
+      }
+    }
+  ],
+  "L048": [
+    {
+      "table": "R5REQUISLINES",
+      "meaning": "Purchase Requisition Lines",
+      "basis": "Identify the requested part, quantity and unit on one requisition line. Fields in the schema export: RQL_REQ, RQL_REQLINE, RQL_PART, RQL_QTY, RQL_UOM.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "RQL_REQ",
+          "RQL_REQLINE"
+        ]
+      }
+    }
+  ],
+  "L049": [
+    {
+      "table": "R5REQUISLINES",
+      "meaning": "Purchase Requisition Lines",
+      "basis": "Inspect the line’s service classification and related task or trade. Fields in the schema export: RQL_REQ, RQL_REQLINE, RQL_TYPE, RQL_TASK, RQL_TRADE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "RQL_REQ",
+          "RQL_REQLINE"
+        ]
+      }
+    }
+  ],
+  "L050": [
+    {
+      "table": "R5ORDERLINES",
+      "meaning": "Purchase Order Lines",
+      "basis": "Trace a purchase order line back to its originating requisition line. Fields in the schema export: ORL_ORDER, ORL_ORDLINE, ORL_REQ, ORL_REQLINE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "ORL_ORDER",
+          "ORL_ORDER_ORG",
+          "ORL_ORDLINE"
+        ]
+      }
+    }
+  ],
+  "L051": [
+    {
+      "table": "R5ORDERS",
+      "meaning": "Purchase Order Headers",
+      "basis": "Inspect the supplier, currency and terms applied to a purchasing commitment. Fields in the schema export: ORD_CODE, ORD_SUPPLIER, ORD_CURR, ORD_PAYMENTTERMS, ORD_FREIGHTTERMS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "ORD_CODE",
+          "ORD_ORG"
+        ]
+      }
+    }
+  ],
+  "L052": [
+    {
+      "table": "R5ORDERS",
+      "meaning": "Purchase Order Headers",
+      "basis": "Find the supplier and approval context shared by the purchase order. Fields in the schema export: ORD_CODE, ORD_ORG, ORD_SUPPLIER, ORD_STATUS, ORD_APPROV.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "ORD_CODE",
+          "ORD_ORG"
+        ]
+      }
+    }
+  ],
+  "L053": [
+    {
+      "table": "R5ORDERLINES",
+      "meaning": "Purchase Order Lines",
+      "basis": "Read the ordered quantity and unit price on the individual line. Fields in the schema export: ORL_ORDER, ORL_ORDER_ORG, ORL_ORDLINE, ORL_PART, ORL_ORDQTY, ORL_PRICE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "ORL_ORDER",
+          "ORL_ORDER_ORG",
+          "ORL_ORDLINE"
+        ]
+      }
+    }
+  ],
+  "L054": [
+    {
+      "table": "R5OBJECTS",
+      "meaning": "Equipment Master (Assets, Positions, Systems & Locations)",
+      "basis": "Trace a purchased asset to its recorded order and line. Fields in the schema export: OBJ_CODE, OBJ_ORG, OBJ_ORDER, OBJ_ORDER_ORG, OBJ_ORDERLINE, OBJ_SERIALNO.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "OBJ_CODE",
+          "OBJ_ORG"
+        ]
+      }
+    }
+  ],
+  "L055": [
+    {
+      "table": "R5BLANKETORDERS",
+      "meaning": "Blanketorders",
+      "basis": "Compare the blanket limit with the amount and number of releases. Fields in the schema export: BLO_BLANKETORDER, BLO_SUPPLIER, BLO_MAXAMOUNT, BLO_CURAMOUNTREL, BLO_NUMRELEASED.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "BLO_BLANKETORDER"
+        ]
+      }
+    }
+  ],
+  "L056": [
+    {
+      "table": "R5INVOICES",
+      "meaning": "Supplier Invoice Headers",
+      "basis": "Find the supplier voucher, matching field and invoice total. Fields in the schema export: INV_CODE, INV_ORG, INV_SUPPLIER, INV_MATCH, INV_TOTAL.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "INV_CODE",
+          "INV_ORG"
+        ]
+      }
+    }
+  ],
+  "L057": [
+    {
+      "table": "R5RFQUOTATIONS",
+      "meaning": "Rfquotations",
+      "basis": "Trace an RFQ from the request through its response deadline and award. Fields in the schema export: RFQ_CODE, RFQ_ORG, RFQ_RESPONSEDUE, RFQ_REQUESTEDBY, RFQ_AWARDEDDATE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "RFQ_CODE",
+          "RFQ_ORG"
+        ]
+      }
+    }
+  ],
+  "L058": [
+    {
+      "table": "R5PERMITS",
+      "meaning": "Permits to Work",
+      "basis": "Look up the approved permit revision and type of work it describes. Fields in the schema export: PRT_CODE, PRT_ORG, PRT_REVISION, PRT_TYPEOFWORK, PRT_RISK.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PRT_CODE",
+          "PRT_ORG",
+          "PRT_REVISION"
+        ]
+      }
+    }
+  ],
+  "L059": [
+    {
+      "table": "R5QUALIFICATIONS",
+      "meaning": "Qualifications",
+      "basis": "Check the competency definition before assigning it to work. Fields in the schema export: QUA_CODE, QUA_DESC, QUA_ACTIVE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "QUA_CODE"
+        ]
+      }
+    }
+  ],
+  "L060": [
+    {
+      "table": "R5TRADES",
+      "meaning": "Labor Trades & Crafts",
+      "basis": "Find the trade used to express a job’s labor requirement. Fields in the schema export: TRD_CODE, TRD_DESC, TRD_ORG.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "TRD_CODE"
+        ]
+      }
+    }
+  ],
+  "L061": [
+    {
+      "table": "R5PERSONNEL",
+      "meaning": "Employees, Technicians & Supervisors",
+      "basis": "Consider the employee’s trade, department and capacity when planning labor. Fields in the schema export: PER_CODE, PER_TRADE, PER_MRC, PER_CAPACITY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PER_CODE"
+        ]
+      }
+    }
+  ],
+  "L062": [
+    {
+      "table": "R5CREWEMPLOYEES",
+      "meaning": "Crewemployees",
+      "basis": "Check which employees belonged to a crew on the assignment date. Fields in the schema export: CRE_CREW, CRE_CREW_ORG, CRE_PERSON, CRE_START, CRE_END.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "CRE_PK"
+        ]
+      }
+    }
+  ],
+  "L063": [
+    {
+      "table": "R5TASKS",
+      "meaning": "Standard Task Plans & Job Plans",
+      "basis": "Select the intended task-plan revision before following its instructions. Fields in the schema export: TSK_CODE, TSK_REVISION, TSK_REVSTATUS, TSK_DESC.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "TSK_CODE",
+          "TSK_REVISION"
+        ]
+      }
+    }
+  ],
+  "L064": [
+    {
+      "table": "R5TASKCHECKLISTS",
+      "meaning": "Task Plan Checklist Templates",
+      "basis": "Inspect ordered checks and closure requirements for the task revision. Fields in the schema export: TCH_TASK, TCH_TASKREV, TCH_SEQUENCE, TCH_DESC, TCH_REQUIREDTOCLOSE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "TCH_CODE"
+        ]
+      }
+    }
+  ],
+  "L065": [
+    {
+      "table": "R5TASKTOOLS",
+      "meaning": "Tasktools",
+      "basis": "Inspect tool quantities and hours recorded for a plan revision. Fields in the schema export: TTO_TASK, TTO_REVISION, TTO_TOOL, TTO_HOURS, TTO_QTY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "TTO_TASK",
+          "TTO_REVISION",
+          "TTO_TOOL"
+        ]
+      }
+    }
+  ],
+  "L066": [
+    {
+      "table": "R5STANDWORKS",
+      "meaning": "Standard Work Orders",
+      "basis": "Read the reusable work template used for planning a new job. Fields in the schema export: STW_CODE, STW_JOBTYPE, STW_PRIORITY, STW_DURATION.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "STW_CODE"
+        ]
+      }
+    }
+  ],
+  "L067": [
+    {
+      "table": "R5EVENTS",
+      "meaning": "Work Orders, PMs, Inspections & Service Events",
+      "basis": "The header identifies the leaking pump and tracks the repair from report to completion. Fields in the schema export: EVT_CODE, EVT_OBJECT, EVT_OBJECT_ORG, EVT_STATUS, EVT_REPORTED, EVT_COMPLETED.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "EVT_CODE"
+        ]
+      }
+    },
+    {
+      "table": "R5ACTIVITIES",
+      "meaning": "Work Order Activities & Task Steps",
+      "basis": "Each activity identifies a task within the order, with its planned trade and effort. Fields in the schema export: ACT_EVENT, ACT_ACT, ACT_TRADE, ACT_EST.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "ACT_EVENT",
+          "ACT_ACT"
+        ]
+      },
+      "relationship": {
+        "kind": "Declared foreign key",
+        "target": "R5EVENTS",
+        "columns": [
+          [
+            "ACT_EVENT",
+            "EVT_CODE"
+          ]
+        ],
+        "evidence": "Constraint R5FOK7_ACT in the exported schema."
+      }
+    },
+    {
+      "table": "R5BOOKEDHOURS",
+      "meaning": "Booked Labor Hours & Timecards",
+      "basis": "Use the order and activity together when comparing actual time with the plan. Fields in the schema export: BOO_EVENT, BOO_ACT, BOO_PERSON, BOO_HOURS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "BOO_CODE"
+        ]
+      },
+      "relationship": {
+        "kind": "Candidate join",
+        "target": "R5ACTIVITIES",
+        "columns": [
+          [
+            "BOO_EVENT",
+            "ACT_EVENT"
+          ],
+          [
+            "BOO_ACT",
+            "ACT_ACT"
+          ]
+        ],
+        "evidence": "The booking index lists event and activity together. The schema export does not identify this pair as a foreign-key constraint."
+      }
+    },
+    {
+      "table": "R5TRANSLINES",
+      "meaning": "Inventory & Material Transaction Lines",
+      "basis": "The replacement seal is traceable to the activity through its material transaction line. Fields in the schema export: TRL_EVENT, TRL_ACT, TRL_PART, TRL_QTY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "TRL_TRANS",
+          "TRL_LINE"
+        ]
+      },
+      "relationship": {
+        "kind": "Declared foreign key",
+        "target": "R5ACTIVITIES",
+        "columns": [
+          [
+            "TRL_EVENT",
+            "ACT_EVENT"
+          ],
+          [
+            "TRL_ACT",
+            "ACT_ACT"
+          ]
+        ],
+        "evidence": "Constraint R5FOK5_TRL in the exported schema."
+      }
+    }
+  ],
+  "L068": [
+    {
+      "table": "R5ACTIVITIES",
+      "meaning": "Work Order Activities & Task Steps",
+      "basis": "Read the activity number within its parent order to identify the executable task. Fields in the schema export: ACT_EVENT, ACT_ACT, ACT_TASK, ACT_TRADE, ACT_EST.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "ACT_EVENT",
+          "ACT_ACT"
+        ]
+      },
+      "relationship": {
+        "kind": "Declared foreign key",
+        "target": "R5EVENTS",
+        "columns": [
+          [
+            "ACT_EVENT",
+            "EVT_CODE"
+          ]
+        ],
+        "evidence": "Constraint R5FOK7_ACT in the exported schema."
+      }
+    }
+  ],
+  "L069": [
+    {
+      "table": "R5ADDITIONALCHARGE",
+      "meaning": "Additionalcharge",
+      "basis": "Inspect the extra cost, quantity, unit price and currency charged to the activity. Fields in the schema export: ADC_EVENT, ADC_ACT, ADC_LINE, ADC_QTY, ADC_UNITPRICE, ADC_CURR.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "ADC_EVENT",
+          "ADC_ACT",
+          "ADC_LINE"
+        ]
+      }
+    }
+  ],
+  "L070": [
+    {
+      "table": "R5EVENTOBJECTS",
+      "meaning": "Eventobjects",
+      "basis": "Identify the equipment covered by the order and its allocation weight. Fields in the schema export: EOB_EVENT, EOB_OBJECT, EOB_OBJECT_ORG, EOB_WEIGHTPERCENTAGE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "EOB_EVENT",
+          "EOB_OBJECT",
+          "EOB_OBJECT_ORG"
+        ]
+      }
+    }
+  ],
+  "L071": [
+    {
+      "table": "R5ACTQUALIFICATIONS",
+      "meaning": "Actqualifications",
+      "basis": "Find the competency requirement recorded for the specific work activity. Fields in the schema export: AQU_EVENT, AQU_ACTIVITY, AQU_QUALIFICATION, AQU_SOURCE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "AQU_EVENT",
+          "AQU_ACTIVITY",
+          "AQU_QUALIFICATION",
+          "AQU_SOURCE"
+        ]
+      }
+    }
+  ],
+  "L072": [
+    {
+      "table": "R5ACTCHECKLISTS",
+      "meaning": "Work Order Activity Checklists",
+      "basis": "Read the actual finding or value recorded for a checklist item on the activity. Fields in the schema export: ACK_EVENT, ACK_ACT, ACK_FINDING, ACK_VALUE, ACK_COMPLETED.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "ACK_CODE"
+        ]
+      }
+    }
+  ],
+  "L073": [
+    {
+      "table": "R5ACTIVITIES",
+      "meaning": "Work Order Activities & Task Steps",
+      "basis": "Locate the material-list revision planned for the activity. Fields in the schema export: ACT_EVENT, ACT_ACT, ACT_MATLIST, ACT_MATLREV.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "ACT_EVENT",
+          "ACT_ACT"
+        ]
+      },
+      "relationship": {
+        "kind": "Declared foreign key",
+        "target": "R5MATLISTS",
+        "columns": [
+          [
+            "ACT_MATLIST",
+            "MTL_CODE"
+          ],
+          [
+            "ACT_MATLREV",
+            "MTL_REVISION"
+          ]
+        ],
+        "evidence": "Constraint R5FOK6_ACT in the exported schema."
+      }
+    },
+    {
+      "table": "R5MATLPARTS",
+      "meaning": "Matlparts",
+      "basis": "Read the individual part requirement on that revision. Fields in the schema export: MLP_MATLIST, MLP_MATLREV, MLP_LINE, MLP_PART, MLP_QTY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "MLP_MATLIST",
+          "MLP_MATLREV",
+          "MLP_LINE"
+        ]
+      }
+    }
+  ],
+  "L074": [
+    {
+      "table": "R5REQUISLINES",
+      "meaning": "Purchase Requisition Lines",
+      "basis": "Follow the requested part back to its originating work activity. Fields in the schema export: RQL_REQ, RQL_REQLINE, RQL_EVENT, RQL_ACT, RQL_PART, RQL_QTY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "RQL_REQ",
+          "RQL_REQLINE"
+        ]
+      }
+    }
+  ],
+  "L075": [
+    {
+      "table": "R5EVENTS",
+      "meaning": "Work Orders, PMs, Inspections & Service Events",
+      "basis": "Trace a child work order to its recorded parent and compare their statuses. Fields in the schema export: EVT_CODE, EVT_PARENT, EVT_STATUS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "EVT_CODE"
+        ]
+      }
+    }
+  ],
+  "L076": [
+    {
+      "table": "R5PERMEVENTS",
+      "meaning": "Permevents",
+      "basis": "Check which permit revision applies to the work and when it expires. Fields in the schema export: PEV_EVENT, PEV_ACTIVITY, PEV_PERMIT, PEV_PERMITREV, PEV_VALIDUNTIL.",
+      "keys": {
+        "kind": "Logical key",
+        "columns": [
+          "PEV_CODE"
+        ]
+      }
+    }
+  ],
+  "L077": [
+    {
+      "table": "R5EVENTCOST",
+      "meaning": "Eventcost",
+      "basis": "Compare the work-order total with its labor, material and tool components. Fields in the schema export: EVO_EVENT, EVO_LABOR, EVO_MATERIAL, EVO_TOOL, EVO_TOTAL.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "EVO_EVENT"
+        ]
+      }
+    }
+  ],
+  "L078": [
+    {
+      "table": "R5ACTSCHEDULES",
+      "meaning": "Actschedules",
+      "basis": "Read the booked scheduling window and planned hours for the activity. Fields in the schema export: ACS_EVENT, ACS_ACTIVITY, ACS_SCHED, ACS_STARTTIME, ACS_ENDTIME, ACS_HOURS.",
+      "keys": {
+        "kind": "Logical key",
+        "columns": [
+          "ACS_EVENT",
+          "ACS_ACTIVITY",
+          "ACS_MRC",
+          "ACS_TRADE",
+          "ACS_SCHED",
+          "ACS_STARTTIME",
+          "ACS_ENDTIME",
+          "ACS_RESPONSIBLE",
+          "ACS_SHIFT"
+        ]
+      }
+    }
+  ],
+  "L079": [
+    {
+      "table": "R5WOLABORSCHEDPARAMS",
+      "meaning": "Wolaborschedparams",
+      "basis": "Inspect the date, work status and trade filters used for the scheduling selection. Fields in the schema export: WLS_PARAMETER, WLS_WOSCHEDSTARTDATE, WLS_WOSCHEDENDDATE, WLS_WOSTATUS, WLS_ACTTRADE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "WLS_CODE"
+        ]
+      }
+    }
+  ],
+  "L080": [
+    {
+      "table": "R5BOOKEDHOURS",
+      "meaning": "Booked Labor Hours & Timecards",
+      "basis": "Match each time entry to the correct work order and activity before summing booked hours. Fields in the schema export: BOO_EVENT, BOO_ACT, BOO_PERSON, BOO_HOURS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "BOO_CODE"
+        ]
+      },
+      "relationship": {
+        "kind": "Candidate join",
+        "target": "R5ACTIVITIES",
+        "columns": [
+          [
+            "BOO_EVENT",
+            "ACT_EVENT"
+          ],
+          [
+            "BOO_ACT",
+            "ACT_ACT"
+          ]
+        ],
+        "evidence": "The booking index lists event and activity together. The schema export does not identify this pair as a foreign-key constraint."
+      }
+    },
+    {
+      "table": "R5ACTIVITIES",
+      "meaning": "Work Order Activities & Task Steps",
+      "basis": "Compare recorded bookings with the estimate on that same activity. Fields in the schema export: ACT_EVENT, ACT_ACT, ACT_EST.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "ACT_EVENT",
+          "ACT_ACT"
+        ]
+      },
+      "relationship": {
+        "kind": "Declared foreign key",
+        "target": "R5EVENTS",
+        "columns": [
+          [
+            "ACT_EVENT",
+            "EVT_CODE"
+          ]
+        ],
+        "evidence": "Constraint R5FOK7_ACT in the exported schema."
+      }
+    }
+  ],
+  "L081": [
+    {
+      "table": "R5PPMS",
+      "meaning": "Preventive Maintenance (PM) Schedule Definitions",
+      "basis": "Identify the revised schedule and its calendar or meter interval. Fields in the schema export: PPM_CODE, PPM_REVISION, PPM_FREQ, PPM_PERIODUOM, PPM_METER.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PPM_CODE",
+          "PPM_REVISION"
+        ]
+      }
+    },
+    {
+      "table": "R5PPMOBJECTS",
+      "meaning": "PM-to-Equipment Assignments",
+      "basis": "Inspect the particular equipment and its next due point. Fields in the schema export: PPO_PPM, PPO_REVISION, PPO_OBJECT, PPO_DUE, PPO_METERDUE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PPO_PK",
+          "PPO_REVISION"
+        ]
+      },
+      "relationship": {
+        "kind": "Declared foreign key",
+        "target": "R5PPMS",
+        "columns": [
+          [
+            "PPO_PPM",
+            "PPM_CODE"
+          ],
+          [
+            "PPO_REVISION",
+            "PPM_REVISION"
+          ]
+        ],
+        "evidence": "Constraint R5FOK1_PPO in the exported schema."
+      }
+    }
+  ],
+  "L082": [
+    {
+      "table": "R5PPMS",
+      "meaning": "Preventive Maintenance (PM) Schedule Definitions",
+      "basis": "Read the interval together with its time unit on the selected schedule revision. Fields in the schema export: PPM_CODE, PPM_REVISION, PPM_FREQ, PPM_PERIODUOM.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PPM_CODE",
+          "PPM_REVISION"
+        ]
+      }
+    }
+  ],
+  "L083": [
+    {
+      "table": "R5PPMACTS",
+      "meaning": "PM Schedule Activities",
+      "basis": "Find the activity template and planned labor on the PM revision. Fields in the schema export: PPA_PPM, PPA_REVISION, PPA_ACT, PPA_TASK, PPA_TRADE, PPA_EST.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PPA_PPM",
+          "PPA_REVISION",
+          "PPA_ACT"
+        ]
+      }
+    }
+  ],
+  "L084": [
+    {
+      "table": "R5PPMOBJECTS",
+      "meaning": "PM-to-Equipment Assignments",
+      "basis": "Identify which unit is attached to the schedule and check its due date. Fields in the schema export: PPO_PPM, PPO_REVISION, PPO_OBJECT, PPO_OBJECT_ORG, PPO_DUE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PPO_PK",
+          "PPO_REVISION"
+        ]
+      },
+      "relationship": {
+        "kind": "Declared foreign key",
+        "target": "R5OBJECTS",
+        "columns": [
+          [
+            "PPO_OBJECT",
+            "OBJ_CODE"
+          ],
+          [
+            "PPO_OBJECT_ORG",
+            "OBJ_ORG"
+          ]
+        ],
+        "evidence": "Constraint R5FOK2_PPO in the exported schema."
+      }
+    }
+  ],
+  "L085": [
+    {
+      "table": "R5EVENTS",
+      "meaning": "Work Orders, PMs, Inspections & Service Events",
+      "basis": "Review the generated order’s equipment, originating PM revision and due date. Fields in the schema export: EVT_CODE, EVT_OBJECT, EVT_PPM, EVT_PPMREV, EVT_DUE, EVT_STATUS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "EVT_CODE"
+        ]
+      }
+    }
+  ],
+  "L086": [
+    {
+      "table": "R5PPMACTS",
+      "meaning": "PM Schedule Activities",
+      "basis": "Find the material list referenced by the PM activity. Fields in the schema export: PPA_PPM, PPA_REVISION, PPA_ACT, PPA_MATLIST.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PPA_PPM",
+          "PPA_REVISION",
+          "PPA_ACT"
+        ]
+      }
+    },
+    {
+      "table": "R5MATLPARTS",
+      "meaning": "Matlparts",
+      "basis": "Review the parts and quantities required by a material-list revision. Fields in the schema export: MLP_MATLIST, MLP_MATLREV, MLP_PART, MLP_QTY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "MLP_MATLIST",
+          "MLP_MATLREV",
+          "MLP_LINE"
+        ]
+      }
+    }
+  ],
+  "L087": [
+    {
+      "table": "R5PERMENTITIES",
+      "meaning": "Permentities",
+      "basis": "Read the permit association and mandatory flag for the referenced entity. Fields in the schema export: PRE_PERMIT, PRE_PERMIT_ORG, PRE_RENTITY, PRE_CODE, PRE_MAND.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PRE_PERMIT",
+          "PRE_PERMIT_ORG",
+          "PRE_CODE",
+          "PRE_RENTITY"
+        ]
+      }
+    }
+  ],
+  "L088": [
+    {
+      "table": "R5PMFORECASTPARAMS",
+      "meaning": "Pmforecastparams",
+      "basis": "Check the selected date window and schedules before interpreting a forecast. Fields in the schema export: PFP_SESSIONID, PFP_STARTDATE, PFP_ENDDATE, PFP_PMSCHEDULES.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PFP_CODE"
+        ]
+      }
+    }
+  ],
+  "L089": [
+    {
+      "table": "R5PPMOBJECTS",
+      "meaning": "PM-to-Equipment Assignments",
+      "basis": "Inspect equipment assignments, due dates and deactivation before reviewing generated work. Fields in the schema export: PPO_PPM, PPO_REVISION, PPO_OBJECT, PPO_DUE, PPO_DEACTIVE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PPO_PK",
+          "PPO_REVISION"
+        ]
+      },
+      "relationship": {
+        "kind": "Declared foreign key",
+        "target": "R5PPMS",
+        "columns": [
+          [
+            "PPO_PPM",
+            "PPM_CODE"
+          ],
+          [
+            "PPO_REVISION",
+            "PPM_REVISION"
+          ]
+        ],
+        "evidence": "Constraint R5FOK1_PPO in the exported schema."
+      }
+    },
+    {
+      "table": "R5EVENTS",
+      "meaning": "Work Orders, PMs, Inspections & Service Events",
+      "basis": "Review the session and schedule references on each resulting work order. Fields in the schema export: EVT_CODE, EVT_SESSION, EVT_PPM, EVT_PPMREV, EVT_DUE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "EVT_CODE"
+        ]
+      }
+    }
+  ],
+  "L090": [
+    {
+      "table": "R5PPMPLAN",
+      "meaning": "Ppmplan",
+      "basis": "Review the PM plan header and its equipment class scope. Fields in the schema export: PMP_CODE, PMP_ORG, PMP_DESC, PMP_OBJECTCLASS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PMP_CODE"
+        ]
+      }
+    }
+  ],
+  "L091": [
+    {
+      "table": "R5PPMS",
+      "meaning": "Preventive Maintenance (PM) Schedule Definitions",
+      "basis": "Find the schedules associated with the maintenance plan. Fields in the schema export: PPM_CODE, PPM_REVISION, PPM_PLAN.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PPM_CODE",
+          "PPM_REVISION"
+        ]
+      }
+    },
+    {
+      "table": "R5PPMOBJECTS",
+      "meaning": "PM-to-Equipment Assignments",
+      "basis": "Trace the assigned equipment through its schedule revision. Fields in the schema export: PPO_OBJECT, PPO_OBJECT_ORG, PPO_PPM, PPO_REVISION.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PPO_PK",
+          "PPO_REVISION"
+        ]
+      },
+      "relationship": {
+        "kind": "Declared foreign key",
+        "target": "R5PPMS",
+        "columns": [
+          [
+            "PPO_PPM",
+            "PPM_CODE"
+          ],
+          [
+            "PPO_REVISION",
+            "PPM_REVISION"
+          ]
+        ],
+        "evidence": "Constraint R5FOK1_PPO in the exported schema."
+      }
+    }
+  ],
+  "L092": [
+    {
+      "table": "R5MAINTENANCEPATTERNS",
+      "meaning": "Maintenancepatterns",
+      "basis": "Inspect the maintenance pattern revision and its release settings. Fields in the schema export: MTP_CODE, MTP_ORG, MTP_REVISION, MTP_STARTDATE, MTP_RELEASETYPE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "MTP_CODE",
+          "MTP_ORG",
+          "MTP_REVISION"
+        ]
+      }
+    }
+  ],
+  "L093": [
+    {
+      "table": "R5NONCONFORMITIES",
+      "meaning": "Nonconformities",
+      "basis": "Read the defect identity, observed equipment and next inspection date. Fields in the schema export: NCF_CODE, NCF_OBJECT, NCF_STATUS, NCF_SEVERITY, NCF_NEXTINSPECTDATE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "NCF_CODE"
+        ]
+      }
+    }
+  ],
+  "L094": [
+    {
+      "table": "R5NONCONFORMOBSERVATIONS",
+      "meaning": "Nonconformobservations",
+      "basis": "Compare successive observations and severity readings for the defect. Fields in the schema export: NCO_CODE, NCO_OBSERVATION, NCO_SEVERITY, NCO_NOTE, NCO_RECORDED.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "NCO_PK"
+        ]
+      }
+    }
+  ],
+  "L095": [
+    {
+      "table": "R5PERMITTOWORK",
+      "meaning": "Permittowork",
+      "basis": "Check the permit-to-work record, its work order, current status and validity. Fields in the schema export: PTW_CODE, PTW_EVENT, PTW_PERMIT, PTW_STATUS, PTW_VALIDUNTIL.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PTW_CODE"
+        ]
+      }
+    }
+  ],
+  "L096": [
+    {
+      "table": "R5SAFETYMATRIX",
+      "meaning": "Safetymatrix",
+      "basis": "Read the hazard and precaution together with the equipment class and timing. Fields in the schema export: SFM_HAZARD, SFM_PRECAUTION, SFM_TIMING, SFM_OBJCLASS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "SFM_PK",
+          "SFM_ORG"
+        ]
+      }
+    }
+  ],
+  "L097": [
+    {
+      "table": "R5FINDINGS",
+      "meaning": "Findings",
+      "basis": "Use the finding code and description to interpret an inspection classification. Fields in the schema export: FND_CODE, FND_DESC, FND_CLASS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "FND_CODE"
+        ]
+      }
+    }
+  ],
+  "L098": [
+    {
+      "table": "R5ASPECTPOINTS",
+      "meaning": "Aspectpoints",
+      "basis": "Locate the inspection point and measurement unit on the equipment. Fields in the schema export: APO_OBJECT, APO_ASPECT, APO_POINT, APO_POINTTYPE, APO_UOM.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "APO_OBJECT",
+          "APO_OBJECT_ORG",
+          "APO_OBTYPE",
+          "APO_ASPECT",
+          "APO_POINT",
+          "APO_POINTTYPE"
+        ]
+      }
+    }
+  ],
+  "L099": [
+    {
+      "table": "R5ROUTEPOINTS",
+      "meaning": "Routepoints",
+      "basis": "Read the route lines in order and identify the equipment at each stop. Fields in the schema export: ROP_ROUTE, ROP_LINE, ROP_OBJECT, ROP_POINT.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "ROP_ROUTE",
+          "ROP_LINE"
+        ]
+      }
+    }
+  ],
+  "L100": [
+    {
+      "table": "R5OBJTESTPOINTS",
+      "meaning": "Objtestpoints",
+      "basis": "Read the test point and tolerance bounds configured for an instrument. Fields in the schema export: OTP_OBJECT, OTP_SET, OTP_SEQ, OTP_TESTPOINT, OTP_DEVICETOLFROM, OTP_DEVICETOLTO.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "OTP_OBJECT",
+          "OTP_OBJECT_ORG",
+          "OTP_SET",
+          "OTP_SEQ"
+        ]
+      }
+    }
+  ],
+  "L101": [
+    {
+      "table": "R5EVTSTANDARDS",
+      "meaning": "Evtstandards",
+      "basis": "Trace the standard used for the job to its equipment or lot and next calibration date. Fields in the schema export: EST_EVENT, EST_PART, EST_OBJECT, EST_LOT, EST_NEXTCALDATE.",
+      "keys": {
+        "kind": "Logical key",
+        "columns": [
+          "EST_PK"
+        ]
+      }
+    }
+  ],
+  "L102": [
+    {
+      "table": "R5EVTTESTPOINTS",
+      "meaning": "Evttestpoints",
+      "basis": "Compare the reference standard and device reading for each recorded test point. Fields in the schema export: ETP_EVENT, ETP_SEQ, ETP_STANDARD, ETP_DEVICEREADING, ETP_DEVIATION, ETP_STATUS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "ETP_EVENT",
+          "ETP_OBJECT",
+          "ETP_OBJECT_ORG",
+          "ETP_SEQ"
+        ]
+      }
+    }
+  ],
+  "L103": [
+    {
+      "table": "R5PROJBUDCODES",
+      "meaning": "Projbudcodes",
+      "basis": "Identify the project budget code and its accounting context. Fields in the schema export: PBC_CODE, PBC_DESC, PBC_ACCOUNT, PBC_COSTCENTER.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PBC_CODE"
+        ]
+      }
+    }
+  ],
+  "L104": [
+    {
+      "table": "R5SHUTDOWNOBJECTS",
+      "meaning": "Shutdownobjects",
+      "basis": "Identify the equipment, standard work and budget associated with a shutdown. Fields in the schema export: SOB_SHUTDOWN, SOB_OBJECT, SOB_STANDWORK, SOB_PROJBUD.",
+      "keys": {
+        "kind": "Logical key",
+        "columns": [
+          "SOB_SHUTDOWN",
+          "SOB_OBJECT",
+          "SOB_STANDWORK"
+        ]
+      }
+    }
+  ],
+  "L105": [
+    {
+      "table": "R5FLEETTICKETS",
+      "meaning": "Fleet: Tickets",
+      "basis": "Use the issue and return entries to review vehicle use on a fleet ticket. Fields in the schema export: FTI_CODE, FTI_OBJECT, FTI_ISSUEDATE, FTI_RETURNDATE, FTI_ISSUEMILEAGE, FTI_RETURNMILEAGE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "FTI_CODE"
+        ]
+      }
+    }
+  ],
+  "L106": [
+    {
+      "table": "R5BUDGETSTRUCTURE",
+      "meaning": "Budgetstructure",
+      "basis": "Identify the budget level and its place under a parent structure. Fields in the schema export: BUS_CODE, BUS_PARENT, BUS_LEVEL, BUS_ORG.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "BUS_CODE"
+        ]
+      }
+    }
+  ],
+  "L107": [
+    {
+      "table": "R5CAPITALPLANNINGREQUESTS",
+      "meaning": "Capitalplanningrequests",
+      "basis": "For equipment replacement, the related capital request provides an estimate, priority and return-on-investment field. Fields in the schema export: CPR_CODE, CPR_OBJECT, CPR_PRIORITY, CPR_ESTLABCOST, CPR_ESTMATCOST, CPR_ROI.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "CPR_CODE",
+          "CPR_ORG"
+        ]
+      }
+    }
+  ],
+  "L108": [
+    {
+      "table": "R5CONTRACTS",
+      "meaning": "Purchasing & Service Contracts",
+      "basis": "Check supplier, currency and effective dates on the purchasing contract. Fields in the schema export: CON_CODE, CON_SUPPLIER, CON_CURR, CON_START, CON_END.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "CON_CODE"
+        ]
+      }
+    }
+  ],
+  "L109": [
+    {
+      "table": "R5SERVICEREQUESTS",
+      "meaning": "Customer / Portal Service Requests",
+      "basis": "Follow a reported service issue from caller intake to its assigned owner. Fields in the schema export: SRQ_CODE, SRQ_CALLNAME, SRQ_SERVICECODE, SRQ_ASSIGNEDTO, SRQ_STATUS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "SRQ_CODE"
+        ]
+      }
+    }
+  ],
+  "L110": [
+    {
+      "table": "R5KBARTICLES",
+      "meaning": "Kbarticles",
+      "basis": "Look up the article for a service problem and inspect its recorded publication status. Fields in the schema export: KBA_CODE, KBA_ORG, KBA_SERVICEPROBLEM, KBA_DOCUMENT, KBA_STATUS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "KBA_CODE",
+          "KBA_ORG"
+        ]
+      }
+    }
+  ],
+  "L111": [
+    {
+      "table": "R5RCODES",
+      "meaning": "System-Reserved Status & Type Codes",
+      "basis": "Interpret a system code in the context of its entity. Fields in the schema export: RCO_RENTITY, RCO_RCODE, RCO_DESC.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "RCO_RENTITY",
+          "RCO_RCODE"
+        ]
+      }
+    }
+  ],
+  "L112": [
+    {
+      "table": "R5PAGELAYOUT",
+      "meaning": "Pagelayout",
+      "basis": "Check the screen element and its layout attributes for the relevant user group. Fields in the schema export: PLO_USERGROUP, PLO_PAGENAME, PLO_ELEMENTID, PLO_ATTRIBUTE.",
+      "keys": {
+        "kind": "Logical key",
+        "columns": [
+          "PLO_USERGROUP",
+          "PLO_PAGENAME",
+          "PLO_ELEMENTID",
+          "PLO_MEFLAG"
+        ]
+      }
+    }
+  ],
+  "L113": [
+    {
+      "table": "R5USERDEFINEDFIELDSETUP",
+      "meaning": "Userdefinedfieldsetup",
+      "basis": "Inspect a user-defined field’s entity and lookup configuration. Fields in the schema export: UDF_RENTITY, UDF_FIELD, UDF_LOOKUPTYPE, UDF_LOOKUPVALIDATE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "UDF_RENTITY",
+          "UDF_FIELD"
+        ]
+      }
+    }
+  ],
+  "L114": [
+    {
+      "table": "R5ADDPROPERTIES",
+      "meaning": "Addproperties",
+      "basis": "Determine which custom property and requirement apply to a class. Fields in the schema export: APR_RENTITY, APR_CLASS, APR_CLASS_ORG, APR_PROPERTY, APR_REQUIRED.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "APR_PROPERTY",
+          "APR_RENTITY",
+          "APR_CLASS",
+          "APR_CLASS_ORG"
+        ]
+      }
+    },
+    {
+      "table": "R5PROPERTYVALUES",
+      "meaning": "Custom Field Values",
+      "basis": "Inspect the custom property value against the individual entity record. Fields in the schema export: PRV_RENTITY, PRV_CODE, PRV_CLASS, PRV_PROPERTY, PRV_VALUE.",
+      "keys": {
+        "kind": "Logical key",
+        "columns": [
+          "PRV_PROPERTY",
+          "PRV_RENTITY",
+          "PRV_CLASS",
+          "PRV_CLASS_ORG",
+          "PRV_CODE",
+          "PRV_SEQNO"
+        ]
+      }
+    }
+  ],
+  "L115": [
+    {
+      "table": "R5AUDATTRIBS",
+      "meaning": "Audattribs",
+      "basis": "Check which table, column and types of change are selected for auditing. Fields in the schema export: AAT_TABLE, AAT_COLUMN, AAT_INSERT, AAT_UPDATE, AAT_DELETE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "AAT_CODE"
+        ]
+      }
+    }
+  ],
+  "L116": [
+    {
+      "table": "R5ORGANIZATION",
+      "meaning": "Organizations (Multi-Org Security Units)",
+      "basis": "Inspect the organization’s identity and common status when interpreting ownership. Fields in the schema export: ORG_CODE, ORG_COMMON, ORG_CURR.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "ORG_CODE"
+        ]
+      }
+    }
+  ],
+  "L117": [
+    {
+      "table": "R5USERORGANIZATION",
+      "meaning": "Userorganization",
+      "basis": "Check the user’s assigned organization, role and default selection. Fields in the schema export: UOG_USER, UOG_ORG, UOG_ROLE, UOG_DEFAULT.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "UOG_USER",
+          "UOG_ORG",
+          "UOG_ROLE"
+        ]
+      }
+    }
+  ],
+  "L118": [
+    {
+      "table": "R5USERS",
+      "meaning": "EAM Application Users",
+      "basis": "Locate the group assignment on an active user account. Fields in the schema export: USR_CODE, USR_GROUP, USR_ACTIVE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "USR_CODE"
+        ]
+      }
+    }
+  ],
+  "L119": [
+    {
+      "table": "R5AUTH",
+      "meaning": "Auth",
+      "basis": "Inspect the authorization entry for a transition between two statuses. Fields in the schema export: AUT_GROUP, AUT_USER, AUT_ENTITY, AUT_STATUS, AUT_STATNEW.",
+      "keys": {
+        "kind": "Logical key",
+        "columns": [
+          "AUT_GROUP",
+          "AUT_USER",
+          "AUT_ENTITY",
+          "AUT_STATUS",
+          "AUT_STATNEW"
+        ]
+      }
+    }
+  ],
+  "L120": [
+    {
+      "table": "R5ENTAPPLISTS",
+      "meaning": "Entapplists",
+      "basis": "Trace recorded approval decisions and their sequence for a particular entity record. Fields in the schema export: EAL_ENTITY, EAL_CODE, EAL_SEQ, EAL_APPROVED, EAL_REJECTED, EAL_APPRUSER."
+    }
+  ],
+  "L121": [
+    {
+      "table": "R5MAILATTRIBS",
+      "meaning": "Mailattribs",
+      "basis": "Review the event definitions and message templates attached to table changes. Fields in the schema export: MAA_TABLE, MAA_TEMPLATE, MAA_INSERT, MAA_UPDATE, MAA_DELETE, MAA_ACTIVE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "MAA_PK"
+        ]
+      }
+    }
+  ],
+  "L122": [
+    {
+      "table": "R5ALERTWO",
+      "meaning": "Alertwo",
+      "basis": "Read the work-order setup associated with an alert and its equipment field mapping. Fields in the schema export: ALW_ALERT, ALW_STANDWORK, ALW_WORKORDERORG, ALW_OBJECTFIELDID.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "ALW_ALERT"
+        ]
+      }
+    }
+  ],
+  "L123": [
+    {
+      "table": "R5IMPORTSESSIONS",
+      "meaning": "Importsessions",
+      "basis": "Use the import session to reconcile submitted records against completion status. Fields in the schema export: ISE_SESSIONID, ISE_STARTED, ISE_COMPLETED, ISE_RECORDCOUNT, ISE_STATUS."
+    }
+  ],
+  "L124": [
+    {
+      "table": "R5GRIDFIELD",
+      "meaning": "Gridfield",
+      "basis": "Locate a displayed field within the specific grid definition. Fields in the schema export: GFD_GRIDID, GFD_FIELDID, GFD_FIELDTYPE, GFD_OCCURRENCE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "GFD_FIELDID",
+          "GFD_GRIDID",
+          "GFD_OCCURRENCE"
+        ]
+      }
+    }
+  ],
+  "L125": [
+    {
+      "table": "R5WSPROMPTS",
+      "meaning": "Wsprompts",
+      "basis": "Identify the function and tab associated with the web service prompt. Fields in the schema export: WST_CODE, WST_FUNCTION, WST_TAB, WST_NOTUSED.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "WST_CODE"
+        ]
+      }
+    }
+  ],
+  "L126": [
+    {
+      "table": "DATALAKE_COLUMN",
+      "meaning": "Data Lake: Column",
+      "basis": "Inspect the published field name and type for its table. Fields in the schema export: TABLEID, NAME, CLIENTNAME, DATATYPE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "COLUMNID"
+        ]
+      }
+    },
+    {
+      "table": "DATALAKE_TABLE",
+      "meaning": "Data Lake: Table",
+      "basis": "Read the table identity and schedule alongside the field selection. Fields in the schema export: TABLEID, NAME, SCHEDULEID, STATUS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "TABLEID"
+        ]
+      }
+    }
+  ],
+  "L151": [
+    {
+      "table": "R5EVENTS",
+      "meaning": "Work Orders, PMs, Inspections & Service Events",
+      "basis": "Review the reported request, its status and any recorded reason for rejection. Fields in the schema export: EVT_CODE, EVT_REPORTED, EVT_STATUS, EVT_REJECTREASON.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "EVT_CODE"
+        ]
+      }
+    },
+    {
+      "table": "R5AUTH",
+      "meaning": "Auth",
+      "basis": "Check the configured transition authorization when evaluating an approval. Fields in the schema export: AUT_ENTITY, AUT_GROUP, AUT_STATUS, AUT_STATNEW.",
+      "keys": {
+        "kind": "Logical key",
+        "columns": [
+          "AUT_GROUP",
+          "AUT_USER",
+          "AUT_ENTITY",
+          "AUT_STATUS",
+          "AUT_STATNEW"
+        ]
+      }
+    }
+  ],
+  "L152": [
+    {
+      "table": "R5BOOKEDHOURS",
+      "meaning": "Booked Labor Hours & Timecards",
+      "basis": "Read the work date, person and hours for each time entry on the activity. Fields in the schema export: BOO_EVENT, BOO_ACT, BOO_DATE, BOO_PERSON, BOO_HOURS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "BOO_CODE"
+        ]
+      },
+      "relationship": {
+        "kind": "Candidate join",
+        "target": "R5ACTIVITIES",
+        "columns": [
+          [
+            "BOO_EVENT",
+            "ACT_EVENT"
+          ],
+          [
+            "BOO_ACT",
+            "ACT_ACT"
+          ]
+        ],
+        "evidence": "The booking index lists event and activity together. The schema export does not identify this pair as a foreign-key constraint."
+      }
+    }
+  ],
+  "L153": [
+    {
+      "table": "R5EVENTS",
+      "meaning": "Work Orders, PMs, Inspections & Service Events",
+      "basis": "Review the completion date, action and final status on the work-order header. Fields in the schema export: EVT_CODE, EVT_STATUS, EVT_COMPLETED, EVT_ACTION.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "EVT_CODE"
+        ]
+      }
+    },
+    {
+      "table": "R5ACTCHECKLISTS",
+      "meaning": "Work Order Activity Checklists",
+      "basis": "Check outstanding checklist items that require completion for closure. Fields in the schema export: ACK_EVENT, ACK_ACT, ACK_REQUIREDTOCLOSE, ACK_COMPLETED.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "ACK_CODE"
+        ]
+      }
+    }
+  ],
+  "L154": [
+    {
+      "table": "R5DOCKLINES",
+      "meaning": "Dock Receiving Lines",
+      "basis": "Trace the delivered quantity back to the particular purchase order line. Fields in the schema export: DKL_ORDER, DKL_ORDER_ORG, DKL_ORDLINE, DKL_PART, DKL_RECVQTY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "DKL_DCKCODE",
+          "DKL_LINE"
+        ]
+      }
+    }
+  ],
+  "L155": [
+    {
+      "table": "R5TRANSLINES",
+      "meaning": "Inventory & Material Transaction Lines",
+      "basis": "Trace the part issued from the store to the specific work activity. Fields in the schema export: TRL_EVENT, TRL_ACT, TRL_PART, TRL_STORE, TRL_IO, TRL_QTY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "TRL_TRANS",
+          "TRL_LINE"
+        ]
+      },
+      "relationship": {
+        "kind": "Declared foreign key",
+        "target": "R5ACTIVITIES",
+        "columns": [
+          [
+            "TRL_EVENT",
+            "ACT_EVENT"
+          ],
+          [
+            "TRL_ACT",
+            "ACT_ACT"
+          ]
+        ],
+        "evidence": "Constraint R5FOK5_TRL in the exported schema."
+      }
+    },
+    {
+      "table": "R5BINSTOCK",
+      "meaning": "Bin-Level Inventory Balances",
+      "basis": "Check the remaining part quantity for the store, bin and lot. Fields in the schema export: BIS_PART, BIS_PART_ORG, BIS_STORE, BIS_BIN, BIS_LOT, BIS_QTY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "BIS_STORE",
+          "BIS_PART",
+          "BIS_PART_ORG",
+          "BIS_BIN",
+          "BIS_LOT"
+        ]
+      }
+    }
+  ],
+  "L156": [
+    {
+      "table": "R5TRANSLINES",
+      "meaning": "Inventory & Material Transaction Lines",
+      "basis": "Follow the posted return quantity and movement direction in the work context. Fields in the schema export: TRL_EVENT, TRL_ACT, TRL_PART, TRL_STORE, TRL_IO, TRL_QTY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "TRL_TRANS",
+          "TRL_LINE"
+        ]
+      },
+      "relationship": {
+        "kind": "Declared foreign key",
+        "target": "R5ACTIVITIES",
+        "columns": [
+          [
+            "TRL_EVENT",
+            "ACT_EVENT"
+          ],
+          [
+            "TRL_ACT",
+            "ACT_ACT"
+          ]
+        ],
+        "evidence": "Constraint R5FOK5_TRL in the exported schema."
+      }
+    }
+  ],
+  "L157": [
+    {
+      "table": "R5TASKS",
+      "meaning": "Standard Task Plans & Job Plans",
+      "basis": "Inspect planned trade, hours and staffing on the reusable task revision. Fields in the schema export: TSK_CODE, TSK_REVISION, TSK_TRADE, TSK_HOURS, TSK_PERSONS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "TSK_CODE",
+          "TSK_REVISION"
+        ]
+      }
+    }
+  ],
+  "L158": [
+    {
+      "table": "R5TASKPLANJOBS",
+      "meaning": "Taskplanjobs",
+      "basis": "Trace a reusable job to its position in the task-plan revision. Fields in the schema export: TPJ_TASK, TPJ_TASKREV, TPJ_JOBPLAN, TPJ_SEQ.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "TPJ_PK"
+        ]
+      }
+    }
+  ],
+  "L159": [
+    {
+      "table": "R5MATLPARTS",
+      "meaning": "Matlparts",
+      "basis": "Read each planned requirement and quantity on the material list. Fields in the schema export: MLP_MATLIST, MLP_MATLREV, MLP_LINE, MLP_PART, MLP_QTY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "MLP_MATLIST",
+          "MLP_MATLREV",
+          "MLP_LINE"
+        ]
+      }
+    }
+  ],
+  "L160": [
+    {
+      "table": "R5PERMISSIONS",
+      "meaning": "Permissions",
+      "basis": "Check the actions permitted for a group on a particular screen. Fields in the schema export: PRM_GROUP, PRM_FUNCTION, PRM_SELECT, PRM_INSERT, PRM_UPDATE, PRM_DELETE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PRM_FUNCTION",
+          "PRM_GROUP"
+        ]
+      }
+    }
+  ],
+  "L161": [
+    {
+      "table": "R5RISKMATRIXCONSEQUENCES",
+      "meaning": "Riskmatrixconsequences",
+      "basis": "Read the consequence definition and severity within its risk matrix. Fields in the schema export: RMC_RMSCODE, RMC_CODE, RMC_DESC, RMC_SEVERITY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "RMC_CODE",
+          "RMC_RMSCODE"
+        ]
+      }
+    }
+  ],
+  "L162": [
+    {
+      "table": "R5RCMSTRUCTURE",
+      "meaning": "Rcmstructure",
+      "basis": "Trace the equipment’s RCM hierarchy and examine probability and consequence on its nodes. Fields in the schema export: RCM_OBJECT, RCM_PARENT, RCM_CODE, RCM_NODEDESC, RCM_PROBABILITY, RCM_CONSEQUENCE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "RCM_OBJECT",
+          "RCM_OBJECT_ORG",
+          "RCM_CODE"
+        ]
+      }
+    }
+  ],
+  "L163": [
+    {
+      "table": "R5OBJDEPRECIATION",
+      "meaning": "Objdepreciation",
+      "basis": "Compare the recorded depreciation expense and book value for each period. Fields in the schema export: ODP_OBJECT, ODP_OBJECT_ORG, ODP_PERIOD, ODP_EXPENSE, ODP_BOOKVALUE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "ODP_OBJECT",
+          "ODP_OBJECT_ORG",
+          "ODP_DEPTYPE",
+          "ODP_MODE",
+          "ODP_PERIOD"
+        ]
+      }
+    }
+  ],
+  "L164": [
+    {
+      "table": "R5PERFORMANCEFORMULAS",
+      "meaning": "Performanceformulas",
+      "basis": "Inspect how condition, capacity and repair-time ratings contribute to the formula. Fields in the schema export: PFF_CODE, PFF_ORG, PFF_CONDITIONRATINGWEIGHT, PFF_CAPACITYRATINGWEIGHT, PFF_MTTRRATINGWEIGHT.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "PFF_CODE",
+          "PFF_ORG"
+        ]
+      }
+    }
+  ],
+  "L165": [
+    {
+      "table": "R5CATALOGREFERENCES",
+      "meaning": "Catalogreferences",
+      "basis": "Locate alternate supplier identifiers while retaining the same internal part. Fields in the schema export: CRF_PART, CRF_PART_ORG, CRF_SUPPLIER, CRF_SUPPLIER_ORG, CRF_REFERENCE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "CRF_PART",
+          "CRF_PART_ORG",
+          "CRF_SUPPLIER",
+          "CRF_SUPPLIER_ORG",
+          "CRF_REFERENCE"
+        ]
+      }
+    }
+  ],
+  "L166": [
+    {
+      "table": "R5REPAIRBINS",
+      "meaning": "Repairbins",
+      "basis": "Trace the repair-bin quantity against its work order, part and store. Fields in the schema export: RPB_EVENT, RPB_STORE, RPB_PART, RPB_BIN, RPB_LOT, RPB_QTY.",
+      "keys": {
+        "kind": "Logical key",
+        "columns": [
+          "RPB_PK"
+        ]
+      }
+    }
+  ],
+  "L167": [
+    {
+      "table": "R5TRADERATES",
+      "meaning": "Traderates",
+      "basis": "Compare standard and overtime supplier rates for the effective period. Fields in the schema export: TRR_TRADE, TRR_SUPPLIER, TRR_START, TRR_END, TRR_NTRATE, TRR_OTRATE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "TRR_MRC",
+          "TRR_TRADE",
+          "TRR_SUPPLIER",
+          "TRR_SUPPLIER_ORG",
+          "TRR_PERSON",
+          "TRR_ORG",
+          "TRR_START",
+          "TRR_OCTYPE"
+        ]
+      }
+    }
+  ],
+  "L168": [
+    {
+      "table": "R5OPERATORCHECKLISTS",
+      "meaning": "Operatorchecklists",
+      "basis": "Check the equipment, checklist revision and recorded performance details. Fields in the schema export: OCK_OBJECT, OCK_TASK, OCK_TASKREV, OCK_PERFORMED, OCK_PERFORMEDBY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "OCK_CODE"
+        ]
+      }
+    }
+  ],
+  "L169": [
+    {
+      "table": "R5SERVICEREQUESTS",
+      "meaning": "Customer / Portal Service Requests",
+      "basis": "Trace the incoming service request to its reported equipment and assigned owner. Fields in the schema export: SRQ_CODE, SRQ_CALLNAME, SRQ_OBJECT, SRQ_REPORTED, SRQ_ASSIGNEDTO.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "SRQ_CODE"
+        ]
+      }
+    }
+  ],
+  "L170": [
+    {
+      "table": "R5EVENTS",
+      "meaning": "Work Orders, PMs, Inspections & Service Events",
+      "basis": "For a reported equipment event, inspect its incident flags and report date. These fields identify the event context only. Fields in the schema export: EVT_CODE, EVT_OBJECT, EVT_HAZMATINCIDENT, EVT_SECURITYINCIDENT, EVT_REPORTED.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "EVT_CODE"
+        ]
+      }
+    }
+  ],
+  "L172": [
+    {
+      "table": "R5CUSTOMERINVOICES",
+      "meaning": "Customerinvoices",
+      "basis": "Review the customer, contract and totals on the invoice revision. Fields in the schema export: CIV_CODE, CIV_ORG, CIV_REVISION, CIV_CUSTOMER, CIV_CONTRACT, CIV_NETAMOUNT, CIV_GROSSAMOUNT.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "CIV_CODE",
+          "CIV_ORG",
+          "CIV_REVISION"
+        ]
+      }
+    }
+  ],
+  "L173": [
+    {
+      "table": "R5FLEETBILLINGSCHEDULES",
+      "meaning": "Fleet: Billingschedules",
+      "basis": "Check the billing period and whether its fleet billing run is in progress or billed. Fields in the schema export: FSC_PERIODENDDATE, FSC_BILLED, FSC_BILLINGINPROGRESS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "FSC_PERIODENDDATE"
+        ]
+      }
+    },
+    {
+      "table": "R5FLEETBILLINGRATES",
+      "meaning": "Fleet: Billingrates",
+      "basis": "Read mileage and usage charges for the applicable rate period. Fields in the schema export: FBR_BILLINGCODE, FBR_STARTDATE, FBR_ENDDATE, FBR_USAGECHARGE, FBR_MILEAGECHARGE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "FBR_BILLINGCODE",
+          "FBR_BILLINGCODE_ORG",
+          "FBR_STARTDATE",
+          "FBR_ORG"
+        ]
+      }
+    }
+  ],
+  "L174": [
+    {
+      "table": "R5UDFSCREENS",
+      "meaning": "Udfscreens",
+      "basis": "Identify the screen’s declared backing table, entity and organization security setting. Fields in the schema export: USC_SCREENNAME, USC_TABLENAME, USC_ENTITY, USC_ORGSECURITY.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "USC_SCREENNAME"
+        ]
+      }
+    }
+  ],
+  "L175": [
+    {
+      "table": "R5GLPROCESSDEF",
+      "meaning": "Glprocessdef",
+      "basis": "Look up the amount, segment and journal fields in the general-ledger process definition. Fields in the schema export: GPD_CODE, GPD_AMOUNTCOL, GPD_SEGMENTSCOL, GPD_JECATEGORYCOL, GPD_JESOURCECOL.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "GPD_CODE"
+        ]
+      }
+    }
+  ],
+  "L176": [
+    {
+      "table": "R5STORESECURITY",
+      "meaning": "Storesecurity",
+      "basis": "Check each store operation separately for the selected user group. Fields in the schema export: SSC_GROUP, SSC_STORE, SSC_ISSUERETURN, SSC_STSISSUES, SSC_STSRECEIPTS.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "SSC_STORE",
+          "SSC_GROUP"
+        ]
+      }
+    }
+  ],
+  "L177": [
+    {
+      "table": "R5KPISCORES",
+      "meaning": "Kpiscores",
+      "basis": "Read the score, display color and bounds for a KPI range. Fields in the schema export: KPS_HOMCODE, KPS_LOWVALUE, KPS_HIGHVALUE, KPS_SCORE, KPS_COLOR.",
+      "keys": {
+        "kind": "Logical key",
+        "columns": [
+          "KPS_HOMCODE",
+          "KPS_HOMTYPE",
+          "KPS_LOWVALUE",
+          "KPS_HIGHVALUE"
+        ]
+      }
+    }
+  ],
+  "L178": [
+    {
+      "table": "R5ALERTSQL",
+      "meaning": "Alertsql",
+      "basis": "Identify the SQL statement, type and failure setting attached to the alert. Fields in the schema export: ALS_ALERT, ALS_RTYPE, ALS_STMT, ALS_ACTIVE, ALS_ABORTONFAILURE.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "ALS_ALERT",
+          "ALS_RTYPE"
+        ]
+      }
+    }
+  ],
+  "L179": [
+    {
+      "table": "R5GISDATAMAPS",
+      "meaning": "Gisdatamaps",
+      "basis": "Inspect how layer and equipment attributes are matched and ordered by the mapping. Fields in the schema export: GMP_LAYERNAME, GMP_LAYERATTRIBUTE, GMP_ASSETATTRIBUTE, GMP_SEQUENCE, GMP_DELIMITER.",
+      "keys": {
+        "kind": "Primary key",
+        "columns": [
+          "GMP_MAPPINGID"
+        ]
+      }
+    }
+  ]
+}

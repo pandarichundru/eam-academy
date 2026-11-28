@@ -2,6 +2,18 @@ const files = [
   "academy.svg",
   "social-preview.png",
   "app.js",
+  "study.css",
+  "pump-scene.css",
+  "appearance.js",
+  "lesson-visuals.js",
+  "pump-scene.js",
+  "lesson-notes.json",
+  "lesson-records.json",
+  "data/object-trace.js",
+  "data/trace-view.js",
+  "data/db-evidence.json",
+  "data/database-reference.html",
+  "data/database-reference.js",
   "catalog.json",
   "challenges.js",
   "challenges.json",
@@ -55,7 +67,7 @@ const prefix = 'eam-academy:' + self.registration.scope + ':';
 const version = prefix + '2';
 const cacheName = version + ':r5-vanilla-v2';
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(cacheName).then(cache => cache.addAll(files.map(file => new Request(file === 'style.css' ? 'style.css?v=436551215215' : file, {cache:'reload'})))).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(cacheName).then(cache => cache.addAll(files.map(file => new Request(file, {cache:'reload'})))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', event => {
   event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key.startsWith(prefix) && key !== cacheName).map(key => caches.delete(key)))).then(() => self.clients.claim()));
@@ -63,7 +75,8 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || !url.href.startsWith(self.registration.scope)) return;
-  const key = event.request.mode === 'navigate' ? new URL('index.html',self.registration.scope).href : event.request;
+  const key = event.request.mode === 'navigate' && url.href === self.registration.scope ? new URL('index.html',self.registration.scope).href : event.request;
+  const matchOptions = {ignoreSearch: url.pathname.endsWith('/style.css')};
   const freshShell = event.request.mode === 'navigate' || /\.(html|js|css|db|json)$/.test(url.pathname);
   event.respondWith(caches.open(cacheName).then(async cache => {
     if (freshShell) {
@@ -73,13 +86,13 @@ self.addEventListener('fetch', event => {
           await cache.put(key, response.clone());
           return response;
         }
-        return await cache.match(key) || response;
+        return await cache.match(key, matchOptions) || response;
       } catch (error) {
-        const saved = await cache.match(key);
+        const saved = await cache.match(key, matchOptions);
         if (saved) return saved;
         throw error;
       }
     }
-    return await cache.match(key) || fetch(event.request);
+    return await cache.match(key, matchOptions) || fetch(event.request);
   }));
 });

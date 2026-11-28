@@ -74,11 +74,18 @@ def load_all():
     lessons = intro_lessons + curriculum
 
     diagrams = load_json(CONTENT / 'lesson-diagrams.json')
+    notes = load_json(CONTENT / 'lesson-notes.json')
+    records = load_json(CONTENT / 'lesson-records.json')
     expected = {l['id'] for l in lessons if l['type'] in ('functional', 'intro')}
-    if set(diagrams) != expected:
+    if set(diagrams) != expected or set(notes) != expected:
         raise ValueError('Provide exactly one diagram for each functional and introductory lesson')
     for lesson in lessons:
-        lesson['diagram'] = diagrams.get(lesson['id'])
+        lid = lesson['id']
+        lesson['diagram'] = diagrams.get(lid)
+        lesson['diagram_notes'] = notes.get(lid, [])
+        lesson['records'] = records.get(lid, [])
+        if lid in diagrams and (len(notes[lid]) != len(diagrams[lid]['labels']) or not all(notes[lid])):
+            raise ValueError(f'Provide one explanation per diagram label for {lid}')
 
     # Build groups
     groups = {}
@@ -425,7 +432,11 @@ def render_lesson_body(l, enrichment, groups):
         else:
             raise ValueError(f'Unknown diagram kind for {lesson_id}')
         answer = f'<p>{e(diagram["answer"])}</p>' if diagram.get('answer') else ''
-        figure_html = f'<figure class="lesson-slide"><figcaption>{e(diagram["question"])}</figcaption>{drawing}{answer}</figure>'
+        annotations = ''.join(f'<dt>{label}</dt><dd>{e(note)}</dd>' for label, note in zip(labels, l['diagram_notes']))
+        figure_html = f'<figure class="lesson-slide"><figcaption>{e(diagram["question"])}</figcaption>{drawing}{answer}<details><summary>Explore the diagram</summary><dl>{annotations}</dl></details></figure>'
+        if l['records']:
+            cards = ''.join(f'<li><a href="/eam-academy/data/database-reference.html#Table:{e(r["table"])}">{e(r["table"])} · {e(r["meaning"])}</a><p>{e(r["basis"])}</p></li>' for r in l['records'])
+            figure_html += f'<details class="lesson-records"><summary>See the records behind this step</summary><ul>{cards}</ul></details>'
     reading_html = ''
     if reading := l.get('reading'):
         links = ''.join(f'<li><a href="{e(url)}">{e(label)}</a></li>' for label, url in reading)
@@ -497,14 +508,19 @@ def build_lessons(lessons, groups, enrichment):
         description = lesson_description(l)
         body = render_lesson_body(l, enrichment, groups)
 
-        html = html_shell(
-            title=title,
-            description=description,
-            canonical_path=f'/learn/{slug}/',
-            og_image='social-preview.png',
-            body_html=body,
-            nav_active='learn',
-        )
+        # Use the same controls, routes and assets as the homepage while keeping
+        # the complete pre-rendered lesson available to readers without JavaScript.
+        html = (ROOT / 'index.html').read_text(encoding='utf-8')
+        html = html.replace('<head>', '<head>\n  <base href="../../">', 1)
+        html = html.replace('<body>', f'<body data-initial-route="lesson/{e(lesson_id)}">', 1)
+        html = re.sub(r'<title>.*?</title>', lambda _: f'<title>{e(title)}</title>', html, count=1)
+        for attr, value in [('name="description"', description), ('property="og:title"', title),
+                            ('name="twitter:title"', title), ('property="og:description"', description),
+                            ('name="twitter:description"', description), ('property="og:url"', SITE_URL + f'/learn/{slug}/')]:
+            html = re.sub(r'(<meta ' + attr + r'\s+content=")[^"]*', lambda m: m[1] + e(value), html, count=1)
+        html = html.replace(f'rel="canonical" href="{SITE_URL}/"', f'rel="canonical" href="{SITE_URL}/learn/{slug}/"')
+        start = html.index('>', html.index('<main id="main"')) + 1
+        html = html[:start] + body + html[html.index('</main>', start):]
         write(path, html)
 
     print(f'Built: {len(lessons)} lesson pages in dist/learn/')
@@ -631,6 +647,8 @@ def copy_assets():
         'curriculum.json',
         'introduction.json',
         'lesson-diagrams.json',
+        'lesson-notes.json', 'lesson-records.json', 'lesson-visuals.js',
+        'study.css', 'appearance.js', 'pump-scene.css', 'pump-scene.js',
         'enrichment.json',
         'quizzes.json',
         'challenges.json',

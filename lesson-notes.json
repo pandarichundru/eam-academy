@@ -1,0 +1,889 @@
+{
+  "INTRO01": [
+    "P-101A identifies the physical pump that leaked in the north pump room.",
+    "Past work against P-101A helps the supervisor count leaks on this particular unit.",
+    "The repair order connects the reported leak to what the technician did and how many hours it took.",
+    "The issue records the seal taken from stores for this repair. The technician records whether it was installed."
+  ],
+  "INTRO02": [
+    "The delivered pump will have its own installation and repair history.",
+    "Its serial number lets a technician recognize that same physical pump after a move.",
+    "The box contains interchangeable spares used to repair pumps.",
+    "Receiving adds seals to the balance. Issuing one for a repair subtracts one from that balance."
+  ],
+  "INTRO03": [
+    "At the beginning of the example, P-101A occupies CW-DUTY in the north pump room.",
+    "Look up P-101A to see repairs carried out on the removed unit, including its earlier seal repair.",
+    "After the swap, the cooling-water system still needs the same duty position in the same room.",
+    "P-101B now occupies CW-DUTY. Its own asset record identifies work performed on the incoming pump."
+  ],
+  "INTRO04": [
+    "A receipt links the delivered serial number to the purchase. The unit can still be awaiting installation.",
+    "Record the duty position, acceptance check and date the standby pump enters service.",
+    "Each inspection or repair adds evidence of condition, downtime and cost during the service period.",
+    "Record when and why the pump left service. Its earlier work remains available for replacement decisions."
+  ],
+  "INTRO05": [
+    "The operator identifies the leak, its time, the duty position and the pump installed there.",
+    "A planner reviews the request, defines the repair activity and sets a seal aside if needed.",
+    "Stores records the seal taken for that order. A prior reservation only set it aside.",
+    "The technician enters hours, the work performed and the result so the completed repair can be traced."
+  ],
+  "INTRO06": [
+    "The reason for starting the work determines which record and evidence to look for.",
+    "The leaking seal is an observed fault. Raise corrective work and retain the reported symptom.",
+    "In the example, a 30-day schedule sets up recurring inspections. Each generated order covers one occurrence.",
+    "A rising vibration reading prompts a review against the plant’s approved limit and follow-up rules."
+  ],
+  "INTRO07": [
+    "WO-214 closed on 5 May. Use its completion date to locate the finished repair.",
+    "In this example, two hours at 40 plus one seal at 18 gives a recorded direct cost of 98.",
+    "The schedule lists an inspection for 2 June. Check its due date when looking ahead.",
+    "Keep the future inspection separate when totaling actual costs from completed work and posted transactions."
+  ],
+  "L001": [
+    "Find the installed EAM release before looking up the planner’s work-order action.",
+    "Open the documentation for that release so field names and prerequisites match the application.",
+    "Find the release-work-order topic and compare its steps with the controls on the planner’s screen."
+  ],
+  "L002": [
+    "Search the part list first so the storekeeper can locate a part that already exists.",
+    "Use the part code and organization to distinguish similarly named records.",
+    "Read the selected record and its message bar before editing the part or using a toolbar action."
+  ],
+  "L003": [
+    "Inspect the toolbar for the action the planner wants to perform on the current record.",
+    "Read the command’s tooltip and confirm its effect before using it repeatedly.",
+    "Look up the documented key combination for that same action in the installed release.",
+    "Try the combination on a training record and check whether the browser intercepts the keys."
+  ],
+  "L004": [
+    "Open My Account to review settings available to this user.",
+    "Choose the working language, save it and check labels when the session reopens.",
+    "Apply a permitted display or accessibility preference and inspect the affected screen."
+  ],
+  "L005": [
+    "Select the pump by its equipment identifier before opening its documents.",
+    "Open the linked manual and check the approved revision and equipment model.",
+    "Keep the dated inspection report accessible from the unit it describes so later reviewers can retrieve it."
+  ],
+  "L006": [
+    "Attach the note to the specific inspection that was deferred.",
+    "The author tells a planner whom to ask about the deferral.",
+    "The entry date places the note in the sequence of work on the inspection.",
+    "State the observed reason for deferral so another technician can understand the next step."
+  ],
+  "L007": [
+    "Identify the controlled record and the field or status change the auditor needs to trace.",
+    "For an action configured to require a signature, follow the signature prompt for that action.",
+    "Check the recorded signer, date and action against the change under review."
+  ],
+  "L008": [
+    "Start from a work-order list containing known examples both inside and outside the desired view.",
+    "Copy the Dataspy and set its status and due-date criteria for the planner’s backlog.",
+    "Run the saved view and check whether a known overdue order appears and a known closed order is excluded."
+  ],
+  "L009": [
+    "Describe the installation in terms of its place, its duty and the unit carrying out that duty.",
+    "The room tells a technician where to go, including after a replacement.",
+    "The position identifies the duty successive pumps perform at the same installation.",
+    "The serialized pump carries its own service history when it moves to another duty."
+  ],
+  "L010": [
+    "Identify the plant that owns the new equipment and check the user can access it.",
+    "Check that the intended department, class and other lookup values exist in that organization.",
+    "Create one representative unit and inspect its ownership and classification before entering the rest."
+  ],
+  "L011": [
+    "Assign a class to group equipment with similar characteristics, such as pumps.",
+    "The class helps select attributes and relevant codes for this equipment family.",
+    "Select an approved closing code when recording the outcome of the repair.",
+    "The closing code lets reviewers compare the recorded outcomes of similar pump jobs."
+  ],
+  "L012": [
+    "Open the asset for the particular serialized pump at PLANT01.",
+    "The asset identifier is the code used to find that unit in EAM, such as PUMP-001.",
+    "Compare the serial number with the delivered unit to distinguish two pumps of the same model.",
+    "Record where the pump is installed so a technician can connect the asset with its current duty."
+  ],
+  "L013": [
+    "Create a position for a service that must continue when a unit is replaced.",
+    "CW-DUTY is an example position code that can be used to trace successive installations.",
+    "The installation link identifies which physical asset currently fills the duty.",
+    "In the diagram P-101B is the replacement unit. Its own asset history follows it after a later move."
+  ],
+  "L014": [
+    "Use a system record to group equipment that delivers the cooling-water service.",
+    "Link the pump that moves the cooling water so its role is visible in the system hierarchy.",
+    "Include the drive motor when it is tracked as a component of the cooling system.",
+    "The pipework carries water through the system. Check its parent before using hierarchy totals."
+  ],
+  "L015": [
+    "A location describes a physical place where assets can be found.",
+    "The building record supplies the broader site context when rooms have similar names.",
+    "Choose the actual pump room so a technician can find the installation."
+  ],
+  "L016": [
+    "Choose the pipeline and an agreed measurement origin and direction before marking the work segment.",
+    "In the diagram, kilometre 12 identifies the beginning of the affected section.",
+    "The end reference identifies how far along the same linear asset the job extends.",
+    "With the same origin and direction, kilometres 12 to 14 describe a two-kilometre section."
+  ],
+  "L017": [
+    "Associate the supplier agreement with the equipment to which it actually applies.",
+    "Check whether the failed component is listed or included under the agreement.",
+    "Compare the failure date and any usage limits with the recorded coverage window.",
+    "Review exclusions, supporting evidence and supplier requirements before preparing a claim."
+  ],
+  "L018": [
+    "Capture the bearing failure and identify the equipment and supporting work order.",
+    "Match the failed item, date and operating conditions to the supplier’s warranty terms.",
+    "Associate the repair evidence with the claim and follow its status through the supplier review."
+  ],
+  "L019": [
+    "The system groups the equipment delivering cooling water and gives the hierarchy a service context.",
+    "Check which components belong under the pump assembly before rolling up its work or costs.",
+    "Look up the control panel’s actual parent so it appears under the correct installation."
+  ],
+  "L020": [
+    "Start from the system whose equipment structure the planner wants to check.",
+    "Expand the immediate children and look for the expected assemblies and their components.",
+    "Read the motor’s identifier and parent record before deciding whether its hierarchy link needs correction."
+  ],
+  "L021": [
+    "Identify the installed measuring device and its unit before interpreting a change in reading.",
+    "A replacement device can start from a different reading. Keep its identity and changeover evidence.",
+    "The logical meter represents the equipment usage being tracked across readings.",
+    "Review cumulative equipment hours and the device change together before calculating the next service."
+  ],
+  "L022": [
+    "The example starts at 910 hours on Monday. Use this as the first dated reading.",
+    "Wednesday’s 932 hours add 22 hours since Monday, using the same meter and unit.",
+    "Friday’s 951 hours add another 19. A later drop would warrant a check for a reset or entry error."
+  ],
+  "L023": [
+    "Check ownership, open work and transfer restrictions while the asset is still at its original plant.",
+    "Record the unit’s code and serial number at the sending site so it can be identified at receipt.",
+    "Review the target organization and the resulting ownership after the authorized transfer.",
+    "Confirm that the receiving site can find the same unit and trace its earlier history."
+  ],
+  "L024": [
+    "Review the approved pump-package configuration and the children it is intended to create.",
+    "Generate a sample package using the planned organization and identifier settings.",
+    "Inspect the new unit and its child links for omissions or duplicate identifiers before repeating the process."
+  ],
+  "L025": [
+    "Record the operational and safety consequences for each pump using the agreed questions.",
+    "Apply the approved scoring weights to the recorded answers.",
+    "Compare the resulting priorities with engineering judgment and investigate unexpected rankings."
+  ],
+  "L026": [
+    "USD identifies the currency used on a dollar-denominated quote.",
+    "An example amount of 100 USD retains its currency when the quote is compared with others.",
+    "EUR identifies a separate currency that can appear on a supplier’s offer.",
+    "To compare 100 EUR with a dollar quote, use the organization’s approved conversion rate and date."
+  ],
+  "L027": [
+    "Use the supplier’s batch reference to distinguish one group of seals from another.",
+    "Capture the lot on receipt so a recalled batch can be traced to its entry into stock.",
+    "Review stock by part, store and lot to locate the remaining affected seals.",
+    "Retain the lot on an applicable issue so reviewers can trace where that batch was used."
+  ],
+  "L028": [
+    "Two boxes arrive in the diagram. Confirm the purchase unit on the receipt.",
+    "The example conversion is ten individual seals in each box. Check the direction of the factor.",
+    "Two boxes times ten gives 20 seals in the stock unit. Compare the resulting unit cost as well."
+  ],
+  "L029": [
+    "The store identifies who controls this stock and where replenishment is managed.",
+    "Bins divide the store into individual holding places used during picking and receipts.",
+    "Read the balance for the intended part and store when deciding whether to place an order."
+  ],
+  "L030": [
+    "Start from the correct store because two stores can use the same bin code.",
+    "A-01 identifies one holding place within the selected store. Check its part balance before picking.",
+    "A-02 is a separate holding place. Post stock movements to the bin where the item physically moves."
+  ],
+  "L031": [
+    "Search the part master for the standard seal before adding a new record.",
+    "Use the approved part code, such as SEAL-25, on the store association and transactions.",
+    "Describe the size or model clearly enough for a buyer to distinguish similar seals.",
+    "Set the unit used to count this part so receipts, issues and balances reconcile."
+  ],
+  "L032": [
+    "Read the part price in its organization and pricing context before comparing it with another record.",
+    "Identify the supplier or purchasing context represented by the price entry.",
+    "Check the currency and purchase unit together before comparing the quoted amounts.",
+    "Use the date of the purchase to determine which effective price entry applies."
+  ],
+  "L033": [
+    "Record the failed core’s movement so the available serviceable quantity stays meaningful.",
+    "Retain the repair reference and the supplier handling the failed unit.",
+    "Check the returned unit’s condition and reconcile serviceable stock with the repair movement."
+  ],
+  "L034": [
+    "Identify the required part and the equipment duty it must satisfy.",
+    "The original seal is the reference for checking size, specification and approval.",
+    "Consult the approved substitute relationship before selecting a different part.",
+    "Check the alternate seal’s availability and suitability for the actual job."
+  ],
+  "L035": [
+    "Look for the approved supplier in the intended organization before creating an entry.",
+    "Confirm the legal or purchasing identity to avoid duplicate supplier records.",
+    "Use the approved contact details when buyers need to clarify an order or quote.",
+    "Review the agreed terms before applying supplier defaults to purchasing records."
+  ],
+  "L036": [
+    "Use the catalog entry to connect the supplier’s product description with the plant’s stocking code.",
+    "In the lesson, the supplier sells the seal using item SP-025A.",
+    "The plant uses SEAL-25 to recognize the same part across its buying and stocking records.",
+    "Read the quote with its currency and purchase unit before using it on an order."
+  ],
+  "L037": [
+    "Check the seal balance at MAIN. REMOTE can have a different level of demand for the same part.",
+    "Read the reorder settings on the specific part-store association.",
+    "Compare available stock and existing supply with the store’s settings to decide whether replenishment is needed."
+  ],
+  "L038": [
+    "Review low stock at MAIN together with stock already on order.",
+    "Check the candidate seal, unit and destination before generating a request.",
+    "Inspect the generated requisition and its quantity before routing it for approval."
+  ],
+  "L039": [
+    "Confirm that this opening-stock delivery is authorized for receipt without a PO.",
+    "Record the store, part, quantity, unit and required tracking details on the receipt.",
+    "Reconcile the resulting quantity and valuation with the posted receipt and physical stock."
+  ],
+  "L040": [
+    "Open the material list for the pump work order to see what the activity is expected to consume.",
+    "Choose the seal and the quantity actually being issued from MAIN.",
+    "Post the authorized issue, then trace the quantity in store stock and the work-order material history."
+  ],
+  "L041": [
+    "Choose the bin in MAIN that holds the bearings being sent to REMOTE.",
+    "Record the actual quantity dispatched and keep the transfer reference.",
+    "Compare the sending issue with the destination receipt to identify bearings still in transit."
+  ],
+  "L042": [
+    "Match the arriving bearings at REMOTE to the issue from MAIN using the transfer reference.",
+    "Count what arrived and compare it with the dispatched quantity before recording the receipt.",
+    "Post the accepted quantity into the destination bin and check its balance."
+  ],
+  "L043": [
+    "Read the ticket to identify the seal and filter needed for the planned work.",
+    "Use the store and bin details to find each item on the shelf.",
+    "Pick the stated quantities and check issue history before posting any later stock movement."
+  ],
+  "L044": [
+    "Use the recorded balance for the same part, bin, lot and unit as the physical count.",
+    "The diagram uses 12 seals as its example system balance.",
+    "Record an independent shelf count before investigating any difference.",
+    "A shelf count of ten against twelve recorded leaves a two-seal difference for review."
+  ],
+  "L045": [
+    "Choose the store, period and measure used to classify parts by value of usage.",
+    "Review category A items closely because they account for a high share of usage value in this analysis.",
+    "Category B contains the intermediate group for the chosen measure and period.",
+    "Category C has lower usage value. Review operational criticality separately when setting stocking policy."
+  ],
+  "L046": [
+    "On hand measures the physical balance before subtracting quantities set aside.",
+    "The diagram starts with ten seals physically in the store.",
+    "Available stock reflects what remains for competing demands under the reservation rules.",
+    "Setting aside three of ten leaves seven for others in this example. The reservation itself moves no stock."
+  ],
+  "L047": [
+    "Start with a header that states the purchase request’s purpose before adding its individual lines.",
+    "Identify the plant responsible for the request and its approval process.",
+    "Record who needs the items so purchasing can follow up about scope or quantity.",
+    "Check where the requisition stands in its configured approval process before using the lines for purchasing."
+  ],
+  "L048": [
+    "Add the requested item to the requisition that owns the demand.",
+    "Choose SEAL-25 so purchasing can match the request to the intended stock item.",
+    "In this lesson the request is for five seals. Specify their unit with the quantity.",
+    "Set the receiving store or appropriate work destination so the demand goes to the right place."
+  ],
+  "L049": [
+    "Use a part line when purchasing a physical item for delivery.",
+    "A replacement seal can be received and tracked in the relevant stock unit.",
+    "Use a service line for contracted work and describe the required scope and price basis.",
+    "A contract inspection needs a work reference and agreed deliverable so the result can be checked."
+  ],
+  "L050": [
+    "Check that the seal request has reached an eligible approved status.",
+    "Select the eligible lines and check supplier, currency and grouping conditions.",
+    "Review the generated order and follow its own authorization before dispatching it to the supplier."
+  ],
+  "L051": [
+    "Review the master data the new plant needs before testing a purchase order.",
+    "Check that the intended supplier is approved and available to the purchasing organization.",
+    "Verify that the correct commercial terms appear on a representative order.",
+    "Confirm the allowed currencies and the plant’s purchasing defaults with procurement."
+  ],
+  "L052": [
+    "The header holds the commercial context shared across the order’s lines.",
+    "In the lesson SUP-01 is the supplier that will receive the seal order.",
+    "Confirm the currency used for the supplier order before comparing totals or approval limits.",
+    "Review the agreed conditions before sending the approved order to the supplier."
+  ],
+  "L053": [
+    "Add a line to identify exactly what the supplier should deliver.",
+    "Use the seal’s part code and check the receiving destination.",
+    "The example order requests five seals. Specify whether the purchasing unit is a piece or a pack.",
+    "Multiply the order quantity by its price per purchase unit and reconcile the line value."
+  ],
+  "L054": [
+    "Check how the purchased pump is designated for asset tracking and which event creates its asset record.",
+    "Capture the delivered serial identity and inspect the procurement links at receipt.",
+    "Find the asset created or linked at the configured event before attempting manual registration."
+  ],
+  "L055": [
+    "The blanket order provides the buying framework for recurring filter purchases.",
+    "Review its supplier, prices, validity and remaining limits before making another release.",
+    "Each release records a specific purchase under the agreement. Check its quantity and authorization."
+  ],
+  "L056": [
+    "Identify the supplier invoice and look for a previous voucher with the same invoice reference.",
+    "Compare the invoiced seals with the PO line and the quantity actually received.",
+    "Resolve differences in quantity, price and currency before approving the voucher."
+  ],
+  "L057": [
+    "Describe the pump rebuild in enough detail for qualified suppliers to quote the same scope.",
+    "Collect each supplier’s price, unit, delivery and terms against the request.",
+    "Compare comparable offers and retain the purchasing decision with the quotation evidence."
+  ],
+  "L058": [
+    "Use the permit record to identify the site-controlled authorization needed for the planned job.",
+    "Check the work, equipment and location covered by the permit.",
+    "Review the recorded conditions for the job with the responsible site personnel.",
+    "Confirm that the responsible site authority issued a valid permit before execution."
+  ],
+  "L059": [
+    "Record the competency that the particular inspection requires.",
+    "Associate the approved requirement with the relevant work activity.",
+    "Check the proposed employee’s current qualification, validity and site authorization for the task."
+  ],
+  "L060": [
+    "A trade describes the type of labor an activity requires and supports labor planning.",
+    "Assign the electrical trade requirement to the electrical portion of the overhaul.",
+    "Specify the mechanical trade for mechanical tasks, then decide which eligible person to schedule."
+  ],
+  "L061": [
+    "Identify the individual technician so assignments and labor bookings refer to the correct person.",
+    "The employee’s recorded trade helps match a technician to suitable planned activities.",
+    "Review the person’s current qualifications for work that requires specific competence.",
+    "Check the person’s schedule before committing them to a time slot."
+  ],
+  "L062": [
+    "The crew groups employees who work together on the planned maintenance job.",
+    "Use the assigned lead to identify the person coordinating this crew’s work.",
+    "Check the actual crew membership and availability on the date of the proposed assignment."
+  ],
+  "L063": [
+    "Open the approved revision for this pump inspection and read the specific instruction.",
+    "Carry out the assigned task under the applicable site procedure and qualification requirements.",
+    "Enter the actual observation against the activity so a planner can review what was found."
+  ],
+  "L064": [
+    "The task checklist sets the inspection items and expected result format.",
+    "Record the observed guard condition in the applicable checklist item.",
+    "Record the area-clear observation as required by the approved checklist.",
+    "Review mandatory answers and any exceptions before treating the checklist as complete."
+  ],
+  "L065": [
+    "Use the alignment job plan to list specialist tools required by its activities.",
+    "Check the planned torque wrench quantity and its suitability for the actual job.",
+    "Confirm the alignment tool is available when the task is scheduled."
+  ],
+  "L066": [
+    "Define a reusable pump-overhaul template with its activities and resource requirements.",
+    "Choose the approved template when preparing the next overhaul.",
+    "Review the resulting order against the actual pump, scope and schedule before releasing work."
+  ],
+  "L067": [
+    "Identify the pump and the vibration symptom on the order header.",
+    "Define the investigation task, responsible trade and estimated effort on the activity.",
+    "Enter the labor performed and parts actually issued against the job so the repair has a traceable cost.",
+    "Check completion evidence and use the authorized closing transition for this site."
+  ],
+  "L068": [
+    "The header connects all the repair activities to the affected pump and reported problem.",
+    "Define pump removal as a distinct planned activity when it needs its own scope and resources.",
+    "Track the seal replacement activity and link materials to the intended task.",
+    "Use the test activity to record whether the repaired pump met the approved return-to-service checks."
+  ],
+  "L069": [
+    "Review each cost component against its source transaction on the work order.",
+    "Labor charges arise from the booked work and the applicable rate.",
+    "Material cost can be traced to issues and returns against the repair.",
+    "Check whether the specialist expense was already captured through purchasing before entering an additional charge."
+  ],
+  "L070": [
+    "Use one service order when eligible work covers both example pumps.",
+    "Check equipment A’s share against the configured distribution method.",
+    "Review equipment B’s share and reconcile both allocations with the work-order total."
+  ],
+  "L071": [
+    "Identify the activity that requires a particular regulated inspection skill.",
+    "Review the required qualification and its validity for the proposed employee.",
+    "Assign the worker only after the responsible party verifies competence and current authorization."
+  ],
+  "L072": [
+    "Open the checklist for the intended work-order activity so the observation belongs to the right repair.",
+    "Enter what was actually inspected using the item’s specified result type and unit.",
+    "Save the observed result and document exceptions or follow-up before completion."
+  ],
+  "L073": [
+    "Use the activity’s material plan to describe the parts the repair is expected to require.",
+    "Select the correct seal or bearing specification for the actual pump.",
+    "Record the expected quantity in the correct unit so demand can be compared with stock.",
+    "Choose the intended supply store and check availability or procurement needs before scheduling."
+  ],
+  "L074": [
+    "Start from the activity that needs the specialty seal so purchasing can trace the demand.",
+    "Check the required quantity against available stock and any outstanding requisition.",
+    "Create the related requisition and verify that its line retains the work reference."
+  ],
+  "L075": [
+    "The parent record coordinates the shutdown scope and related jobs.",
+    "Give the pump repair its own work order when its equipment or responsibility needs separate tracking.",
+    "The valve service can progress separately while its parent link keeps it visible in the shutdown."
+  ],
+  "L076": [
+    "Check the permit requirements applicable to this particular job and site.",
+    "Associate the relevant permit with the order so the planner can review its readiness.",
+    "Check validity and actual permission with the responsible site authority at the time of work."
+  ],
+  "L077": [
+    "Set the reporting scope, currency and treatment of child work before reconciling the total.",
+    "Trace labor charges to the work activity, employee time entry and applicable rate.",
+    "Review material issues and unused-part returns to explain the net parts cost.",
+    "Trace extra expenses to their source to avoid counting the same cost twice."
+  ],
+  "L078": [
+    "Select the specific task and review its expected effort and required trade.",
+    "Compare the proposed date with people, tools and competing assignments.",
+    "Record the planned time and assignment, then compare it with the actual timing after execution."
+  ],
+  "L079": [
+    "Use selection criteria to build the candidate list for the daily schedule.",
+    "Set the intended date window and check whether a missing job falls outside it.",
+    "Filter for the required trade, such as mechanical work for tomorrow’s shift.",
+    "Limit the list to the responsible department and review the combined effect of all filters."
+  ],
+  "L080": [
+    "The estimate represents the effort originally expected for the activity.",
+    "In the diagram, two hours were planned for the work.",
+    "Booked entries show the employee time actually recorded against that activity.",
+    "Three booked hours against two planned give a one-hour variance for investigation."
+  ],
+  "L081": [
+    "Choose the approved time or meter interval for the compressor inspection.",
+    "The due point depends on the equipment’s schedule settings and recorded usage or dates.",
+    "Check the generated order for this occurrence and its link to the recurring schedule."
+  ],
+  "L082": [
+    "The PM schedule defines recurring work and the basis on which it comes due.",
+    "In the lesson, a compressor service may use a 500-hour interval under the approved policy.",
+    "Define the activities and checks the generated service order is expected to contain.",
+    "Associate the correct compressor and confirm its first due date or meter reading."
+  ],
+  "L083": [
+    "Open a generated PM order to check the activity content copied from the approved schedule.",
+    "The example belt inspection needs its intended trade, checklist and estimated effort.",
+    "Check that the alignment activity appears with the appropriate instructions and revision."
+  ],
+  "L084": [
+    "One schedule can be associated with multiple eligible units.",
+    "Review the first pump’s individual first-due details and organization on the association.",
+    "Check the second pump separately because its usage and starting point can differ."
+  ],
+  "L085": [
+    "Follow the schedule’s work-order link to an actual generated occurrence.",
+    "Verify the asset code on the order so a similar unit’s service is not mistaken for this one.",
+    "Compare the generated due date and status with the schedule before considering another generation."
+  ],
+  "L086": [
+    "The service task identifies the parts the planner expects the maintenance job to consume.",
+    "The example needs a filter. Verify its part code before checking store availability.",
+    "When the task calls for a seal kit, check that the kit matches the equipment specification.",
+    "Check each planned quantity and unit. Actual consumption appears when stores records an issue."
+  ],
+  "L087": [
+    "Identify the site-approved permit requirement applicable to the recurring inspection.",
+    "Check that the generated maintenance order carries the expected permit context.",
+    "For each visit, verify current authorization and validity through the site’s permit process."
+  ],
+  "L088": [
+    "Choose the relevant PM schedules, equipment and forecast horizon.",
+    "Use time intervals or expected meter usage to project when future work may become due.",
+    "Look for peaks in the quarter-ahead estimate and compare the forecast with actual generated orders."
+  ],
+  "L089": [
+    "Set the date range and other criteria for the week of PM work to be considered.",
+    "Review eligible equipment, due dates and existing orders in the preview.",
+    "Process the intended candidates and inspect the resulting orders before running the selection again."
+  ],
+  "L090": [
+    "A PM plan groups related recurring work for equipment such as a compressor package.",
+    "The inspection schedule can have its own interval and work content within the plan.",
+    "The service schedule can come due on a different interval, so inspect each schedule’s relationship separately."
+  ],
+  "L091": [
+    "Review which equipment the plan covers and which schedules apply to each unit.",
+    "Check the duty unit’s usage and initial due state before predicting its next service.",
+    "A standby unit may accumulate fewer operating hours. Review its own starting value and maintenance basis."
+  ],
+  "L092": [
+    "The first minor inspection starts the example cycle.",
+    "The second cycle position calls for another inspection before major service.",
+    "The third position calls for the service activity defined in this maintenance pattern.",
+    "Project the next cycle and check that separate PM schedules have not duplicated the same jobs."
+  ],
+  "L093": [
+    "Create a nonconformity record for the observed condition so it can be followed to disposition.",
+    "Identify the equipment and affected support precisely enough to find it on a later visit.",
+    "Describe the corrosion actually observed and retain the inspection evidence.",
+    "Use the status and follow-up records to determine whether the concern has been investigated or resolved."
+  ],
+  "L094": [
+    "Record the initial corrosion observation, including its date and affected equipment.",
+    "Add the later observation to the same nonconformity so the two readings can be compared.",
+    "Compare the dated evidence before deciding what follow-up the observed change requires."
+  ],
+  "L095": [
+    "Record the hazards identified for this job through the site’s permit process.",
+    "Use the site-approved controls associated with those hazards and the specific work scope.",
+    "The responsible authority checks the scope, conditions, validity and required sign-offs.",
+    "Check the issued permit and its validity at execution, then follow the site’s closeout process."
+  ],
+  "L096": [
+    "Use the approved matrix to link work hazards with the site’s recorded precautions.",
+    "Identify the hazard for the specific task using the organization’s controlled classification.",
+    "Review the associated precaution with the competent site safety personnel responsible for the work."
+  ],
+  "L097": [
+    "Use the approved inspection codes so different technicians describe comparable observations consistently.",
+    "Select the category that describes the observed equipment condition.",
+    "Choose the approved result code and check its meaning before using it for reporting."
+  ],
+  "L098": [
+    "Define the pump, aspect, measurement unit and individual inspection points.",
+    "Record the drive-end reading against its own point to preserve a comparable history.",
+    "Use the non-drive-end point for its bearing so trends from opposite ends stay distinct."
+  ],
+  "L099": [
+    "Start at the pump-house points assigned to the route and confirm their identities.",
+    "Check the cooling-tower points in the route sequence before recording results.",
+    "Review the final return-line points and confirm the route covers every required stop once."
+  ],
+  "L100": [
+    "Identify the traceable standard and check its validity for the calibration date.",
+    "The diagram’s reference value is 100.0 in the stated unit.",
+    "Record the instrument’s observed reading under the approved calibration procedure.",
+    "The example reading is 0.4 above the reference. Use the approved tolerance to determine the result."
+  ],
+  "L101": [
+    "Select the approved reference used for the calibration job.",
+    "Record the standard’s unique identifier so a reviewer can identify the physical reference used.",
+    "Review the certificate that supports the reference standard’s traceability.",
+    "Check that the certificate covered the date on which the instrument was calibrated."
+  ],
+  "L102": [
+    "The as-found value captures the instrument’s condition before adjustment.",
+    "The example starts at 100.4 units. Compare that reading with the reference and tolerance.",
+    "The as-left value records the instrument’s condition at the end of the calibration work.",
+    "An example as-left reading of 100.0 still needs the approved criteria and documented disposition."
+  ],
+  "L103": [
+    "Use the project budget structure to classify the shutdown’s expected and actual costs.",
+    "Map labor charges to the appropriate approved project code.",
+    "Map material costs to the intended category and reconcile them with the underlying issues."
+  ],
+  "L104": [
+    "Review the outage scope, equipment and approved work to be coordinated in the shutdown.",
+    "Track the planned isolation work and its dependencies through the site’s authorized process.",
+    "Check the overhaul’s equipment and scope before generating a separate shutdown order.",
+    "Include the applicable restart checks in the schedule and review their completion evidence."
+  ],
+  "L105": [
+    "Identify the particular fleet vehicle and its pool or assigned usage context.",
+    "Check vehicle usage and ticket dates when reviewing how the vehicle was used.",
+    "Trace the vehicle’s service work against its own asset history.",
+    "Review costs with the matching vehicle and usage period before using them for fleet billing."
+  ],
+  "L106": [
+    "Define the financial period and the approved scope of the annual maintenance budget.",
+    "Check which costs and codes roll up under the first department.",
+    "Compare the second department using the same period and financial definitions."
+  ],
+  "L107": [
+    "Document the evidence driving the pump replacement proposal, such as condition or aging.",
+    "Record the assumptions and expected investment for each candidate scenario.",
+    "Compare the alternatives and submit the preferred proposal through the capital approval process."
+  ],
+  "L108": [
+    "Review the supplier agreement that governs the purchase, including its scope.",
+    "Check that the purchasing supplier is eligible under this contract.",
+    "Review agreed prices, discounts or terms for the actual item or service.",
+    "Check that the transaction date is inside the applicable contract window."
+  ],
+  "L109": [
+    "Capture the occupant’s concern and contact details on the request.",
+    "Send the case to the team responsible for the issue and link any resulting maintenance work.",
+    "Record the response and follow-up so the caller’s request can be traced through resolution."
+  ],
+  "L110": [
+    "Use symptom and request-category terms to locate an article that matches the caller’s issue.",
+    "Check the article owner, revision and the circumstances to which the guidance applies.",
+    "Use the approved guidance for the matching situation and retain relevant follow-up on the request."
+  ],
+  "L111": [
+    "Identify the EAM entity whose records need the new classification.",
+    "Check how the stored value maps to delivered behavior and which records already use it.",
+    "Use a clear description so users can distinguish similar values when entering or reviewing records."
+  ],
+  "L112": [
+    "Identify the existing screen, group and field before changing its behavior.",
+    "Use a representative account to confirm who can currently see and edit the field.",
+    "Apply the group’s approved configuration to a test copy and retain the previous setting.",
+    "Verify that the target user can read the value and that editing is blocked in the intended context."
+  ],
+  "L113": [
+    "Choose an available user-defined field suitable for the equipment reference you need to store.",
+    "Give it a business label the person entering the reference will recognize.",
+    "Choose the appropriate data type and verify accepted values and reporting behavior.",
+    "Enter a representative reference and check that it reappears correctly on the equipment and in reports."
+  ],
+  "L114": [
+    "Associate pump-specific custom fields with the intended class so their applicability is clear.",
+    "Capture impeller diameter with its agreed unit and check the field on a pump-class record.",
+    "Define the unit for rated flow so users can compare values across pumps consistently."
+  ],
+  "L115": [
+    "Identify the exact equipment attribute and table to include in the audit scope.",
+    "Make a controlled change to that attribute after audit setup is active.",
+    "Find the resulting entry and compare the record identity, value and change details with the test."
+  ],
+  "L116": [
+    "Determine which organizations the user is authorized to view or maintain.",
+    "Use a representative PLANT01 record to check organization-specific visibility.",
+    "Test a PLANT02 record separately and verify the handling of any approved shared data."
+  ],
+  "L117": [
+    "Identify the regional planner’s account and the plants covered by its responsibilities.",
+    "Associate each approved organization and check the default session organization.",
+    "Sign in with the representative role and check both permitted and restricted records."
+  ],
+  "L118": [
+    "Review the functions the planner group grants before assigning another member.",
+    "Check the first planner’s membership against their actual job responsibilities.",
+    "Test a second representative planner’s access and review any differences in other group assignments."
+  ],
+  "L119": [
+    "Identify the entity, user group and current status used to start the transition.",
+    "In the example, the request starts in Requested status and awaits an authorized decision.",
+    "Check the group’s permission for the specific move to the destination status.",
+    "Test that the supervisor can approve an eligible request and the technician role is denied the same transition."
+  ],
+  "L120": [
+    "Submit a sample requisition with a known amount and requester.",
+    "Compare its amount and other conditions with the configured approval rule, including the threshold itself.",
+    "Verify that it reaches the intended approver and retains the outcome after approval or rejection."
+  ],
+  "L121": [
+    "Use a sample work event that matches the condition the planner wants to hear about.",
+    "Check the message conditions and the template fields included for this event.",
+    "Verify delivery to the intended audience and inspect failed or unintended notifications."
+  ],
+  "L122": [
+    "Review the alert condition and the frequency at which overdue work is evaluated.",
+    "Check a known overdue order and one outside the rule to verify the selection.",
+    "Confirm who received the alert and whether repeat runs produced the intended number of notifications."
+  ],
+  "L123": [
+    "Prepare a small sample with the required identifiers and expected row count.",
+    "Match source columns to supported fields and verify which keys identify existing records.",
+    "Run the test import with the approved layout and record its result counts.",
+    "Reconcile accepted and rejected rows with the original file before correcting and retrying failures."
+  ],
+  "L124": [
+    "Set the question the backlog grid should answer and identify the intended row scope.",
+    "Choose fields that identify the work, responsible team and relevant dates.",
+    "Apply approved selection criteria and verify the user sees only authorized backlog records.",
+    "Arrange the rows by the planner’s priority or due-date rule and check tied values."
+  ],
+  "L125": [
+    "Enter the values requested by the configured prompt and check its required fields.",
+    "Submit through the configured service with an authorized role and a representative record.",
+    "Check the response and resulting record against the task the prompt was designed to perform."
+  ],
+  "L126": [
+    "Identify the scheduled entity and the reporting requirement for its extract.",
+    "Add the approved attributes and confirm that each is appropriate for downstream access.",
+    "Check the extracted schema and sample values against the consumer’s field mapping."
+  ],
+  "L151": [
+    "Capture the reported vibration, equipment and requester before submitting the work request.",
+    "The supervisor reviews the scope, authority and applicable approval limits.",
+    "Apply the configured decision and check that its status and evidence remain visible on the request."
+  ],
+  "L152": [
+    "Use a labor booking to record time already spent on the pump investigation.",
+    "In the lesson, activity 10 on WO-1001 is the task that should receive the time.",
+    "Identify E01 so the recorded hours can be traced to the technician who performed the work.",
+    "Enter two actual hours and their date, then verify the booking once to avoid duplicate time."
+  ],
+  "L153": [
+    "Confirm the investigation and repair were completed and review outstanding activity requirements.",
+    "Reconcile actual labor, parts issues and unused-part returns against the completed work.",
+    "Enter the applicable closure codes and outcome, then verify the authorized final status."
+  ],
+  "L154": [
+    "Select the outstanding five-seal line on PO-301 for the example delivery.",
+    "Three seals arrive in the lesson. Record three received, leaving two outstanding before other transactions.",
+    "Identify the actual receiving bin at MAIN and reconcile its stock with the posted receipt."
+  ],
+  "L155": [
+    "Identify MAIN, the actual bin and the available SEAL-25 stock before making the issue.",
+    "Issue one seal in the stock unit and preserve the part and any required tracking details.",
+    "Use WO-1001 as the work reference and trace the posted issue into its material history."
+  ],
+  "L156": [
+    "Locate the original issue and identify the unused seal and its work reference.",
+    "The diagram starts with two seals already issued to the job.",
+    "Post the one unused seal back to the correct store and tracking location.",
+    "Two issued minus one returned leaves one net seal charged by quantity. Review valuation separately."
+  ],
+  "L157": [
+    "Define a reusable monthly pump-inspection task and give it a recognizable identifier.",
+    "Record the approved instructions and checklist the technician should use.",
+    "Set the trade expected to perform this task so the planner can match resources.",
+    "Record the expected effort for planning and review the estimate when applying the plan to an activity."
+  ],
+  "L158": [
+    "Use a job plan for the repeatable alignment scope and its resource requirements.",
+    "Review the activities needed for the actual alignment job when applying the plan.",
+    "List the specialist tools and check availability before scheduling the job.",
+    "Compare the plan’s intended labor and resources with the resulting work activity."
+  ],
+  "L159": [
+    "Define the kit as a reusable material list for the repair. Creating it records planned demand.",
+    "In the illustrated list, the activity calls for one seal in its specified unit.",
+    "In this kit example, two gaskets are planned. Confirm the actual list and quantities on the work activity."
+  ],
+  "L160": [
+    "Set up the group according to the planner’s responsibilities and verify it with a representative account.",
+    "Grant the equipment lookup access required for planning and test what records the user can see.",
+    "Check scheduling permission separately from status approval so each role receives its intended rights."
+  ],
+  "L161": [
+    "Use the site’s approved matrix and engineering definitions to interpret the resulting risk rating.",
+    "Choose the agreed likelihood category using the evidence for this equipment and failure scenario.",
+    "Select the severity category for the potential safety or production impact and review its scoring."
+  ],
+  "L162": [
+    "Identify the function the cooling pump is expected to deliver for the plant.",
+    "Describe how the pump could fail to provide that service and review the relevant class template.",
+    "Review the proposed prevention or mitigation task and check class applicability before applying it to equipment."
+  ],
+  "L163": [
+    "Start from the recorded book value for the correct asset and period.",
+    "The diagram uses an opening book value of 10,000 monetary units.",
+    "In the illustration, the period’s approved depreciation charge is 1,000.",
+    "Subtracting that charge leaves 9,000 in the example. Reconcile posted values with the approved accounting method."
+  ],
+  "L164": [
+    "Choose the operating-hour and historical wear inputs for the intended pump model.",
+    "Apply the approved curve or formula and check that the parameters use consistent units.",
+    "Compare the resulting indicator against actual observations before using it in a maintenance decision."
+  ],
+  "L165": [
+    "Associate vendor A’s catalog reference with the plant’s internal part record.",
+    "A-410 is the diagram’s example identifier used by the first supplier.",
+    "Another supplier can use a different reference for the same internal part.",
+    "B-925 is the second supplier’s example identifier. Preserve the supplier context when looking it up."
+  ],
+  "L166": [
+    "Trace the motor assembly to its internal repair work order before recording a receipt.",
+    "Check the repair outcome and identify which units passed and which require scrap disposition.",
+    "Receive the serviceable quantity into MAIN and reconcile the change with the repair record."
+  ],
+  "L167": [
+    "A rate entry specifies how contracted trade hours are priced in a particular purchasing context.",
+    "Select the contractor and check the applicable organization and department.",
+    "Identify the trade and hour type so normal and overtime work use their intended rates.",
+    "Apply the effective rate to a representative booking and reconcile it with the contractor invoice."
+  ],
+  "L168": [
+    "Open the assigned operator checklist on the correct pump for the daily round.",
+    "Identify the discharge-pressure or vibration point and confirm the unit before taking the reading.",
+    "Enter the observed result and check whether the configured follow-up was created when required."
+  ],
+  "L169": [
+    "Record the caller’s details and the reported leaking-valve symptom.",
+    "Select UTILITY-01 or the specific affected equipment so the responding team can locate it.",
+    "Route the request for triage and retain the link to the caller and any resulting work order."
+  ],
+  "L170": [
+    "Record the incident classification, affected equipment and observed time while respecting access controls.",
+    "Assign the review to the responsible role and retain the investigation reference.",
+    "Use the event log and linked follow-up records to check action ownership, status and completion."
+  ],
+  "L171": [
+    "Use the compatible unit to gather the resources and overhead included in the project estimate.",
+    "Calculate the expected labor effort using the applicable rate assumptions.",
+    "Identify the materials cost base to which the approved handling overhead applies.",
+    "In the lesson, a 10% handling charge applies to the materials base. Verify it is added only once."
+  ],
+  "L172": [
+    "Identify completed work and charges eligible for billing to the external customer.",
+    "Preview the billable lines, customer eligibility and applicable markups.",
+    "Generate the authorized invoice and trace its lines back to the maintenance work billed."
+  ],
+  "L173": [
+    "Review the pool vehicle’s active shift and off-shift charging rules.",
+    "Use the ticket’s actual issue and return times, including portions crossing a shift boundary.",
+    "Apply the configured billing rule to the test ticket and reconcile the resulting charge."
+  ],
+  "L174": [
+    "Specify the purpose, screen code and base table or query for the supervisor’s backlog view.",
+    "Choose the backlog fields the supervisor needs and give each a meaningful label.",
+    "Arrange the columns so the supervisor can find, identify and review a job quickly.",
+    "Grant the intended group access and test its view of the data with a representative account."
+  ],
+  "L175": [
+    "Start with a representative work or stock posting for PLANT01 and identify its source values.",
+    "Check how the approved department or cost-code field populates the intended account segment.",
+    "Compare the generated general-ledger account string with finance’s expected posting."
+  ],
+  "L176": [
+    "Use a representative contractor account to check the access needed at MAIN.",
+    "Verify which store records are visible after applying the group’s security filter.",
+    "Check issue, return and transfer permissions separately from permission to view stock."
+  ],
+  "L177": [
+    "Choose the threshold range that the example uses for acceptable backlog.",
+    "Three overdue jobs fall inside the example’s limit of ten.",
+    "The KPI’s range indicates when the measured backlog exceeds its stated target.",
+    "Twelve exceeds ten by two. Inspect the underlying authorized work orders to explain the count."
+  ],
+  "L178": [
+    "Check the scheduled alert and the grid it is configured to evaluate.",
+    "Review the approved preliminary statement and its effects on the test data before activating it.",
+    "Preview which rows the grid selects after the preliminary step runs.",
+    "Verify that the configured action applies to the intended selected records on a test run."
+  ],
+  "L179": [
+    "Identify the tracked asset and the EAM fields included in its GIS mapping.",
+    "In the diagram, P-101A is the equipment record whose mapped attributes are being compared.",
+    "Select the corresponding feature in the configured GIS layer and inspect its attributes.",
+    "Verify the link by feature identifier and check how blank source values affect the mapped attributes."
+  ],
+  "L180": [
+    "Use the approved integration profile to request a token with the appropriate endpoint and scope.",
+    "The integration presents the issued access token to the intended API and keeps credentials private.",
+    "Test the required operation with its authorized scope and confirm the configured token lifecycle."
+  ]
+}

@@ -21,6 +21,28 @@ for quiz in quizzes:
     assert (quiz["lesson"], quiz["module"]) in topics, quiz["id"]
     assert 0 <= quiz["answer"] < len(quiz["options"]) and quiz["explain"], quiz["id"]
 
+diagrams = load("lesson-diagrams.json")
+annotations = load("lesson-notes.json")
+functional = {lesson["id"] for lesson in lessons if lesson["type"] == "functional"}
+functional.update(item["id"] for item in intro)
+assert diagrams.keys() == annotations.keys() == functional, "Incomplete visual curriculum"
+for lid, diagram in diagrams.items():
+    assert len(annotations[lid]) == len(diagram["labels"]) and all(annotations[lid]), lid
+
+table_rows = {row["name"]: row for path in load("data/tables.json") for row in load(path)}
+for lid, records in load("lesson-records.json").items():
+    assert lid in functional and records, lid
+    for record in records:
+        source = table_rows[record["table"]]
+        if key := record.get("keys"):
+            assert key["columns"] == source["pk"], (lid, key)
+            assert (key["kind"] == "Primary key") == (source["pk_source"] == "pk"), (lid, key)
+        if edge := record.get("relationship"):
+            target = table_rows[edge["target"]]
+            assert all(a in {c[0] for c in source["cols"]} and b in {c[0] for c in target["cols"]} for a, b in edge["columns"]), (lid, edge)
+            declared = any(fk["to"] == edge["target"] and fk["cols"] == edge["columns"] for fk in source["out_fks"])
+            assert edge["kind"] == ("Declared foreign key" if declared else "Candidate join"), (lid, edge)
+
 bank = load("challenges.json")["exercises"]
 assert [x["id"] for x in bank] == list(range(1, len(bank)+1))
 for index in range(2):
