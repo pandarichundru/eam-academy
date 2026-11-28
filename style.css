@@ -467,8 +467,7 @@ header nav {
   gap: 2px;
   flex: 1;
   min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
+  overflow: visible;
 }
 
 header nav::-webkit-scrollbar {
@@ -3306,19 +3305,16 @@ body[data-view="home"] .layout {
 }
 
 .profile-welcome-shell {
-  max-width: 1120px;
-  margin: 24px auto;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
-  gap: 28px;
-  align-items: center;
+  max-width: 680px;
+  margin: 36px auto;
   animation: viewEnter var(--dur-standard) var(--ease-entrance);
 }
 .profile-welcome-panel {
-  padding: 28px 24px;
+  padding: 32px 28px;
   border: 1px solid var(--border);
   border-radius: var(--r-xl);
   background: var(--bg-elevated);
+  text-align: center;
 }
 .profile-hook {
   font-size: 1.15rem;
