@@ -121,11 +121,13 @@ function wirePracticeTask(x) {
     selectPanel('results');panels.querySelector('#emptyResult').hidden=true;run.disabled=grade.disabled=true; editor.readOnly=true; setFeedback('', check?'Checking your query…':'Running…'); output.textContent='';
     try {
       const first=await runTrainingQuery(sql,'practice-0');
+      if(!editor.isConnected)return;
       output.innerHTML='<div class="result-head"><h2>Your result</h2><small class="tabular">' + first.rows.length + (first.truncated ? '+ rows' : ' rows') + ' · ' + first.columns.length + ' cols</small></div>' + render(first);
       if (!check) { setFeedback('', ''); return; }
       let issue=comparePractice(first,x,0);
       if (issue) { offerDifference(issue, false); return; }
       const second=await runTrainingQuery(sql,'practice-1');
+      if(!editor.isConnected)return;
       issue=comparePractice(second,x,1);
       if (issue) { offerDifference(issue, true); return; }
       const solved=read('practiceSolved',[]);

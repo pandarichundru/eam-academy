@@ -1,3 +1,4 @@
+@layer legacy {
 :root {
   --bg: #fff; --bg-sidebar: #f7f7f5; --bg-secondary: #f3f4f1; --text: #202522;
   --text-secondary: #48524e; --text-muted: #606963; --border: #dce1dd;
@@ -132,4 +133,46 @@ body[data-view="profiles"] .profile-welcome-shell {width:min(100%,44rem); margin
 @media(max-width:600px){
   .field-sheet {margin:auto 0 0; width:100%; height:auto; max-height:75dvh}
   .profile-grid .profile-card {flex-basis:100%;max-width:none}
+}
+
+}
+@font-face{font-family:Geist;src:url(data/fonts/Geist-Variable.woff2) format("woff2");font-weight:100 900;font-display:swap}
+@font-face{font-family:"Geist Mono";src:url(data/fonts/GeistMono-Variable.woff2) format("woff2");font-weight:100 900;font-display:swap}
+@layer tokens{
+:root{--layer-00:#f4f5f3;--layer-01:#fff;--layer-02:#f7f8f6;--layer-03:#ecefea;--layer-floating:#fff;--text-primary:#161b19;--text-secondary:#47524d;--text-muted:#636f69;--border-subtle:#e1e5e2;--border-strong:#c3cbc6;--interactive:#08635a;--interactive-hover:#064c45;--focus-ring:#08635a;--accent-amber:#b45309;--link:#076762}
+:root[data-theme=dark]{--layer-00:#121514;--layer-01:#191e1c;--layer-02:#212724;--layer-03:#2b332f;--layer-floating:#242b28;--text-primary:#eef2f0;--text-secondary:#bac4bf;--text-muted:#8e9b95;--border-subtle:#2c3530;--border-strong:#45524b;--interactive:#2dd4bf;--interactive-hover:#5eead4;--focus-ring:#5eead4;--accent-amber:#f59e0b;--link:#5eead4}
+:root,:root[data-theme=dark]{--bg:var(--layer-00);--bg-elevated:var(--layer-01);--bg-secondary:var(--layer-02);--bg-sidebar:var(--layer-02);--bg-active:var(--layer-03);--border:var(--border-subtle);--text:var(--text-primary);--lab-accent:var(--interactive);--focus:var(--focus-ring);--header-h:50px}
+}
+@layer views{
+.front-copy h1,.academy-hero h1{font-size:clamp(2rem,4vw,2.5rem)}
+.lesson-content>section>p,.lesson-content .steps{max-width:70ch;line-height:1.7}
+body[data-view=lesson] main h1{font-size:clamp(1.5rem,3vw,2rem)}
+.sql-workspace,.dbshell,.er-wrap{font-size:.875rem;line-height:1.5;font-variant-numeric:tabular-nums}
+.sql-workspace .scroll{max-height:48dvh;overflow:auto}.scroll th{position:sticky;top:0;background:var(--layer-02);z-index:1}
+.sql-workspace .num{text-align:right}.sql-workspace .empty-value{color:var(--text-muted);font-style:italic}
+.sql-lines{display:grid;grid-template-columns:auto minmax(0,1fr)}.sql-lines pre,.sql-lines textarea{font:14px/21px var(--font-mono);margin:0;padding-block:12px;border:0;white-space:pre}
+.sql-lines pre{overflow:hidden;max-height:100%;height:0;min-height:100%;padding-inline:8px;text-align:right;background:var(--layer-02);color:var(--text-muted)}
+.sql-workspace .editor-shell textarea{min-width:0;white-space:pre;line-height:21px;font-size:14px;padding:12px}
+.profile-welcome-shell .welcome-theme{display:flex;justify-content:flex-end;align-items:center;gap:8px}
+.reader-progress{width:100%;height:4px;accent-color:var(--interactive)}.reader-focus #side,.reader-focus .rail{display:none}.reader-focus .layout,.reader-focus .lesson-layout{display:block}.reader-focus .lesson-content{max-width:76ch;margin:auto}
+.er-wrap{overflow:auto}.er-node:focus-visible{outline:3px solid var(--focus)}
+@media(min-width:1050px){.sql-workspace{grid-template-columns:minmax(15rem,1fr) minmax(0,3fr)}.sql-browser{grid-column:1;grid-row:1}.sql-main-pane{grid-column:2;grid-row:1}}
+@media(min-width:1100px){body.nav-folded .layout{grid-template-columns:minmax(0,1fr)}body.nav-folded #side{display:none}}
+@media(max-width:640px){.lesson-toolbar button,.sql-workspace button,.sql-mobile-tabs button{min-height:44px}.sql-workspace{max-width:100%}.editor-shell textarea{max-height:45dvh}}
+}
+
+@layer views{
+#main[data-density=Compact] td{padding:.35rem .6rem}#main[data-density=Comfortable] td{padding:.85rem}
+.er-wrap{max-height:68dvh;overscroll-behavior:contain}
+.sql-lines textarea{tab-size:2}.result-head{flex-wrap:wrap}
+}
+@layer views{
+body.db-reference{font-family:var(--font-sans);background:var(--layer-00);color:var(--text-primary)}
+.db-reference .dbshell article{background:var(--layer-01);border-color:var(--border-subtle)}
+.dbshell h1{font-size:clamp(1.6rem,3vw,2rem)}.dbshell nav{position:sticky;top:0;background:var(--layer-00);padding-block:.5rem;z-index:2}
+}
+@layer views{
+.lesson-companion{border-bottom:1px solid var(--border);padding-block:12px}.lesson-companion .row button[aria-pressed=true]{color:var(--interactive);border-color:currentColor}
+.lesson-companion>[hidden]{display:none}.lesson-companion .study-figure{padding:.65rem}
+@media(min-width:1500px){.lesson-layout:has(.lesson-companion){grid-template-columns:minmax(0,1fr) clamp(21rem,25vw,28rem)}}
 }

@@ -2,6 +2,9 @@ const files = [
   "academy.svg",
   "social-preview.png",
   "app.js",
+  "data/fonts/Geist-Variable.woff2",
+  "data/fonts/GeistMono-Variable.woff2",
+  "data/search-catalog.json",
   "study.css",
   "pump-scene.css",
   "appearance.js",
@@ -97,6 +100,10 @@ self.addEventListener('fetch', event => {
         throw error;
       }
     }
-    return await cache.match(key, matchOptions) || fetch(event.request);
+    const saved = await cache.match(key, matchOptions);
+    if (saved) return saved;
+    const response = await fetch(event.request);
+    if (response.ok && isDataAsset) await cache.put(key,response.clone());
+    return response;
   }));
 });

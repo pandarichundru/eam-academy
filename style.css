@@ -1,3 +1,5 @@
+@layer legacy, reset, tokens, base, shell, components, views, utilities;
+@layer legacy {
 /* ==========================================================================
    EAM Academy — Obsidian & Porcelain Design System
    Monochromatic minimalism · Quiet precision · Functional whitespace
@@ -3375,4 +3377,6 @@ code, .taglink, .col-dict-table td { overflow-wrap: anywhere; }
   .brand { font-size: 14px; }
   .brand small { display: none; }
   #realBackupSummary { padding: 10px 12px; font-size: 12px; }
+}
+
 }
