@@ -877,10 +877,34 @@ function downloadCsv(result) {
 function historyMarkup() {
   return sqlHist.length ? `<details><summary>Recent query history (${sqlHist.length})</summary>${sqlHist.map((q, idx) => `<div class="list-item"><button type="button" data-load-sql="${idx}">Load</button> <code class="ml-sm">${E(q.slice(0, 120))}</code></div>`).join('')}</details>` : '';
 }
+// Report identifiers were checked against the EAM 11.6 vanilla backup.
+const vanillaReports = [
+  {
+    "id": "van-status",
+    "title": "Work orders by organization and status",
+    "sql": "SELECT EVT_ORG, EVT_STATUS, COUNT(*) AS work_orders\nFROM R5EVENTS\nGROUP BY EVT_ORG, EVT_STATUS\nORDER BY EVT_ORG, EVT_STATUS;",
+    "verify": "Each row counts work orders sharing one organization and status."
+  },
+  {
+    "id": "van-equipment",
+    "title": "Equipment workload, including idle assets",
+    "sql": "SELECT o.OBJ_ORG, o.OBJ_CODE, COUNT(e.EVT_CODE) AS work_orders\nFROM R5OBJECTS AS o\nLEFT JOIN R5EVENTS AS e ON e.EVT_OBJECT = o.OBJ_CODE\n  AND e.EVT_OBJECT_ORG = o.OBJ_ORG\nGROUP BY o.OBJ_ORG, o.OBJ_CODE\nORDER BY work_orders DESC, o.OBJ_ORG, o.OBJ_CODE;",
+    "verify": "Match both equipment code and equipment organization. A zero identifies equipment with no linked work orders."
+  },
+  {
+    "id": "van-activities",
+    "title": "Work orders without activity lines",
+    "sql": "SELECT e.EVT_CODE, e.EVT_STATUS\nFROM R5EVENTS AS e\nWHERE NOT EXISTS (\n  SELECT 1 FROM R5ACTIVITIES AS a WHERE a.ACT_EVENT = e.EVT_CODE\n)\nORDER BY e.EVT_CODE;",
+    "verify": "Each returned work order has no matching activity. An empty result means every work order has an activity."
+  }
+];
+function sqlExampleById(id) {
+  return vanillaReports.find(report => report.id === id) || lessons.find(lesson => lesson.type === 'technical' && lesson.id === id);
+}
 function sqlPage(id) {
-  const l = lessons.find(x => x.id === id && x.type === 'technical');
+  const l = sqlExampleById(id);
   return H('SQL practice · technical only', 'Read-only SQL lab', 'All tables and columns use exact Infor EAM 11.6 (EAM116) vanilla R5 names with synthetic training rows. Click schema columns to insert them, or use Check my output on lesson challenges.')
-    + `<div class="sql-workspace"><div class="panel"><div class="sql-toolbar"><label for="sqlExample">Choose a lesson query</label><select id="sqlExample"><option value="">Custom query</option>${lessons.filter(x => x.type === 'technical').map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${E(x.title)}</option>`).join('')}</select></div>`
+    + `<div class="sql-workspace"><div class="panel"><div class="sql-toolbar"><label for="sqlExample">Choose a report or lesson query</label><select id="sqlExample"><option value="">Custom query</option><optgroup label="EAM 11.6 vanilla reports">${vanillaReports.map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${E(x.title)}</option>`).join('')}</optgroup><optgroup label="Lesson queries">${lessons.filter(x => x.type === 'technical').map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${E(x.title)}</option>`).join('')}</optgroup></select></div>`
     + `<p class="mt-md mb-sm"><label for="sqlText">SQL statement</label></p><div class="editor-shell"><div class="editor-head"><span>SQLite · Read-only</span><span class="editor-hint"><kbd>⌘↵</kbd> Run</span></div><textarea id="sqlText" spellcheck="false">${E(l?.sql || 'SELECT * FROM R5EVENTS ORDER BY EVT_CODE;')}</textarea></div>`
     + `<div class="row mt-sm"><button id="runSQL" class="primary">${ICON_PLAY}<span>Run read-only query</span></button><button id="checkSQL" class="${l ? '' : 'is-hidden'}">${ICON_CHECK}<span>Check my output</span></button><small>SELECT / CTE · max 200 displayed rows</small></div>`
     + `<p id="sqlExpected" class="note">${E(l?.verify || 'Select a lesson for an expected result.')}</p><div id="sqlCheckMsg"></div><div id="sqlResult"></div></div>`
@@ -1083,11 +1107,11 @@ async function route() {
           $('sqlResult').after(document.createRange().createContextualFragment(A('pump', 'Return to the pump case study')));
         }
         const wireSql = () => {
-          const curLesson = lessons.find(x => x.id === $('sqlExample').value);
+          const curLesson = sqlExampleById($('sqlExample').value);
           if ($('checkSQL')) $('checkSQL').classList.toggle('is-hidden', !curLesson);
         };
         $('sqlExample').onchange = e => {
-          const l = lessons.find(x => x.id === e.target.value);
+          const l = sqlExampleById(e.target.value);
           if (l) { $('sqlText').value = l.sql; $('sqlExpected').textContent = l.verify; $('sqlCheckMsg').innerHTML = ''; }
           wireSql();
         };
@@ -1114,7 +1138,7 @@ async function route() {
           } finally { b.disabled = false; }
         };
         if ($('checkSQL')) $('checkSQL').onclick = async () => {
-          const l = lessons.find(x => x.id === $('sqlExample').value);
+          const l = sqlExampleById($('sqlExample').value);
           if (!l) return;
           const msg = $('sqlCheckMsg');
           msg.innerHTML = '<p class="muted">Comparing output against expected lesson query…</p>';
