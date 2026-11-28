@@ -628,6 +628,7 @@ def copy_assets():
         'app.js',
         'field-guide.js',
         'profiles.js',
+        'learning-tools.js',
         'challenges.js',
         'workshops.js',
         'library.js',
