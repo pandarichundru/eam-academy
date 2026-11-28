@@ -570,6 +570,7 @@ function technical() {
       ['tables', 'Database dictionary', 'All 1,681 EAM 11.6 tables with 34,711 columns, meanings, primary/foreign keys, indexes & triggers.'],
       ['er/R5EVENTS', 'Visual ER relationship explorer', 'Interactive SVG parent/child diagram around any R5 key table.'],
       ['sql', 'SQL lab & Self-Check', 'Read-only synthetic training database, 28 tables, click-to-insert schema, R5 crosswalk.'],
+      ['sql-real', 'Restored EAM 11.6 SQL Lab (1,681 tables)', 'Read-only real-data SQL lab across 7 table families (r5, u5, udf, cor, tx, datalake, other) and 55 verified exercises.'],
       ['module/' + U('Database and SQL'), 'SQL tutorials', 'Ten executable SQLite lessons with expected outputs.'],
       ['module/' + U('Customization and integration'), 'Customization and integration', 'Alerts, imports, grids, web service prompts, GIS, and OAuth 2.0.'],
     ]);
@@ -669,6 +670,7 @@ async function codeItemPage(id) {
   const backRoute = item.kind === 'trigger' ? 'triggers' : item.kind === 'procedure' ? 'procedures' : 'codes';
   const backLabel = item.kind === 'trigger' ? 'All Triggers' : item.kind === 'procedure' ? 'All Stored Procedures' : 'All Codes';
   const tblLinks = (item.tables || '').split(',').map(x => x.trim()).filter(Boolean).map(t => A('table/' + U(t), t, 'taglink')).join('');
+  const realLabLinks = (item.tables || '').split(',').map(x => x.trim()).filter(Boolean).slice(0, 6).map(t => A('sql-real/' + U(t), `Query ${t}`, 'taglink')).join('');
   const sibs = (item.siblings || []).length > 1
     ? `<div class="row mt-md"><small>Candidates for ${E(item.norm_name)}:</small>${item.siblings.map(sb => A('code/' + sb.id, `Candidate ${sb.candidate} (${sb.line_count}L)`, sb.id === item.id ? 'button primary' : 'button')).join('')}</div>`
     : '';
@@ -679,7 +681,7 @@ async function codeItemPage(id) {
     + `<div class="row"><a class="button" href="#${backRoute}">${ICON_ARROW_LEFT}<span>${backLabel}</span></a><button type="button" id="copySqlBtn" class="primary">${ICON_COPY}<span>Copy SQL</span></button><button type="button" id="dlSqlBtn">${ICON_DOWNLOAD}<span>Download .sql</span></button></div>`
     + sibs
     + renderObjectTrace(item, E, recoveryAudit.unmatched)
-    + (tblLinks ? `<div class="panel mt-md mb-md"><strong>Referenced R5 tables:</strong><div class="mt-sm">${tblLinks}</div></div>` : '')
+    + (tblLinks ? `<div class="panel mt-md mb-md"><strong>Referenced R5 tables:</strong><div class="mt-sm">${tblLinks}</div>${realLabLinks ? `<div class="mt-sm"><small class="muted">Real-Data SQL Lab:</small> ${realLabLinks}</div>` : ''}</div>` : '')
     + `<div class="code-viewer mt-md"><div class="code-viewer-head"><span>T-SQL · ${lineCount} lines</span><span class="tabular">Candidate ${E(item.candidate)}</span></div><div class="code-viewer-body"><div class="code-gutter" aria-hidden="true">${gutter}</div><pre class="code-view" id="rawSqlCode">${E(item.body)}</pre></div></div>`;
 }
 
@@ -708,8 +710,9 @@ function tablePage(t) {
   const title = row?.[7] || kt?.area || 'R5 Table';
   const area = row?.[6] || kt?.area || 'Database Schema';
   return H('Schema Reference · ' + area, t, title)
-    + `<div class="row mb-md">${A('er/' + U(t), 'Open Visual ER Diagram', 'button primary')}${A('triggers/' + U(t), 'Search Triggers for ' + t, 'button')}${A('procedures/' + U(t), 'Search Procedures for ' + t, 'button')}${A('tables', 'All Tables', 'button')}</div>`
+    + `<div class="row mb-md">${A('er/' + U(t), 'Open Visual ER Diagram', 'button primary')}${A('sql-real/' + U(t), 'Open in Real-Data SQL Lab', 'button')}${A('triggers/' + U(t), 'Search Triggers for ' + t, 'button')}${A('procedures/' + U(t), 'Search Procedures for ' + t, 'button')}${A('tables', 'All Tables', 'button')}</div>`
     + (t === 'R5EVENTS' ? '<p>' + A('lesson/L127','Worked training example · Find open work orders') + '</p>' : '')
+    + `<div id="tableRealExercises"></div>`
     + `<div id="tableFullDetail"><p class="muted">Loading full column dictionary, keys, relationships, and triggers for ${E(t)}…</p></div>`
     + `<h2>Recovered SQL objects referencing ${E(t)}</h2><div id="tableCodeRefs"><p class="muted">Checking triggers, procedures &amp; views…</p></div>`;
 }
@@ -854,7 +857,7 @@ function erPage(t = 'R5EVENTS') {
   const presets = ['R5OBJECTS', 'R5EVENTS', 'R5ACTIVITIES', 'R5PARTS', 'R5STOCK', 'R5ORDERS', 'R5REQUISITIONS', 'R5PPMS', 'R5ORGANIZATION'];
   const tblInfo = catalog.tables.find(x => x[0] === t);
   return H('Technical reference', 'Visual ER relationship explorer', `Derived from all 2,020 verified foreign keys in EAM 11.6. Click any parent (left) or child (right) table node to re-center.${tblInfo?.[7] ? ' · ' + tblInfo[7] : ''}`)
-    + `<div class="row"><label for="erPick">Focus table</label><select id="erPick">${names.map(n => `<option ${n === t ? 'selected' : ''}>${E(n)}</option>`).join('')}</select>${A('table/' + U(t), 'Table details', 'button')}${A('triggers/' + U(t), 'Table triggers', 'button')}</div>`
+    + `<div class="row"><label for="erPick">Focus table</label><select id="erPick">${names.map(n => `<option ${n === t ? 'selected' : ''}>${E(n)}</option>`).join('')}</select>${A('table/' + U(t), 'Table details', 'button')}${A('sql-real/' + U(t), 'Query in Real-Data SQL Lab', 'button')}${A('triggers/' + U(t), 'Table triggers', 'button')}</div>`
     + `<div class="row mt-md"><small>Core domains:</small>${presets.map(p => A('er/' + U(p), p, p === t ? 'chip active button' : 'chip button')).join('')}</div>`
     + `<div class="er-wrap">${buildErSvg(t)}</div>`
     + `<h2>${E(t)} · ${edges.length} indexed column links</h2>`
@@ -904,6 +907,7 @@ function sqlExampleById(id) {
 function sqlPage(id) {
   const l = sqlExampleById(id);
   return H('SQL practice · technical only', 'Read-only SQL lab', 'All tables and columns use exact Infor EAM 11.6 (EAM116) vanilla R5 names with synthetic training rows. Click schema columns to insert them, or use Check my output on lesson challenges.')
+    + `<div class="row mb-md">${A('sql', 'Synthetic Training Lab (28 tables)', 'chip active button')}${A('sql-real', 'Restored EAM 11.6 Lab (1,681 tables · Real Backup)', 'chip button')}</div>`
     + `<div class="sql-workspace"><div class="panel"><div class="sql-toolbar"><label for="sqlExample">Choose a report or lesson query</label><select id="sqlExample"><option value="">Custom query</option><optgroup label="EAM 11.6 vanilla reports">${vanillaReports.map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${E(x.title)}</option>`).join('')}</optgroup><optgroup label="Lesson queries">${lessons.filter(x => x.type === 'technical').map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${E(x.title)}</option>`).join('')}</optgroup></select></div>`
     + `<p class="mt-md mb-sm"><label for="sqlText">SQL statement</label></p><div class="editor-shell"><div class="editor-head"><span>SQLite · Read-only</span><span class="editor-hint"><kbd>⌘↵</kbd> Run</span></div><textarea id="sqlText" spellcheck="false">${E(l?.sql || 'SELECT * FROM R5EVENTS ORDER BY EVT_CODE;')}</textarea></div>`
     + `<div class="row mt-sm"><button id="runSQL" class="primary">${ICON_PLAY}<span>Run read-only query</span></button><button id="checkSQL" class="${l ? '' : 'is-hidden'}">${ICON_CHECK}<span>Check my output</span></button><small>SELECT / CTE · max 200 displayed rows</small></div>`
@@ -911,6 +915,50 @@ function sqlPage(id) {
     + '<aside class="panel sql-browser"><h2>Training schema</h2><div id="sqlSchema">Loading schema…</div></aside></div>'
     + '<div id="queryHistory">' + historyMarkup() + '</div>'
     + `<details><summary>Training database · 28 EAM 11.6 R5 tables</summary>${table(['R5 Table', 'Entity', 'Purpose'], crosswalk)}</details>`;
+}
+
+const REAL_FAMILY_META = [
+  ['r5', 'R5 Core Tables', 'Standard EAM 11.6 R5* schema tables (excluding R5 UDF config tables).'],
+  ['u5', 'U5 Custom Tables', 'User-defined U5* custom tables.'],
+  ['udf', 'UDF & Custom Configuration', 'Verified UDF setup, dependency, screen, LOV, and custom registry tables (including R5/TX UDF config).'],
+  ['cor', 'COR Integration Tables', 'COR_* inbox/outbox/property tables.'],
+  ['tx', 'TX Translation & Staging', 'TX* translation, layout, and staging tables (excluding TX UDF config).'],
+  ['datalake', 'Data Lake Catalog', 'DATALAKE_* ingestion schedule, table, column, and type conversion tables.'],
+  ['other', 'Other Tables', 'SEQ_* sequences, TABLECOUNT_MSSQL, DUAL, ESB_*, O7*, V$SESSION, and utility tables.'],
+];
+
+function quoteIdentIfNeeded(name) {
+  return /^[A-Za-z_][A-Za-z0-9_]*$/.test(name) ? name : '"' + name.replaceAll('"', '""') + '"';
+}
+
+let realManifestPromise = null;
+let realExercisesPromise = null;
+function loadRealManifest() {
+  return realManifestPromise || (realManifestPromise = fetch('data/manifest.json', { cache: 'default' }).then(r => {
+    if (!r.ok) throw Error('Restored database manifest unavailable.');
+    return r.json();
+  }));
+}
+function loadRealExercises() {
+  return realExercisesPromise || (realExercisesPromise = fetch('data/real-exercises.json', { cache: 'default' }).then(r => {
+    if (!r.ok) throw Error('Real-data exercises unavailable.');
+    return r.json();
+  }));
+}
+
+function realSqlPage(selectedTable = '', selectedExerciseId = '') {
+  const starter = selectedTable
+    ? `SELECT * FROM ${quoteIdentIfNeeded(selectedTable)} LIMIT 25;`
+    : 'SELECT ORG_CODE, ORG_DESC, ORG_CURR FROM R5ORGANIZATION ORDER BY ORG_CODE;';
+  return H('Restored backup · EAM 11.6 Vanilla (116_van.bak)', 'Real-Data Read-Only SQL Lab', 'Query real exported rows from the restored Microsoft SQL Server backup (1,681 tables across 7 families). Tables are lazy-loaded into read-only SQLite on demand; cross-family joins are supported.')
+    + `<div class="row mb-md">${A('sql', 'Synthetic Training Lab (28 tables)', 'chip button')}${A('sql-real', 'Restored EAM 11.6 Lab (1,681 tables · Real Backup)', 'chip active button')}</div>`
+    + `<div id="realBackupSummary" class="panel mb-md"><p class="muted">Loading backup manifest and family inventory…</p></div>`
+    + `<div class="sql-workspace"><div class="panel"><div class="sql-toolbar"><label for="realSqlExample">Choose a real-data exercise (55 across 5 populated families)</label><select id="realSqlExample"><option value="">Custom query</option></select></div>`
+    + `<p class="mt-md mb-sm"><label for="sqlText">SQL statement</label></p><div class="editor-shell"><div class="editor-head"><span>SQLite · Read-only · Real Backup Exports</span><span class="editor-hint"><kbd>⌘↵</kbd> Run</span></div><textarea id="sqlText" spellcheck="false">${E(starter)}</textarea></div>`
+    + `<div class="row mt-sm"><button id="runSQL" class="primary">${ICON_PLAY}<span>Run read-only query</span></button><button id="checkSQL" class="${selectedExerciseId ? '' : 'is-hidden'}">${ICON_CHECK}<span>Check my output</span></button><small>One SELECT / WITH · max 200 displayed rows · 10s timeout</small></div>`
+    + `<p id="sqlExpected" class="note">${selectedTable ? `Selected table: ${E(selectedTable)}. Click Run or choose an exercise.` : 'Select an exercise or write any read-only SELECT / WITH query.'}</p><div id="sqlCheckMsg"></div><div id="sqlResult"></div></div>`
+    + `<aside class="panel sql-browser"><h2>Restored Schema (7 Families)</h2><div class="row mb-sm"><input id="realSchemaSearch" type="search" placeholder="Search tables or columns…"></div><label class="row mb-sm"><input type="checkbox" id="realPopulatedOnly"> <small>Populated tables only</small></label><div id="sqlSchema">Loading 1,681 tables…</div></aside></div>`
+    + '<div id="queryHistory">' + historyMarkup() + '</div>';
 }
 
 function progressPage() {
@@ -1073,6 +1121,12 @@ async function route() {
           if (!res.items.length) { $('tableCodeRefs').innerHTML = '<p class="muted">No recovered SQL objects matched this table name.</p>'; return; }
           $('tableCodeRefs').innerHTML = `<p class="muted">${res.total} matching SQL objects (showing up to 40)</p><div class="panel">${res.items.map(it => `${A('code/' + it.id, `${it.name} (${it.kind})`, 'taglink')}`).join('')}</div>`;
         }).catch(() => {});
+        loadRealExercises().then(data => {
+          if (current !== generation || !$('tableRealExercises')) return;
+          const hits = (data.exercises || []).filter(ex => ex.tables.some(tbl => tbl.toUpperCase() === id.toUpperCase()));
+          if (!hits.length) return;
+          $('tableRealExercises').innerHTML = `<div class="panel mb-md"><strong>Real-Data SQL Lab Exercises for ${E(id)} (${hits.length}):</strong><div class="row mt-sm">${hits.map(ex => A('sql-real/ex/' + U(ex.id), `${ex.title} (${ex.difficulty})`, 'taglink')).join('')}</div></div>`;
+        }).catch(() => {});
         break;
       case 'er': {
         main.innerHTML = erPage(id || 'R5EVENTS');
@@ -1190,6 +1244,162 @@ async function route() {
             };
           });
         }).catch(e => { if (current === generation) $('sqlSchema').textContent = e.message; });
+        break;
+      }
+      case 'sql-real': {
+        const isEx = id.startsWith('ex/');
+        const selectedExId = isEx ? id.slice(3) : '';
+        const selectedTable = !isEx && id ? id : '';
+        main.innerHTML = realSqlPage(selectedTable, selectedExId);
+        let realManifest = null;
+        let realExercises = [];
+
+        const insertToken = val => {
+          const ta = $('sqlText'), st = ta.selectionStart ?? ta.value.length, en = ta.selectionEnd ?? ta.value.length;
+          ta.value = ta.value.slice(0, st) + val + ta.value.slice(en);
+          ta.focus(); ta.setSelectionRange(st + val.length, st + val.length);
+        };
+
+        const renderFamilyBrowser = (q = '', popOnly = false) => {
+          if (!realManifest) return;
+          const ql = q.trim().toLowerCase();
+          const selUpper = selectedTable.toUpperCase();
+          $('sqlSchema').innerHTML = REAL_FAMILY_META.map(([fam, label, desc]) => {
+            const ft = realManifest.family_totals[fam] || { tables: 0, populated_tables: 0, source_rows: 0, exported_rows: 0, truncated_tables: 0 };
+            const allFam = realManifest.tables.filter(t => t.family === fam);
+            const matches = allFam.filter(t => {
+              if (popOnly && t.exported_rows === 0) return false;
+              if (!ql) return true;
+              return t.table.toLowerCase().includes(ql) || t.columns.some(c => c.name.toLowerCase().includes(ql));
+            });
+            const openFam = (selUpper && matches.some(t => t.table.toUpperCase() === selUpper)) || (ql && matches.length > 0) || fam === 'datalake' || fam === 'udf';
+            let bodyHtml = '';
+            if (ft.tables === 0) {
+              bodyHtml = `<p class="muted">Empty family: 0 tables in 116_van.bak (vanilla EAM 11.6 has no ${E(fam.toUpperCase())}* tables).</p>`;
+            } else if (ft.populated_tables === 0 && !ql && !popOnly) {
+              bodyHtml = `<p class="muted">${ft.tables} tables, all 0 rows in 116_van.bak.</p>` + allFam.slice(0, 20).map(t => `<div class="list-item"><code>${E(t.full_name)}</code> <small class="muted">0 rows · ${t.columns.length} cols</small></div>`).join('');
+            } else if (!matches.length) {
+              bodyHtml = `<p class="muted">No matching tables in ${E(fam)}.</p>`;
+            } else {
+              const shown = matches.slice(0, 80);
+              bodyHtml = (matches.length > shown.length ? `<p class="muted">Showing first ${shown.length} of ${matches.length} matching tables. Refine search to narrow.</p>` : '')
+                + shown.map(t => {
+                  const isSel = selUpper && t.table.toUpperCase() === selUpper;
+                  const capBadge = t.truncated ? `<span class="pill warn">Capped: ${t.exported_rows.toLocaleString()} of ${t.source_rows.toLocaleString()}</span>` : `<small class="tabular muted">${t.source_rows.toLocaleString()} rows</small>`;
+                  return `<details ${isSel ? 'open' : ''}><summary><span>${E(t.table)}</span>${capBadge}</summary>`
+                    + `<p class="muted"><small>${E(t.full_name)} · ${E(t.ordering)} · ${t.exported_rows.toLocaleString()} exported / ${t.source_rows.toLocaleString()} source</small></p>`
+                    + (t.truncated ? `<div class="note warn">Export capped at 5,000 rows (${t.source_rows.toLocaleString()} total in source backup).</div>` : '')
+                    + `<div class="schema-cols">${t.columns.map(c => `<button type="button" class="schema-col" data-ins="${E(quoteIdentIfNeeded(c.name))}">${E(c.name)} <small>${E(c.sql_type)}</small></button>`).join('')}</div>`
+                    + `<div class="row schema-actions mt-sm"><button type="button" data-ins="${E(quoteIdentIfNeeded(t.table))}">Insert table</button><button type="button" data-preview="${E(t.table)}">Show 5 sample rows</button></div><div data-sample-out aria-live="polite"></div></details>`;
+                }).join('');
+            }
+            return `<details class="mb-sm" ${openFam ? 'open' : ''}><summary><strong>${E(fam.toUpperCase())}</strong> · ${E(label)} <small class="tabular muted">${ft.tables} tbls · ${ft.populated_tables} pop · ${ft.source_rows.toLocaleString()} src</small></summary><p class="muted"><small>${E(desc)}</small></p>${bodyHtml}</details>`;
+          }).join('');
+
+          $('sqlSchema').querySelectorAll('[data-ins]').forEach(el => {
+            el.onclick = ev => {
+              ev.preventDefault(); ev.stopPropagation();
+              insertToken(el.dataset.ins);
+              el.classList.add('is-inserted');
+              setTimeout(() => { if (el.isConnected) el.classList.remove('is-inserted'); }, 900);
+            };
+          });
+          $('sqlSchema').querySelectorAll('[data-preview]').forEach(btn => {
+            btn.onclick = async () => {
+              const out = btn.closest('details').querySelector('[data-sample-out]');
+              btn.disabled = true;
+              try {
+                const tname = btn.dataset.preview;
+                const sample = await runTrainingQuery(`SELECT * FROM ${quoteIdentIfNeeded(tname)} LIMIT 5`, 'real', realManifest.tables);
+                out.innerHTML = sample.rows.length ? table(sample.columns, sample.rows) : '<p class="muted">0 rows (empty table in 116_van.bak).</p>';
+              } catch (err) { out.textContent = err.message; }
+              finally { btn.disabled = false; }
+            };
+          });
+        };
+
+        Promise.all([loadRealManifest(), loadRealExercises()]).then(([manifest, exData]) => {
+          if (current !== generation) return;
+          realManifest = manifest;
+          realExercises = exData.exercises || [];
+          const tot = manifest.totals;
+          $('realBackupSummary').innerHTML = `<div class="row between"><div><strong>Backup:</strong> <code>${E(manifest.backup.file)}</code> · <code>${E(manifest.backup.sha256.slice(0, 16))}…</code> · <strong>${tot.tables.toLocaleString()}</strong> tables (${tot.populated_tables} populated) · <strong>${tot.source_rows.toLocaleString()}</strong> source rows · <strong>${tot.exported_rows.toLocaleString()}</strong> exported (${tot.truncated_tables} capped at 5,000)</div></div>`
+            + `<p class="muted mt-sm mb-sm"><small><strong>Verified findings:</strong> ${E(exData.findings.u5_family)} ${E(exData.findings.cor_family)}</small></p>`;
+
+          const byFam = {};
+          for (const ex of realExercises) (byFam[ex.family] ||= []).push(ex);
+          const sel = $('realSqlExample');
+          sel.innerHTML = '<option value="">Custom query</option>' + Object.entries(byFam).map(([fam, list]) =>
+            `<optgroup label="${E(fam.toUpperCase())} (${list.length} exercises)">${list.map(x => `<option value="${E(x.id)}" ${x.id === selectedExId ? 'selected' : ''}>[${E(x.difficulty)}] ${E(x.title)}</option>`).join('')}</optgroup>`
+          ).join('');
+
+          if (selectedExId) {
+            const ex = realExercises.find(x => x.id === selectedExId);
+            if (ex) {
+              $('sqlText').value = ex.sql;
+              $('sqlExpected').textContent = `${ex.prompt} — ${ex.verify}`;
+              $('checkSQL').classList.remove('is-hidden');
+            }
+          }
+          renderFamilyBrowser($('realSchemaSearch').value, $('realPopulatedOnly').checked);
+        }).catch(err => {
+          if (current === generation && $('realBackupSummary')) $('realBackupSummary').innerHTML = `<div class="note warn">${E(err.message)}</div>`;
+        });
+
+        $('realSchemaSearch').oninput = () => renderFamilyBrowser($('realSchemaSearch').value, $('realPopulatedOnly').checked);
+        $('realPopulatedOnly').onchange = () => renderFamilyBrowser($('realSchemaSearch').value, $('realPopulatedOnly').checked);
+        $('realSqlExample').onchange = e => {
+          const ex = realExercises.find(x => x.id === e.target.value);
+          if (ex) {
+            $('sqlText').value = ex.sql;
+            $('sqlExpected').textContent = `${ex.prompt} — ${ex.verify}`;
+            $('sqlCheckMsg').innerHTML = '';
+            $('checkSQL').classList.remove('is-hidden');
+          } else {
+            $('checkSQL').classList.add('is-hidden');
+          }
+        };
+        $('queryHistory').onclick = e => {
+          const button = e.target.closest('[data-load-sql]');
+          if (button) $('sqlText').value = sqlHist[Number(button.dataset.loadSql)];
+        };
+        $('sqlText').onkeydown = e => {
+          if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); $('runSQL').click(); }
+        };
+        $('runSQL').onclick = async () => {
+          const b = $('runSQL'), q = $('sqlText').value;
+          b.disabled = true; $('sqlResult').textContent = 'Loading referenced tables and running read-only query…'; $('sqlCheckMsg').innerHTML = '';
+          try {
+            const v = await runTrainingQuery(q, 'real', realManifest ? realManifest.tables : null);
+            if (current !== generation) return;
+            sqlHist = [q, ...sqlHist.filter(x => x !== q)].slice(0, 10);
+            write('sqlhist', sqlHist);
+            $('queryHistory').innerHTML = historyMarkup();
+            const loadedInfo = v.loadedTables?.length ? ` · loaded: ${E(v.loadedTables.join(', '))}` : '';
+            $('sqlResult').innerHTML = `<div class="result-head"><span class="tabular"><strong>${v.rows.length} rows</strong>${v.truncated ? ' (truncated at 200)' : ''} · ${v.columns.length} columns${loadedInfo}</span><button id="saveCsv">${ICON_DOWNLOAD}<span>Export CSV</span></button></div>` + table(v.columns, v.rows);
+            $('saveCsv').onclick = () => downloadCsv(v);
+          } catch (e) {
+            if (current === generation) $('sqlResult').textContent = 'Query rejected or failed: ' + e.message;
+          } finally { b.disabled = false; }
+        };
+        $('checkSQL').onclick = async () => {
+          const ex = realExercises.find(x => x.id === $('realSqlExample').value);
+          if (!ex) return;
+          const msg = $('sqlCheckMsg');
+          msg.innerHTML = '<p class="muted">Comparing output against reference query…</p>';
+          try {
+            const tbls = realManifest ? realManifest.tables : null;
+            const [got, exp] = await Promise.all([
+              runTrainingQuery($('sqlText').value, 'real', tbls),
+              runTrainingQuery(ex.sql, 'real', tbls),
+            ]);
+            const norm = r => JSON.stringify(ex.ordered ? r.rows : [...r.rows].sort());
+            const ok = !got.truncated && !exp.truncated && got.columns.length === exp.columns.length && norm(got) === norm(exp);
+            msg.innerHTML = ok
+              ? `<div class="note ok">${ICON_CHECK} <span>Output matches expected result (${exp.rows.length} rows, ${exp.columns.length} columns).</span></div>`
+              : `<div class="note warn">${ICON_ALERT} <span>Result differs: got ${got.rows.length} rows × ${got.columns.length} cols, expected ${exp.rows.length} rows × ${exp.columns.length} cols. Check joins, filters, or ORDER BY.</span></div>`;
+          } catch (e) { msg.innerHTML = `<div class="note warn">Check failed: ${E(e.message)}</div>`; }
+        };
         break;
       }
       case 'assess':

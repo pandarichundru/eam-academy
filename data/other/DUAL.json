@@ -1,0 +1,1 @@
+{"schema":"dbo","table":"DUAL","full_name":"dbo.DUAL","family":"other","source_rows":1,"exported_rows":1,"truncated":false,"ordering":"KEYLESS DETERMINISTIC (dummy)","primary_key":[],"foreign_keys":[],"columns":[{"name":"dummy","ordinal":1,"sql_type":"varchar","nullable":true,"max_length":1,"precision":null,"scale":null}],"rows":[{"dummy":"X"}]}
