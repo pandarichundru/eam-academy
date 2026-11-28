@@ -120,3 +120,38 @@ function attachLessonContents() {
     }
   }
 }
+
+// Move live lesson controls, so each note and assessment has one source of state.
+let releaseCompanion = () => {};
+function attachCompanion(article) {
+  const rail = document.querySelector('.lesson-layout .rail');
+  if (!rail) return;
+  const quiz = article.querySelector('.notes-card')?.closest('section');
+  if (!quiz) return;
+  const visual = article.querySelector('.study-figure,.pumpsim,.sql-output');
+  const notes = quiz.querySelector('.notes-card');
+  const items = [['Visual',visual],['Check',quiz],['Notes',notes]].filter(([,node])=>node);
+  const host=document.createElement('section');
+  host.className='lesson-companion';
+  const nav=document.createElement('div');nav.className='row';host.append(nav);
+  const entries=items.map(([name,node])=>{
+    const slot=document.createComment(name);node.before(slot);
+    const button=document.createElement('button');button.type='button';button.textContent=name;nav.append(button);
+    const panel=document.createElement('div');host.append(panel);
+    button.onclick=()=>{for(const entry of entries){entry.panel.hidden=entry.node!==node;entry.button.setAttribute('aria-pressed',String(entry.node===node));}};
+    return {button,panel,node,slot};
+  });
+  const media=matchMedia('(min-width:1500px)');
+  function layout(){
+    if(media.matches&&!document.body.classList.contains('reader-focus')){
+      rail.prepend(host);
+      for(const e of entries)e.panel.append(e.node);
+      entries[0].button.click();
+    }else{
+      for(const e of entries)e.slot.after(e.node);
+      host.remove();
+    }
+  }
+  media.addEventListener('change',layout);document.addEventListener('readerlayout',layout);layout();
+  releaseCompanion=()=>{media.removeEventListener('change',layout);document.removeEventListener('readerlayout',layout);host.remove();releaseCompanion=()=>{};};
+}

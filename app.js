@@ -113,7 +113,7 @@ function profileWelcomeScreen() {
     + `<div class="profile-welcome-logo"><span class="brandmark" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="12" height="12" rx="2.5"></rect><path d="M5.5 6h5M5.5 8.2h3.5M5.5 10.4h5"></path></svg></span><span class="brand-text">EAM <b>Academy</b> <small class="muted">Field Manual</small></span></div>`
     + `<h1 id="welcomeHeading">Who's learning today?</h1>`
     + `<p class="muted">Choose your profile to enter EAM Academy with your own progress, notes, quizzes, and SQL practice.</p>`
-    + `<div class="profile-grid">${cards}</div>`
+    + `<div class="profile-grid">${cards}</div><label class="welcome-theme">Theme ${document.querySelector('[data-appearance]').outerHTML}</label>`
     + `</div>`
     + `</section>`;
 }
@@ -348,17 +348,7 @@ function enhanceCodeBlocks(root) {
 const H = (tag, title, desc = '') => `<div class="eyebrow">${E(tag)}</div><h1>${E(title)}</h1>${desc ? `<p class="muted">${E(desc)}</p>` : ''}`;
 const A = (route, label, cls = '') => `<a ${cls ? `class="${cls}"` : ''} href="#${route}">${E(label)}</a>`;
 const ext = (url, label) => `<a class="ext-link" href="${E(url)}" target="_blank" rel="noopener noreferrer"><span>${E(label)}</span>${ICON_EXTERNAL}</a>`;
-const table = (headers, rows) => {
-  const tHead = `<thead><tr>${headers.map(v => `<th scope="col">${E(v)}</th>`).join('')}</tr></thead>`;
-  const tBody = `<tbody>${rows.map((r, ri) =>
-    `<tr>${r.map((v, ci) => {
-      const display = (v === null || v === undefined) ? '<span class="null-val">NULL</span>' : E(String(v));
-      const raw = (v === null || v === undefined) ? '' : String(v);
-      return `<td tabindex="-1" role="gridcell" data-ri="${ri}" data-ci="${ci}" data-val="${E(raw)}">${display}</td>`;
-    }).join('')}</tr>`
-  ).join('')}</tbody>`;
-  return `<div class="scroll"><table role="grid" class="result-grid">${tHead}${tBody}</table></div>`;
-};
+const table = (headers, rows) => `<div class="scroll"><table><thead><tr>${headers.map(v => `<th scope="col">${E(v)}</th>`).join('')}</tr></thead><tbody>${rows.map(r => `<tr>${r.map(v => `<td class="${typeof v === 'number' ? 'num' : ''}">${v === null || v === undefined ? '<span class="null-val">NULL</span>' : v==='' ? '<span class="empty-value">Empty string</span>' : E(v)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 const tiles = items => `<div class="grid">${items.map(([r, t, d]) => `<a class="tile" href="#${r}"><h3>${E(t)}</h3><p>${E(d)}</p></a>`).join('')}</div>`;
 const progress = (n, total) => `<div class="bar" role="progressbar" aria-label="Completion" aria-valuemin="0" aria-valuemax="${total}" aria-valuenow="${n}"><i style="width:${total ? n / total * 100 : 0}%"></i></div>`;
 const lessonLink = l => `<a class="lesson-link${done.includes(l.id) ? ' is-done' : ''}" href="#lesson/${E(l.id)}">${done.includes(l.id) ? ICON_CHECK : ''}<span>${E(l.title)}</span></a>`;
@@ -785,7 +775,8 @@ function lessonPage(id) {
   const lQuizzes = quizzes.filter(q => q.lesson.toLowerCase() === l.title.toLowerCase());
   const isMarked = marks.includes(id), isDone = done.includes(id);
   return `<div class="lesson-layout"><article class="lesson-content">${H(l.module, l.title, `${l.id} · ${l.level} · ${l.type === 'technical' ? 'Technical SQL lesson' : l.type === 'consulting' ? 'Consultant guidance' : 'Written functional tutorial'}`)}`
-    + `<div class="lesson-toolbar"><div class="row lesson-meta"><span class="pill">${l.type === 'intro' ? 'Academy introduction' : 'HxGN primary'}</span>${s.infor ? '<span class="pill">Infor supporting</span>' : ''}</div><div class="row lesson-actions"><button type="button" data-present-lesson="${E(id)}">Present lesson</button><button data-mark="${id}" class="${isMarked ? 'is-active' : ''}">${isMarked ? `${ICON_BOOKMARK_FILL}<span>Bookmarked</span>` : `${ICON_BOOKMARK}<span>Bookmark</span>`}</button><button class="primary${isDone ? ' is-completed' : ''}" data-done="${id}">${isDone ? `${ICON_CHECK_CIRCLE}<span>Completed · undo</span>` : `${ICON_CHECK_CIRCLE}<span>Mark complete</span>`}</button></div></div>`
+    + `<div class="lesson-toolbar"><div class="row lesson-meta"><span class="pill">${l.type === 'intro' ? 'Academy introduction' : 'HxGN primary'}</span>${s.infor ? '<span class="pill">Infor supporting</span>' : ''}</div><div class="row lesson-actions"><button type="button" id="focusLesson" aria-pressed="false">Focus mode</button><button type="button" data-present-lesson="${E(id)}">Present lesson</button><button data-mark="${id}" class="${isMarked ? 'is-active' : ''}">${isMarked ? `${ICON_BOOKMARK_FILL}<span>Bookmarked</span>` : `${ICON_BOOKMARK}<span>Bookmark</span>`}</button><button class="primary${isDone ? ' is-completed' : ''}" data-done="${id}">${isDone ? `${ICON_CHECK_CIRCLE}<span>Completed · undo</span>` : `${ICON_CHECK_CIRCLE}<span>Mark complete</span>`}</button></div></div>`
+    + '<progress class="reader-progress" aria-label="Reading progress" max="100" value="0"></progress>'
     + lessonVisual(l)
     + (workshops.some(w => w.module === l.module) ? '<p class="mt-md">' + A('workshop/' + U(l.module), 'Open module workshop') + '</p>' : '')
     + sqlStages.filter(stage => [stage.sql, stage.functional].includes(id)).map(stage => '<section class="section"><h2>' + E(stage.title) + '</h2>' + stageLinks(stage) + '</section>').join('')
@@ -1065,7 +1056,7 @@ function tablesPage() {
   const st = catalog.stats || {};
   return H('Technical reference', 'Database table dictionary',
     `Complete EAM 11.6 schema: ${(st.tables || catalog.tables.length).toLocaleString()} tables · ${(st.columns || 34711).toLocaleString()} columns · ${(st.fks || 2020).toLocaleString()} foreign keys · ${(st.triggers || 2382).toLocaleString()} triggers.`)
-    + `<div class="panel mb-md"><div class="row"><input id="tableFilter" type="search" placeholder="Search table name, meaning, or PK column (e.g. R5EVENTS, Work Order, OBJ_CODE)"><select id="tableArea" class="input-narrow"><option value="">All domains (${areas.length})</option>${areas.map(a => `<option value="${E(a)}">${E(a)}</option>`).join('')}</select></div></div><div id="tableList" class="mt-md"></div>`;
+    + `<div class="panel mb-md"><div class="row"><label>Density <select id="referenceDensity"><option>Compact</option><option>Comfortable</option></select></label><input aria-label="Filter database tables" id="tableFilter" type="search" placeholder="Search table name, meaning, or PK column (e.g. R5EVENTS, Work Order, OBJ_CODE)"><select id="tableArea" class="input-narrow"><option value="">All domains (${areas.length})</option>${areas.map(a => `<option value="${E(a)}">${E(a)}</option>`).join('')}</select></div></div><div id="tableList" class="mt-md"></div>`;
 }
 function renderTables(q = '', area = '') {
   const ql = q.trim().toLowerCase();
@@ -1269,7 +1260,7 @@ function buildErSvg(t) {
     nodesSvg += `<g class="er-empty"><rect x="656" y="${cy - 16}" width="190" height="32" rx="8"/><text x="751" y="${cy + 4}" text-anchor="middle">No inbound child FKs</text></g>`;
   }
   nodesSvg += `<g class="er-node center" data-er-node="${E(t)}"><rect x="344" y="${cy - 21}" width="172" height="42"/><text x="430" y="${cy + 4}" text-anchor="middle">${E(t)}</text></g>`;
-  return `<div class="er-legend"><span>Parents (outbound FK: ${parents.length})</span><span>Focus Table</span><span>Children (inbound FK: ${children.length})</span></div><svg class="er-svg" viewBox="0 0 860 ${h}" width="100%" role="img" aria-label="Entity relationship diagram for ${E(t)}">${edgesSvg}${nodesSvg}</svg>`;
+  return `<div class="er-legend"><span>Parents (outbound FK: ${parents.length})</span><span>Focus Table</span><span>Children (inbound FK: ${children.length})</span></div><svg class="er-svg" viewBox="0 0 860 ${h}" width="100%" role="group" aria-label="Entity relationship diagram for ${E(t)}">${edgesSvg}${nodesSvg}</svg>`;
 }
 
 function erPage(t = 'R5EVENTS') {
@@ -1289,7 +1280,7 @@ function erPage(t = 'R5EVENTS') {
     + `<div class="row"><label for="erPick">Focus table</label><select id="erPick">${names.map(n => `<option ${n === t ? 'selected' : ''}>${E(n)}</option>`).join('')}</select>${A('table/' + U(t), 'Table details', 'button')}${A('sql-real/' + U(t), 'Query in Real-Data SQL Lab', 'button')}${A('triggers/' + U(t), 'Table triggers', 'button')}</div>`
     + `<div class="row mt-md"><small>Core R5:</small>${presets.map(p => A('er/' + U(p), p, p === t ? 'chip active button' : 'chip button')).join('')}</div>`
     + `<div class="row mt-sm"><small>UDF, Data Lake, TX &amp; Other:</small>${otherPresets.map(p => A('er/' + U(p), p, p === t ? 'chip active button' : 'chip button')).join('')}</div>`
-    + `<div class="er-wrap">${buildErSvg(t)}</div>`
+    + `<div class="row"><label>Diagram zoom <input id="erZoom" type="range" min="50" max="250" step="10" value="100"></label><button id="erFit">Fit to view</button></div><div class="er-wrap" tabindex="0" aria-label="Relationship diagram, scroll to pan">${buildErSvg(t)}</div>`
     + `<h2>${E(t)} · ${edges.length} indexed &amp; cross-family links</h2>`
     + (edges.length ? table(['Child column', 'Parent column', 'Relationship basis'], edges) : '<p class="muted">No declared FKs or documented cross-family links for this table in 116_van.bak.</p>')
     + `<p class="note">Declared FKs come from SQL Server metadata; logical/cross-family links are verified against 116_van.bak.</p>`;
@@ -1298,7 +1289,7 @@ function erPage(t = 'R5EVENTS') {
 function downloadCsv(result) {
   function cell(value) {
     let text = String(value ?? '');
-    if (typeof value === 'string' && /^[=+@\-\t\r]/.test(text)) text = "'" + text;
+    if (typeof value === 'string' && /^(?:\s*[=+@-]|[\t\r\n])/.test(text)) text = "'" + text;
     return '"' + text.replaceAll('"', '""') + '"';
   }
   const csv = [result.columns, ...result.rows].map(row => row.map(cell).join(',')).join('\r\n');
@@ -1364,8 +1355,8 @@ function wireSqlMobileTabs() {
 }
 function sqlEditorMarkup(engineLabel, sqlText, hasCheck, noteHint) {
   return `<p class="mt-md mb-sm sql-query-only"><label for="sqlText">SQL statement</label></p>`
-    + `<div class="editor-shell"><div class="editor-head"><span>${E(engineLabel)}</span><span class="editor-hint"><kbd>⌘↵</kbd> Run · <kbd>⌘⇧F</kbd> Format</span></div><textarea id="sqlText" spellcheck="false">${E(sqlText)}</textarea></div>`
-    + `<div class="row mt-sm sql-query-only"><button id="runSQL" class="primary">${ICON_PLAY}<span>Run read-only query</span></button><button id="checkSQL" class="${hasCheck ? '' : 'is-hidden'}">${ICON_CHECK}<span>Check my output</span></button><button type="button" id="formatSQL">${ICON_FORMAT}<span>Format SQL</span></button><small>${E(noteHint)}</small></div>`
+    + `<div class="editor-shell"><div class="editor-head"><span>${E(engineLabel)}</span><span class="editor-hint"><kbd>⌘↵</kbd> Run · <kbd>⌘⇧F</kbd> Format</span></div><div class="sql-lines"><pre aria-hidden="true" id="lineNums"></pre><textarea id="sqlText" wrap="off" spellcheck="false">${E(sqlText)}</textarea></div></div>`
+    + `<div class="row mt-sm sql-query-only"><button id="runSQL" class="primary">${ICON_PLAY}<span>Run read-only query</span></button><button id="checkSQL" class="${hasCheck ? '' : 'is-hidden'}">${ICON_CHECK}<span>Check my output</span></button><button type="button" id="formatSQL">${ICON_FORMAT}<span>Format SQL</span></button><button id="starterSQL">Reset starter</button><button id="clearSQL">Clear</button><small>${E(noteHint)}</small></div>`
     + `<div id="sqlFormatMsg" class="mt-sm sql-query-only" aria-live="polite"></div>`;
 }
 function focusCompactResults() {
@@ -1457,6 +1448,17 @@ function showCopyToast(msg) {
 
 function wireSqlWorkspace(curGen, { runningLabel, runQuery, formatResultMeta, onCheck }) {
   const formatBtn = $('formatSQL'), fmtMsg = $('sqlFormatMsg'), sqlEl = $('sqlText');
+  const starter = sqlEl.defaultValue;
+  const syncLines = () => {
+    $('lineNums').textContent = sqlEl.value.split('\n').map((_,i)=>i+1).join('\n');
+    $('lineNums').scrollTop = sqlEl.scrollTop;
+  };
+  for (const [id,value] of [['starterSQL',starter],['clearSQL','']]) $(id).onclick=()=>{
+    sqlEl.value=value;sqlEl.dispatchEvent(new Event('input',{bubbles:true}));sqlEl.focus();
+  };
+  sqlEl.addEventListener('input',syncLines);
+  sqlEl.addEventListener('scroll',()=>{$('lineNums').scrollTop=sqlEl.scrollTop;});
+  queueMicrotask(()=>{if(sqlEl.isConnected)syncLines();});
   if (formatBtn && sqlEl) {
     formatBtn.onclick = () => {
       if (fmtMsg) fmtMsg.innerHTML = '';
@@ -1486,20 +1488,36 @@ function wireSqlWorkspace(curGen, { runningLabel, runQuery, formatResultMeta, on
   }
   if ($('runSQL')) {
     $('runSQL').onclick = async () => {
-      const b = $('runSQL'), q = $('sqlText').value;
+      const b = $('runSQL'), q = sqlEl.selectionStart!==sqlEl.selectionEnd ? sqlEl.value.slice(sqlEl.selectionStart,sqlEl.selectionEnd) : sqlEl.value;
       focusCompactResults();
       b.disabled = true; $('sqlResult').textContent = runningLabel; $('sqlCheckMsg').innerHTML = '';
       if (fmtMsg) fmtMsg.innerHTML = '';
       try {
+        const started=performance.now();
         const v = await runQuery(q);
         if (curGen !== generation) return;
         sqlHist = [q, ...sqlHist.filter(x => x !== q)].slice(0, 10);
         write('sqlhist', sqlHist);
         $('queryHistory').innerHTML = historyMarkup();
         const extra = formatResultMeta ? formatResultMeta(v) : '';
-        $('sqlResult').innerHTML = `<div class="result-head"><span class="tabular"><strong>${v.rows.length} rows</strong>${v.truncated ? ' (truncated at 200)' : ''} · ${v.columns.length} columns${extra}</span><button id="saveCsv">${ICON_DOWNLOAD}<span>Export CSV</span></button></div>` + table(v.columns, v.rows);
+        $('sqlResult').innerHTML = `<div class="result-head"><span class="tabular"><strong>${v.rows.length} rows</strong>${v.truncated ? ' (truncated at 200)' : ''} · ${v.columns.length} columns · ${Math.round(performance.now()-started)} ms${extra}</span><button id="saveCsv">${ICON_DOWNLOAD}<span>Export CSV</span></button><button id="saveJson">Export JSON</button><button id="copyMd">Copy Markdown</button><small id="resultState" role="status"></small></div>` + (v.rows.length?table(v.columns, v.rows):'<p>No matching rows.</p>');
         $('saveCsv').onclick = () => downloadCsv(v);
-        wireResultGrid($('sqlResult'));
+        $('saveJson').onclick=()=>{
+          const url=URL.createObjectURL(new Blob([JSON.stringify({columns:v.columns,rows:v.rows},null,2)],{type:'application/json'}));
+          const a=document.createElement('a');a.href=url;a.download='eam-query.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+        };
+        $('copyMd').onclick=async()=>{
+          const row=cells=>'| '+cells.map(c=>String(c??'NULL').replaceAll('|','\\|').replaceAll('\n',' ')).join(' | ')+' |';
+          try{await navigator.clipboard.writeText([row(v.columns),row(v.columns.map(()=> '---')),...v.rows.map(row)].join('\n'));$('resultState').textContent='Copied';}
+          catch{$('resultState').textContent='Clipboard unavailable';}
+        };
+        $('sqlResult').querySelector('.scroll')?.addEventListener('dblclick',async event=>{
+          const cell=event.target.closest('td');if(!cell)return;
+          const value=v.rows[cell.parentElement.sectionRowIndex][cell.cellIndex];
+          try{await navigator.clipboard.writeText(String(value??'NULL'));$('resultState').textContent='Cell copied';}catch{$('resultState').textContent='Clipboard unavailable';}
+        });
+        sqlEl.oninput=()=>{if($('resultState'))$('resultState').textContent=sqlEl.value===q?'':'Showing the previous query';};
+        sqlEl.oninput();
       } catch (e) {
         if (curGen === generation) $('sqlResult').textContent = 'Query rejected or failed: ' + e.message;
       } finally { b.disabled = false; }
@@ -1520,7 +1538,7 @@ function sqlPage(id) {
     + `<div class="sql-workspace" data-mobile-tab="query"><div class="panel sql-main-pane"><div class="sql-toolbar"><label for="sqlExample">Choose a report or lesson query</label><select id="sqlExample"><option value="">Custom query</option><optgroup label="EAM 11.6 vanilla reports">${vanillaReports.map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${E(x.title)}</option>`).join('')}</optgroup><optgroup label="Lesson queries">${lessons.filter(x => x.type === 'technical').map(x => `<option value="${x.id}" ${x.id === id ? 'selected' : ''}>${E(x.title)}</option>`).join('')}</optgroup></select></div>`
     + sqlEditorMarkup('SQLite · Read-only', l?.sql || 'SELECT * FROM R5EVENTS ORDER BY EVT_CODE;', Boolean(l), 'SELECT / CTE · max 200 displayed rows')
     + `<p id="sqlExpected" class="note">${E(l?.verify || 'Select a lesson for an expected result.')}</p><div class="sql-results-pane"><div id="sqlCheckMsg"></div><div id="sqlResult"></div></div></div>`
-    + '<aside class="panel sql-browser"><h2>Training schema</h2><div id="sqlSchema">Loading schema…</div></aside></div>'
+    + '<aside class="panel sql-browser"><h2>Training schema</h2><input type="search" id="findSchema" aria-label="Filter tables and columns" placeholder="Table or column"><div id="sqlSchema">Loading schema…</div></aside></div>'
     + '<div id="queryHistory">' + historyMarkup() + '</div>'
     + `<details><summary>Training database · 28 EAM 11.6 R5 tables</summary>${table(['R5 Table', 'Entity', 'Purpose'], crosswalk)}</details>`;
 }
@@ -1636,6 +1654,7 @@ function renderAssess(m) {
 }
 
 async function route() {
+  releaseCompanion();
   stopTrackingTask();
   const current = ++generation;
   const hash = location.hash.slice(1) || document.body.dataset.initialRoute || 'home';
@@ -1649,6 +1668,7 @@ async function route() {
     renderNav('home', '');
     const main = $('main');
     main.innerHTML = profileWelcomeScreen();
+    main.querySelector('[data-appearance]').value=document.querySelector('[data-appearance]').value;
     const active = window.EAMProfiles.getActiveProfileId();
     const selected = [...main.querySelectorAll('[data-select-profile]')].find(btn => btn.dataset.selectProfile === active);
     (selected || main.querySelector('[data-select-profile]'))?.focus({preventScroll:true});
@@ -1797,6 +1817,14 @@ async function route() {
         break;
       case 'er': {
         main.innerHTML = erPage(id || 'R5EVENTS');
+        const viewport=main.querySelector('.er-wrap'), drawing=viewport.querySelector('svg');
+        const scale=()=>{drawing.style.width=$('erZoom').value+'%';drawing.style.maxWidth='none';drawing.style.minWidth='0';};
+        $('erZoom').oninput=scale;
+        $('erFit').onclick=()=>{$('erZoom').value=100;scale();viewport.scrollTo(0,0);};
+        let drag;
+        viewport.onpointerdown=e=>{if(e.button!==0||e.target.closest('[data-er-node]'))return;drag=[e.clientX,e.clientY,viewport.scrollLeft,viewport.scrollTop];viewport.setPointerCapture(e.pointerId);};
+        viewport.onpointermove=e=>{if(drag)viewport.scrollTo(drag[2]+drag[0]-e.clientX,drag[3]+drag[1]-e.clientY);};
+        viewport.onlostpointercapture=()=>{drag=null;};
         $('erPick').onchange = e => { location.hash = 'er/' + U(e.target.value); };
         loadRealTableNames().then(rows => {
           if (current !== generation || !$('erPick')) return;
@@ -1882,6 +1910,7 @@ async function route() {
               t.columns.map(c => '<button class="schema-col" data-ins="' + E(c.name) + '">' + E(c.name) + ' <small>' + E(c.type) + '</small></button>').join('') +
               '</div><div class="row schema-actions mt-sm"><button data-ins="' + E(t.name) + '">Insert table</button><button data-preview="' + E(t.name) + '">Show 5 sample rows</button></div><div data-sample-out aria-live="polite"></div></details>';
           }).join('');
+          $('findSchema').oninput=()=>{const q=$('findSchema').value.trim().toLowerCase();for(const row of $('sqlSchema').children)row.hidden=!row.textContent.toLowerCase().includes(q);};
           $('sqlSchema').querySelectorAll('[data-preview]').forEach(button => {
             button.onclick = async () => {
               const output = button.closest('details').querySelector('[data-sample-out]');
@@ -1900,7 +1929,7 @@ async function route() {
               ev.preventDefault(); ev.stopPropagation();
               const ta = $('sqlText'), val = el.dataset.ins, st = ta.selectionStart ?? ta.value.length, en = ta.selectionEnd ?? ta.value.length;
               ta.value = ta.value.slice(0, st) + val + ta.value.slice(en);
-              ta.focus(); ta.setSelectionRange(st + val.length, st + val.length);
+              ta.dispatchEvent(new Event('input',{bubbles:true})); ta.focus(); ta.setSelectionRange(st + val.length, st + val.length);
               el.classList.add('is-inserted');
               setTimeout(() => { if (el.isConnected) el.classList.remove('is-inserted'); }, 900);
             };
@@ -1920,7 +1949,7 @@ async function route() {
         const insertToken = val => {
           const ta = $('sqlText'), st = ta.selectionStart ?? ta.value.length, en = ta.selectionEnd ?? ta.value.length;
           ta.value = ta.value.slice(0, st) + val + ta.value.slice(en);
-          ta.focus(); ta.setSelectionRange(st + val.length, st + val.length);
+          ta.dispatchEvent(new Event('input',{bubbles:true})); ta.focus(); ta.setSelectionRange(st + val.length, st + val.length);
         };
 
         const renderFamilyBrowser = (q = '', popOnly = false) => {
@@ -1967,6 +1996,7 @@ async function route() {
               setTimeout(() => { if (el.isConnected) el.classList.remove('is-inserted'); }, 900);
             };
           });
+          $('findSchema').oninput=()=>{const q=$('findSchema').value.trim().toLowerCase();for(const row of $('sqlSchema').children)row.hidden=!row.textContent.toLowerCase().includes(q);};
           $('sqlSchema').querySelectorAll('[data-preview]').forEach(btn => {
             btn.onclick = async () => {
               const out = btn.closest('details').querySelector('[data-sample-out]');
@@ -2041,6 +2071,7 @@ async function route() {
               ]);
               const norm = r => JSON.stringify(ex.ordered ? r.rows : [...r.rows].sort());
               const ok = !got.truncated && !exp.truncated && got.columns.length === exp.columns.length && norm(got) === norm(exp);
+              if(current!==generation)return;
               if (ok) {
                 const nextRealSolved = [...new Set([...read('realSolved', []), ex.id])];
                 write('realSolved', nextRealSolved);
@@ -2072,7 +2103,16 @@ async function route() {
           const f = e.target.files?.[0];
           if (!f) return;
           try {
+            if(f.size>8*1024*1024)throw Error('Profile backup exceeds 8 MB');
             const d = JSON.parse(await f.text());
+            if(current!==generation)return;
+            if(!d||typeof d!=='object'||Array.isArray(d))throw Error('Expected a profile backup object');
+            for(const key of ['done','marks']){
+              if(d[key] && (!Array.isArray(d[key])||!d[key].every(id=>typeof id==='string')))throw Error('Invalid '+key+' list');
+            }
+            for(const [key,type] of [['notes','string'],['quiz','boolean']]){
+              if(d[key] && (typeof d[key]!=='object'||Array.isArray(d[key])||!Object.values(d[key]).every(value=>typeof value===type)))throw Error('Invalid '+key+' entries');
+            }
             if (d.resumeTask && ['sql','sql-real','exercise','lesson'].includes(d.resumeTask.route) &&
                 typeof d.resumeTask.id === 'string' && typeof d.resumeTask.label === 'string') write('resumeTask', d.resumeTask);
             if (d.workspaceDrafts && typeof d.workspaceDrafts === 'object') write('workspaceDrafts',
@@ -2114,6 +2154,21 @@ async function route() {
       if (ref) ref.onsubmit = e => { e.preventDefault(); location.hash = 'search/' + U($('refQ').value); };
       document.title = (main.querySelector('h1')?.textContent || 'Learning') + ' · EAM Academy';
       window.scrollTo({top:0, behavior:'instant'});
+      document.body.classList.remove('reader-focus');
+      if(r==='lesson' && $('focusLesson')){
+        const article=main.querySelector('article');
+        const estimate=document.createElement('small');
+        estimate.textContent=Math.max(1,Math.ceil(article.innerText.trim().split(/\s+/).length/220))+' min read';
+        main.querySelector('.lesson-meta').append(estimate);
+        $('focusLesson').onclick=e=>{const on=document.body.classList.toggle('reader-focus');e.currentTarget.setAttribute('aria-pressed',String(on));document.dispatchEvent(new Event('readerlayout'));};
+        attachCompanion(article);
+        updateReadingProgress();
+      }
+      document.body.classList.toggle('nav-folded',read('navFolded',false));
+      if($('referenceDensity')){
+        const picker=$('referenceDensity');picker.value=read('referenceDensity','Compact');
+        const applyDensity=()=>{main.dataset.density=picker.value;write('referenceDensity',picker.value);};applyDensity();picker.onchange=applyDensity;
+      }else delete main.dataset.density;
       trackTask(r, id);
       setDrawer(false);
       setMobileNav(false);
@@ -2226,7 +2281,10 @@ document.addEventListener('keydown', e => {
     e.preventDefault(); openTaskSearch();
   }
 });
-$('menu').onclick = () => setDrawer(!$('side').classList.contains('open'));
+$('menu').onclick = () => {
+  if(!matchMedia('(min-width:1100px)').matches){setDrawer(!$('side').classList.contains('open'));return;}
+  const folded=document.body.classList.toggle('nav-folded');write('navFolded',folded);$('menu').setAttribute('aria-expanded',String(!folded));
+};
 $('sideBackdrop')?.addEventListener('click', () => setDrawer(false));
 $('mobileNavBtn')?.addEventListener('click', () => setMobileNav(!$('topnav')?.classList.contains('is-open')));
 $('mobileMoreBtn')?.addEventListener('click', () => setMobileNav(!$('topnav')?.classList.contains('is-open')));
@@ -2303,3 +2361,10 @@ Promise.all(['curriculum.json', 'catalog.json', 'extended.json', 'enrichment.jso
   });
 
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).catch(() => { });
+
+function updateReadingProgress(){
+  const bar=document.querySelector('.reader-progress');if(!bar)return;
+  const rect=bar.closest('article').getBoundingClientRect();
+  bar.value=100*Math.max(0,Math.min(1,-rect.top/Math.max(1,rect.height-innerHeight)));
+}
+window.addEventListener('scroll',updateReadingProgress,{passive:true});

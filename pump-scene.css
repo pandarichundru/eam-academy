@@ -251,3 +251,5 @@
 @media (prefers-reduced-motion: reduce) {
   .pumpsim.is-swapping .pumpsim-unit { animation: none; }
 }
+.pumpsim-callouts button{pointer-events:auto;cursor:pointer}.pumpsim-callouts button[aria-pressed=true]{outline:2px solid var(--lab-accent)}
+.pumpsim [data-component-note]{margin:.5rem 1rem;color:var(--text-secondary)}
