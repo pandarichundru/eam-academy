@@ -157,6 +157,7 @@ def html_shell(title, description, canonical_path, og_image, body_html,
       <a href="/eam-academy/#learn"{"aria-current='page'" if nav_active=='learn' else ''}>Curriculum</a>
       <a href="/eam-academy/#workshops">Workshops</a>
       <a href="/eam-academy/#sql-course">SQL Lab</a>
+      <a href="/eam-academy/sql-formatter/">SQL Formatter</a>
       <a href="/eam-academy/#technical">Technical Library</a>
       <a href="/eam-academy/data/database-reference.html">Database Reference</a>
       <a href="/eam-academy/#reference">Reference</a>
@@ -667,6 +668,8 @@ def copy_assets():
     # Copy data directory
     if (ROOT / 'data').exists():
         shutil.copytree(ROOT / 'data', DIST / 'data', dirs_exist_ok=True)
+    if (ROOT / 'sql-formatter').exists():
+        shutil.copytree(ROOT / 'sql-formatter', DIST / 'sql-formatter', dirs_exist_ok=True)
 
     print('Copied static assets to dist/')
 
