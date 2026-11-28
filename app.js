@@ -82,6 +82,17 @@ const crosswalk = [
   ['R5PROJECTS', 'Projects', 'Capital / shutdown project headers (PRJ_CODE, PRJ_ORIGBUD)'],
 ];
 
+const u5AndFamilyCrosswalk = [
+  ['U5* (Custom Tables)', 'u5 (0 tables in 116_van.bak)', 'Site-created custom tables in HxGN/Infor EAM (e.g. U5MYTABLE). Not present in vanilla 116_van.bak; registered via R5UDFSCREENS & R5UDFSCREENFIELDS and joined to R5OBJECTS / R5EVENTS by custom keys.'],
+  ['R5UDFSCREENS / R5UDFSCREENFIELDS', 'udf (0 rows in 116_van.bak)', 'Metadata registry for user-defined screens and custom table fields (USC_SCREENNAME, USC_TABLENAME, USF_FIELDNAME).'],
+  ['R5USERDEFINEDFIELDSETUP', 'udf (5,524 source / 5,000 exported)', 'User-defined field definitions (udfchar*, udfnum*, udfdate*, udfchkbox*) attached to core R5 entities via UDF_RENTITY = R5ENTITIES.ENT_RENTITY.'],
+  ['R5USERDEFINEDFIELDDEPENDENCIES', 'udf (342 rows)', 'Links UDF entity setup to EAM pages and grids via UFD_RENTITY = ENT_RENTITY and UFD_PAGENAME = R5FUNCTIONS.FUN_CODE.'],
+  ['R5USERDEFINEDFIELDLOVVALS', 'udf (0 rows in 116_van.bak)', 'Custom List-of-Values dropdown entries for UDF fields (UDL_RENTITY, UDL_FIELD, UDL_CODE).'],
+  ['R5FLEXTABLES / R5FLEXSQL', 'r5 (3 / 6 rows)', 'Flex SQL extensibility triggers & rules bound to R5 tables (R5REQUISITIONS, R5REQUISLINES, R5OBJECTS).'],
+  ['DATALAKE_TABLE / DATALAKE_COLUMN', 'datalake (17 / 249 rows)', 'Infor Data Lake ingestion catalog mapping EAM tables and columns to analytics schedules.'],
+  ['TABLECOUNT_MSSQL / SEQ_S5*', 'other (1,248 / 276 tables)', 'SQL Server table row inventory and sequence generators (SEQ_S5DATALAKE_TABLE, SEQ_S5EVENT, etc.).'],
+];
+
 const businessFlows = [
   {
     title: 'Asset Onboarding & Hierarchy',
@@ -328,6 +339,118 @@ const sqlReading = {
   L136: ['One schema definition for activities', 'SQLite stores the table definition in sqlite_master. Inspect the primary and foreign keys before deciding how to join records.', 'Find the two columns in the primary key. Use the activity lesson to see what happens when labor is attached at that grain.']
 };
 
+const sqlDeepDive = {
+  L127: {
+    clauses: [
+      ['SELECT', 'Projects specific columns (EVT_CODE, EVT_DESC, EVT_OBJECT, EVT_STATUS) instead of SELECT *, keeping output readable and focused on the work-order grain.'],
+      ['FROM R5EVENTS', 'Reads the work-order/event header table where each row represents one work order or event.'],
+      ['WHERE EVT_STATUS = \'Open\'', 'Filters rows before sorting so only active/open work orders remain.'],
+      ['ORDER BY EVT_CODE', 'Guarantees deterministic output ordering by the primary work-order identifier.']
+    ],
+    columns: [
+      ['EVT_CODE', 'Unique work order / event number (Primary Key of R5EVENTS).'],
+      ['EVT_DESC', 'Short work order description shown in EAM list and header views.'],
+      ['EVT_OBJECT', 'Equipment or location code the work order targets (FK to R5OBJECTS.OBJ_CODE).'],
+      ['EVT_STATUS', 'Lifecycle status code (e.g., Open, Released, Closed).']
+    ],
+    pitfall: 'Omitting ORDER BY can return rows in arbitrary storage order; omitting EVT_STATUS returns historical closed work orders.'
+  },
+  L128: {
+    clauses: [
+      ['FROM R5EVENTS AS e', 'Starts at the work-order grain (many work orders can reference one piece of equipment).'],
+      ['JOIN R5OBJECTS AS o ON o.OBJ_CODE = e.EVT_OBJECT', 'Attaches the matching equipment master row by its primary key (in multi-org EAM, also match e.EVT_OBJECT_ORG = o.OBJ_ORG).']
+    ],
+    columns: [
+      ['OBJ_CODE / OBJ_DESC', 'Equipment identifier and human-readable asset description in R5OBJECTS.'],
+      ['OBJ_OBTYPE', 'Object type: A = Asset, L = Location, P = Position, S = System.']
+    ],
+    pitfall: 'Joining on description (OBJ_DESC) instead of key (OBJ_CODE) breaks when two assets share a description.'
+  },
+  L129: {
+    clauses: [
+      ['FROM R5OBJECTS AS o LEFT JOIN R5EVENTS AS e', 'Starts from equipment so idle assets with zero work orders are preserved with COUNT(e.EVT_CODE) = 0.'],
+      ['LEFT JOIN R5EVENTCOST AS c ON c.EVO_EVENT = e.EVT_CODE', 'Attaches rolled-up work order costs without dropping orders that have no cost row yet.'],
+      ['GROUP BY o.OBJ_CODE, o.OBJ_DESC', 'Collapses rows to one summary row per equipment record.']
+    ],
+    columns: [
+      ['EVO_EVENT / EVO_TOTAL', 'Work order reference and total rolled-up maintenance cost in R5EVENTCOST.'],
+      ['COALESCE(SUM(c.EVO_TOTAL), 0)', 'Converts NULL (no cost rows) into 0 so arithmetic and sorting stay clean.']
+    ],
+    pitfall: 'Using COUNT(*) instead of COUNT(e.EVT_CODE) with a LEFT JOIN would count an idle asset as having 1 work order!'
+  },
+  L130: {
+    clauses: [
+      ['JOIN R5ACTIVITIES AS a ON a.ACT_EVENT = e.EVT_CODE', 'Expands each work order to its task/activity lines.'],
+      ['LEFT JOIN R5BOOKEDHOURS AS b ON b.BOO_EVENT = a.ACT_EVENT AND b.BOO_ACT = a.ACT_ACT', 'Uses the full composite key (work order + activity number) so labor hours attach to the exact task.']
+    ],
+    columns: [
+      ['ACT_EVENT / ACT_ACT', 'Composite primary key of R5ACTIVITIES (work order code + activity sequence 10, 20, ...).'],
+      ['BOO_HOURS', 'Actual labor hours booked in R5BOOKEDHOURS.']
+    ],
+    pitfall: 'Joining R5BOOKEDHOURS on BOO_EVENT alone (forgetting BOO_ACT) multiplies every labor row across every activity on that order.'
+  },
+  L131: {
+    clauses: [
+      ['FROM R5STOCK AS s JOIN R5PARTS AS p ON p.PAR_CODE = s.STO_PART', 'Combines store-level stock balances with part catalog descriptions and UOMs.'],
+      ['WHERE s.STO_QTY < s.STO_REORDER', 'Identifies part-store combinations currently below their reorder point.']
+    ],
+    columns: [
+      ['STO_PART / STO_STORE', 'Composite key of R5STOCK: one row per part per storeroom.'],
+      ['STO_QTY / STO_REORDER', 'On-hand quantity and minimum reorder threshold in that store.']
+    ],
+    pitfall: 'Aggregating across all stores before comparing to STO_REORDER hides a shortage in one storeroom behind surplus in another.'
+  },
+  L132: {
+    clauses: [
+      ['WITH reserved AS (...)', 'Pre-aggregates open pick-list reservations by part and store in a CTE before joining to R5STOCK.'],
+      ['s.STO_QTY - COALESCE(r.res_qty, 0)', 'Computes net available quantity, treating unreserved stock rows as 0 reserved.']
+    ],
+    columns: [
+      ['PIP_PART / PIP_QTY', 'Part code and reserved quantity on R5PICKLISTPARTS.'],
+      ['PIC_STORE', 'Storeroom header on R5PICKLISTS.']
+    ],
+    pitfall: 'Joining R5STOCK directly to R5PICKLISTPARTS without pre-aggregating duplicates stock rows when multiple pick lists reserve the same part.'
+  },
+  L133: {
+    clauses: [
+      ['FROM R5ORDERLINES AS ol LEFT JOIN rec ON ...', 'Starts from PO lines and left-joins aggregated dock receipts by (ORL_ORDER, ORL_ORDLINE).'],
+      ['ol.ORL_ORDQTY - COALESCE(rec.recv_qty, 0)', 'Calculates remaining open quantity to receive.']
+    ],
+    columns: [
+      ['ORL_ORDER / ORL_ORDLINE', 'Composite primary key of R5ORDERLINES.'],
+      ['DKL_RECVQTY', 'Quantity received on dock receiving lines (R5DOCKLINES).']
+    ],
+    pitfall: 'Using an INNER JOIN hides purchase order lines that have zero receipts so far.'
+  },
+  L134: {
+    clauses: [
+      ['LAG(REA_READING) OVER (PARTITION BY REA_METER ORDER BY REA_DATE, REA_ID)', 'Reads the previous reading for the same meter in chronological/ID order.']
+    ],
+    columns: [
+      ['REA_METER / REA_DATE / REA_READING', 'Meter code, reading timestamp, and cumulative meter value in R5READINGS.']
+    ],
+    pitfall: 'Omitting PARTITION BY REA_METER compares one meter\'s reading against a completely different asset\'s meter.'
+  },
+  L135: {
+    clauses: [
+      ['JOIN R5ORGANIZATION AS org ON org.ORG_CODE = req.REQ_ORG', 'Attaches organization metadata and enforces organization scope in WHERE.']
+    ],
+    columns: [
+      ['REQ_CODE / REQ_ORG / REQ_STATUS', 'Requisition number, owning organization, and approval status in R5REQUISITIONS.']
+    ],
+    pitfall: 'In multi-organization EAM databases, omitting *_ORG in joins or filters leaks records across sites.'
+  },
+  L136: {
+    clauses: [
+      ['SELECT sql FROM sqlite_master WHERE name = \'R5ACTIVITIES\'', 'Inspects physical DDL (primary keys, foreign keys, and column types) before writing joins.']
+    ],
+    columns: [
+      ['sqlite_master (SQLite) / INFORMATION_SCHEMA (SQL Server)', 'System catalog views used to verify exact key columns before querying production or restored data.']
+    ],
+    pitfall: 'Guessing join columns from UI labels instead of checking physical PKs/FKs is the #1 cause of Cartesian fan-out bugs.'
+  }
+};
+
 function pumpPage() {
   return H('Maintenance planning', 'From pump to preventive work order', 'Follow PUMP-001 from its asset record to a 30-day maintenance schedule. Use each linked lesson for the full procedure.')
     + '<div class="reader">'
@@ -351,12 +474,12 @@ function stageLinks(stage) {
     A('sql/' + stage.sql,'Run example') + A('exercise/' + stage.exercise,'Practice challenge') + '</div>';
 }
 function sqlCourse() {
-  return H('SQL learning', 'Read, explain and test a query', 'Each lesson uses the same local SQLite training database. Work in sequence or choose a business question.')
-    + '<div class="row footer-links">' + A('practice','Open SQL Exercises','button primary') + A('sql','Open SQL editor','button') + A('technical','Technical library','button') + A('workshop/' + U('Database and SQL'),'Join troubleshooting workshop','button') + '</div>'
+  return H('SQL learning', 'Read, explain and test a query', 'Each lesson uses the same local SQLite training database. Work in sequence, inspect clause-by-clause breakdowns, or switch to the Restored EAM 11.6 Lab (1,681 real tables).')
+    + '<div class="row footer-links">' + A('practice','Open SQL Exercises','button primary') + A('sql','Synthetic SQL Lab','button') + A('sql-real','Restored EAM 11.6 Lab (1,681 tables)','button') + A('technical','Technical library','button') + A('workshop/' + U('Database and SQL'),'Join troubleshooting workshop','button') + '</div>'
     + '<h2>Five-stage SQL learning path</h2><div class="stage-list">' + sqlStages.map((stage, idx) => '<div class="panel stage-card"><div class="eyebrow tabular">Stage ' + String(idx + 1).padStart(2, '0') + '</div><h3>' + E(stage.title) +
       '</h3><p class="mb-sm">' + E(stage.question) + '</p><p class="muted">' + E(stage.grain) + '</p>' + stageLinks(stage) + '</div>').join('') + '</div>'
     + '<div class="mt-md mb-md">' + A('exercise/30','Fix a query that counts an idle asset as an order','button') + '</div>'
-    + '<h2>All SQL lessons</h2>' + lessons.filter(l => l.type === 'technical').map(l => '<section class="list-item"><h3>' + lessonLink(l) + '</h3><p class="muted">' + E(sqlReading[l.id]?.[0] || l.concept) + '</p>' + A('sql/' + l.id,'Run the lesson query') + '</section>').join('');
+    + '<h2>All SQL lessons</h2>' + lessons.filter(l => l.type === 'technical').map(l => '<section class="list-item"><h3>' + lessonLink(l) + '</h3><p class="muted">' + E(sqlReading[l.id]?.[0] || l.concept) + '</p>' + (sqlDeepDive[l.id] ? `<p><small class="muted"><strong>Key pitfall:</strong> ${E(sqlDeepDive[l.id].pitfall)}</small></p>` : '') + '<div class="row">' + A('sql/' + l.id,'Run in Synthetic Lab') + A('sql-real','Explore in Real-Data Lab') + '</div></section>').join('');
 }
 
 function coveragePage(moduleName) {
@@ -419,11 +542,12 @@ function lessonPage(id) {
     + (pumpSteps.some(([step]) => step === id) ? '<p class="note">' + A('pump','Case study · From pump to preventive work order') + '</p>' : '')
     + (sqlResults[id] ? '<details class="sql-output"><summary>Inspect the expected training output</summary>' + table(sqlResults[id].columns,sqlResults[id].rows) + '</details>' : '')
     + (sqlReading[id] ? '<section class="section"><h2>How to read this query</h2><div class="callout-panel"><strong>' + E(sqlReading[id][0]) + '</strong><p class="mt-sm">' + E(sqlReading[id][1]) + '</p><h3>Try a variation</h3><p class="mb-sm">' + E(sqlReading[id][2]) + '</p></div></section>' : '')
+    + (sqlDeepDive[id] ? `<section class="section"><h2>Clause-by-clause explanation &amp; column meanings</h2>${table(['SQL Clause', 'What it does & why'], sqlDeepDive[id].clauses)}<h3 class="mt-md">Column meanings in EAM</h3>${table(['Column', 'Meaning in EAM 11.6'], sqlDeepDive[id].columns)}<div class="note warn mt-sm">${ICON_ALERT}<span><strong>Common pitfall:</strong> ${E(sqlDeepDive[id].pitfall)}</span></div></section>` : '')
     + `<section class="section"><h2>What you will learn</h2><p>${E(l.concept)}</p><p>By the end, you should be able to explain the business purpose, describe the steps for the scenario, and identify how to check the result.</p></section>`
     + `<section class="section"><h2>Business scenario</h2><div class="scenario">${E(l.scenario)}</div><p class="muted">Fictional PLANT01 example for learning; not a live EAM transaction.</p></section>`
     + (l.reading ? '<section class="section"><h2>Read the sources</h2><ul>' + l.reading.map(([label, url]) => '<li>' + ext(url, label) + '</li>').join('') + '</ul></section>' : '')
     + `${more.context && l.type === 'functional' ? `<section class="section"><h2>How it works</h2>${more.context.map(x => `<p>${E(x)}</p>`).join('')}${more.flow ? `<div class="diagram">${more.flow.map((v, idx) => `${idx ? `<span class="diagram-arrow" aria-hidden="true">${ICON_FLOW_ARROW}</span>` : ''}<span>${E(v)}</span>`).join('')}</div>` : ''}</section>` : ''}`
-    + `<section class="section"><h2>${l.type === 'technical' ? 'Technical walkthrough' : 'Prerequisites and written walkthrough'}</h2>${l.type === 'technical' ? `<p>Use the local synthetic dataset, not a production database. ${A('sql', 'Open SQL lab')}</p><pre>${E(l.sql)}</pre>${A('sql/' + id, 'Open this query in SQL lab', 'button primary')}` : `<p>${l.type === 'intro' ? 'Follow the example in order.' : l.type === 'consulting' ? 'Agree the business scope, owners and test environment before applying the guidance.' : 'Before starting, confirm the relevant organization, authorized role, and referenced master data. Use the documented screen for your release.'}</p><ol class="steps">${l.walkthrough.map(x => `<li>${E(x)}</li>`).join('')}</ol>`}</section>`
+    + `<section class="section"><h2>${l.type === 'technical' ? 'Technical walkthrough' : 'Prerequisites and written walkthrough'}</h2>${l.type === 'technical' ? `<p>Use the local synthetic dataset, not a production database. ${A('sql', 'Open Synthetic SQL Lab')} · ${A('sql-real', 'Open Real-Data SQL Lab (1,681 tables)')}</p><pre>${E(l.sql)}</pre><div class="row mb-md">${A('sql/' + id, 'Open this query in Synthetic SQL lab', 'button primary')}${A('sql-real', 'Explore real EAM 11.6 tables', 'button')}</div>${l.walkthrough?.length ? `<h3>Step-by-step SQL walkthrough</h3><ol class="steps">${l.walkthrough.map(x => `<li>${E(x)}</li>`).join('')}</ol>` : ''}` : `<p>${l.type === 'intro' ? 'Follow the example in order.' : l.type === 'consulting' ? 'Agree the business scope, owners and test environment before applying the guidance.' : 'Before starting, confirm the relevant organization, authorized role, and referenced master data. Use the documented screen for your release.'}</p><ol class="steps">${l.walkthrough.map(x => `<li>${E(x)}</li>`).join('')}</ol>`}</section>`
     + `${more.example && l.type === 'functional' ? `<section class="section"><h2>Worked example</h2>${table(['Record / field', 'Training value or decision', 'Explanation'], more.example)}</section>` : ''}`
     + `${l.type === 'functional' && ev.fields.length ? `<section class="section"><h2>Documented fields and options</h2><p class="muted">Selected field descriptions extracted from the supplied HxGN pages. Not an exhaustive field list; some descriptions continue in the original source.</p>${table(['Field / option', 'Source excerpt'], ev.fields.map(x => [x.name, x.meaning]))}</section>` : ''}`
     + `<section class="section"><h2>Expected result &amp; troubleshooting</h2><div class="panel"><p>${E(l.verify)}</p>${more.check && l.type === 'functional' ? `<p>${E(more.check)}</p>` : ''}</div></section>`
@@ -801,6 +925,32 @@ function renderTableDetail(t, td) {
   drawCols();
 }
 
+const NON_R5_ER_EDGES = [
+  ['DATALAKE_TABLE.SCHEDULEID', 'DATALAKE_SCHEDULE.SCHEDULEID', 'Declared FK'],
+  ['DATALAKE_COLUMN.TABLEID', 'DATALAKE_TABLE.TABLEID', 'Declared FK'],
+  ['DATALAKE_SCHEMAUPLOAD.TABLEID', 'DATALAKE_TABLE.TABLEID', 'Declared FK'],
+  ['DATALAKE_COLUMN.DATATYPE', 'DATALAKE_TYPECONVERSION.DATATYPE', 'Logical Join'],
+  ['DATALAKE_TABLE.TABLEID', 'SEQ_S5DATALAKE_TABLE.SEQ_NEXTVALUE', 'Sequence Parity'],
+  ['DATALAKE_COLUMN.COLUMNID', 'SEQ_S5DATALAKE_COLUMN.SEQ_NEXTVALUE', 'Sequence Parity'],
+  ['DATALAKE_SCHEMAUPLOAD.TABLEID', 'SEQ_S5DATALAKE_SCHEMAUPLOAD.SEQ_NEXTVALUE', 'Sequence Parity'],
+  ['DATALAKE_TABLE.NAME', 'TABLECOUNT_MSSQL.TABLE_NAME', 'Cross-Family Join'],
+  ['DATALAKE_TABLE.NAME', 'R5USERTABCOLUMNS.UTC_TABLENAME', 'Cross-Family Join'],
+  ['R5USERDEFINEDFIELDSETUP.UDF_RENTITY', 'R5ENTITIES.ENT_RENTITY', 'UDF-to-R5 Join'],
+  ['R5USERDEFINEDFIELDDEPENDENCIES.UFD_RENTITY', 'R5ENTITIES.ENT_RENTITY', 'UDF-to-R5 Join'],
+  ['R5USERDEFINEDFIELDDEPENDENCIES.UFD_PAGENAME', 'R5FUNCTIONS.FUN_CODE', 'UDF-to-R5 Join'],
+  ['R5USERDEFINEDFIELDDEPENDENCIES.UFD_RENTITY', 'R5USERDEFINEDFIELDSETUP.UDF_RENTITY', 'Within-UDF Join'],
+  ['R5USERDEFINEDFIELDLOVVALS.UDL_RENTITY', 'R5USERDEFINEDFIELDSETUP.UDF_RENTITY', 'Within-UDF Join'],
+  ['R5UDFSCREENS.USC_ENTITY', 'R5ENTITIES.ENT_RENTITY', 'UDF-to-R5 Join'],
+  ['R5UDFSCREENFIELDS.USF_SCREENNAME', 'R5UDFSCREENS.USC_SCREENNAME', 'Within-UDF Join'],
+  ['TXUSERDEFINEDFIELDSETUP.UDF_RENTITY', 'R5USERDEFINEDFIELDSETUP.UDF_RENTITY', 'TX/UDF Parity'],
+  ['TXUSERDEFINEDFIELDDEPENDENCIES.UFD_RENTITY', 'R5USERDEFINEDFIELDDEPENDENCIES.UFD_RENTITY', 'TX/UDF Parity'],
+  ['TXENTITIES.ENT_RENTITY', 'R5ENTITIES.ENT_RENTITY', 'TX-to-R5 Join'],
+  ['TXFUNCTIONS.FUN_CODE', 'R5FUNCTIONS.FUN_CODE', 'TX-to-R5 Join'],
+  ['TXCLASSES.TXC_RENTITY', 'TXENTITIES.ENT_RENTITY', 'Within-TX Join'],
+  ['TABLECOUNT_MSSQL.TABLE_NAME', 'R5USERTABCOLUMNS.UTC_TABLENAME', 'Other-to-R5 Join'],
+  ['R5FLEXTABLES.FLT_TABLE', 'TABLECOUNT_MSSQL.TABLE_NAME', 'R5-to-Other Join'],
+];
+
 function buildErSvg(t) {
   const kt = (codeMeta.key_tables || {})[t];
   const mmd = codeMeta.er_edges || [];
@@ -818,8 +968,24 @@ function buildErSvg(t) {
       if (e.child === t && e.parent !== t && !pSet.has(e.parent)) pSet.set(e.parent, e.col);
       if (e.parent === t && e.child !== t && !cSet.has(e.child)) cSet.set(e.child, e.col);
     });
+    NON_R5_ER_EDGES.forEach(([ch, pa]) => {
+      const ct = ch.split('.')[0], pt = pa.split('.')[0];
+      const col = ch.split('.')[1] || pa.split('.')[1] || '';
+      if (ct === t && pt !== t && !pSet.has(pt)) pSet.set(pt, col);
+      if (pt === t && ct !== t && !cSet.has(ct)) cSet.set(ct, col);
+    });
     parents = [...pSet.entries()].slice(0, 10);
     children = [...cSet.entries()].slice(0, 12);
+  } else {
+    const pMap = new Map(parents), cMap = new Map(children);
+    NON_R5_ER_EDGES.forEach(([ch, pa]) => {
+      const ct = ch.split('.')[0], pt = pa.split('.')[0];
+      const col = ch.split('.')[1] || pa.split('.')[1] || '';
+      if (ct === t && pt !== t && !pMap.has(pt) && pMap.size < 10) pMap.set(pt, col);
+      if (pt === t && ct !== t && !cMap.has(ct) && cMap.size < 12) cMap.set(ct, col);
+    });
+    parents = [...pMap.entries()];
+    children = [...cMap.entries()];
   }
   const rows = Math.max(parents.length, children.length, 1);
   const h = Math.max(260, rows * 46 + 44);
@@ -852,17 +1018,26 @@ function buildErSvg(t) {
 }
 
 function erPage(t = 'R5EVENTS') {
-  const edges = extended.relations.filter(x => x.some(y => y.split('.')[0] === t));
-  const names = [...new Set([...extended.relations.flatMap(x => x.map(y => y.split('.')[0])), ...Object.keys(codeMeta.key_tables || {})])].sort();
+  const r5Edges = extended.relations.filter(x => x.some(y => y.split('.')[0] === t)).map(([c, p]) => [c, p, 'Declared FK']);
+  const nonR5Edges = NON_R5_ER_EDGES.filter(([c, p]) => c.split('.')[0] === t || p.split('.')[0] === t);
+  const edges = [...r5Edges, ...nonR5Edges];
+  const names = [...new Set([
+    ...extended.relations.flatMap(x => x.map(y => y.split('.')[0])),
+    ...NON_R5_ER_EDGES.flatMap(([c, p]) => [c.split('.')[0], p.split('.')[0]]),
+    ...Object.keys(codeMeta.key_tables || {})
+  ])].sort();
+  if (!names.includes(t)) names.unshift(t);
   const presets = ['R5OBJECTS', 'R5EVENTS', 'R5ACTIVITIES', 'R5PARTS', 'R5STOCK', 'R5ORDERS', 'R5REQUISITIONS', 'R5PPMS', 'R5ORGANIZATION'];
+  const otherPresets = ['R5USERDEFINEDFIELDSETUP', 'R5USERDEFINEDFIELDDEPENDENCIES', 'DATALAKE_TABLE', 'DATALAKE_COLUMN', 'TXENTITIES', 'TXFUNCTIONS', 'TABLECOUNT_MSSQL', 'R5FLEXTABLES'];
   const tblInfo = catalog.tables.find(x => x[0] === t);
-  return H('Technical reference', 'Visual ER relationship explorer', `Derived from all 2,020 verified foreign keys in EAM 11.6. Click any parent (left) or child (right) table node to re-center.${tblInfo?.[7] ? ' · ' + tblInfo[7] : ''}`)
+  return H('Technical reference', 'Visual ER relationship explorer', `Explore all 2,020 declared R5 foreign keys plus verified UDF, Data Lake, TX, and Other cross-family relationships. Click any parent (left) or child (right) table node to re-center.${tblInfo?.[7] ? ' · ' + tblInfo[7] : ''}`)
     + `<div class="row"><label for="erPick">Focus table</label><select id="erPick">${names.map(n => `<option ${n === t ? 'selected' : ''}>${E(n)}</option>`).join('')}</select>${A('table/' + U(t), 'Table details', 'button')}${A('sql-real/' + U(t), 'Query in Real-Data SQL Lab', 'button')}${A('triggers/' + U(t), 'Table triggers', 'button')}</div>`
-    + `<div class="row mt-md"><small>Core domains:</small>${presets.map(p => A('er/' + U(p), p, p === t ? 'chip active button' : 'chip button')).join('')}</div>`
+    + `<div class="row mt-md"><small>Core R5:</small>${presets.map(p => A('er/' + U(p), p, p === t ? 'chip active button' : 'chip button')).join('')}</div>`
+    + `<div class="row mt-sm"><small>UDF, Data Lake, TX &amp; Other:</small>${otherPresets.map(p => A('er/' + U(p), p, p === t ? 'chip active button' : 'chip button')).join('')}</div>`
     + `<div class="er-wrap">${buildErSvg(t)}</div>`
-    + `<h2>${E(t)} · ${edges.length} indexed column links</h2>`
-    + table(['Child column', 'Parent column'], edges)
-    + `<p class="note">Multiple links may belong to one composite key. Verify actual constraints before writing production joins.</p>`;
+    + `<h2>${E(t)} · ${edges.length} indexed &amp; cross-family links</h2>`
+    + (edges.length ? table(['Child column', 'Parent column', 'Relationship basis'], edges) : '<p class="muted">No declared FKs or documented cross-family links for this table in 116_van.bak.</p>')
+    + `<p class="note">Declared FKs come from SQL Server metadata; logical/cross-family links are verified against 116_van.bak.</p>`;
 }
 
 function downloadCsv(result) {
@@ -1057,7 +1232,13 @@ async function route() {
       case 'fields': main.innerHTML = fields(); $('fieldFilter').oninput = e => renderFields(e.target.value); renderFields(); break;
       case 'glossary': main.innerHTML = glossaryPage(); break;
       case 'crosswalk':
-        main.innerHTML = H('Technical Library','Training-to-R5 crosswalk','Approximate mappings between the fictional training database and product tables. Verify joins in your installed release.') + table(['Training table','Approximate R5 table','Purpose'],crosswalk) + A('sql','Open training SQL lab');
+        main.innerHTML = H('Technical Library','Training-to-R5 crosswalk','Approximate mappings between the synthetic training database, core R5 tables, U5 custom conventions, and the 7 restored EAM 11.6 table families.')
+          + `<h2>Core R5 Training Tables (28 tables)</h2>`
+          + table(['R5 Table','Entity','Purpose'],crosswalk)
+          + `<h2 class="mt-lg">U5 Custom Tables, UDFs &amp; Non-R5 Families (Verified against 116_van.bak)</h2>`
+          + `<p class="muted">Infor/HxGN EAM sites create custom <code>U5*</code> tables via User Defined Screens; the vanilla <code>116_van.bak</code> backup contains <strong>0 <code>U5*</code> tables</strong> and stores UDF/extensibility metadata in the <code>udf</code>, <code>r5</code>, <code>datalake</code>, and <code>other</code> families below.</p>`
+          + table(['Table / Prefix','Family &amp; Backup Count','Role &amp; Join Path'],u5AndFamilyCrosswalk)
+          + `<div class="row mt-md">${A('sql','Open Synthetic SQL Lab','button')}${A('sql-real','Open Real-Data SQL Lab (1,681 tables)','button primary')}${A('er/R5USERDEFINEDFIELDSETUP','Explore UDF ER Diagram','button')}</div>`;
         break;
       case 'technical': main.innerHTML = technical(); break;
       case 'triggers':
@@ -1131,6 +1312,13 @@ async function route() {
       case 'er': {
         main.innerHTML = erPage(id || 'R5EVENTS');
         $('erPick').onchange = e => { location.hash = 'er/' + U(e.target.value); };
+        loadRealManifest().then(manifest => {
+          if (current !== generation || !$('erPick')) return;
+          const cur = id || 'R5EVENTS';
+          const existing = new Set([...$('erPick').options].map(o => o.value));
+          const extra = manifest.tables.filter(t => !existing.has(t.table)).map(t => `<option value="${E(t.table)}" ${t.table === cur ? 'selected' : ''}>${E(t.table)} [${E(t.family)}]</option>`).join('');
+          if (extra) $('erPick').insertAdjacentHTML('beforeend', extra);
+        }).catch(() => {});
         const erSvg = main.querySelector('.er-svg');
         const setEdgeHover = name => {
           if (!erSvg) return;
