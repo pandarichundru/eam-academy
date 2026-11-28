@@ -49,22 +49,12 @@ function learningDashboard() {
 }
 function fieldHome() {
   const profile = window.EAMProfiles?.getActiveProfile();
-  const last = lessons.find(l => l.id === read('lastLesson',''));
-  const dbLast=read("dbLast",null),lastExercise=read("lastExercise",0);
-  const entryTiles = [
-    ['learn', 'Functional curriculum', `${lessons.length} lessons`, ICON_BOOK, `${lessons.length} lessons across ${Object.keys(groups).length} modules, with scenarios and source evidence.`],
-    ['practice', 'SQL Exercises', '110 challenges', ICON_TERMINAL, 'Write and check your own queries across four difficulty levels, from SELECT to historical reporting.'],
-    ['paths', 'Role-based paths', `${Object.keys(roles).length} role paths`, ICON_COMPASS, 'Follow a curriculum organized around your responsibilities.'],
-    ['reference', 'Reference library', '1,681 R5 tables', ICON_DATABASE, 'Look up guides, fields, database tables and relationships.']
-  ];
-  const primary = last ? A('lesson/' + last.id, 'Continue: ' + last.title, 'button primary') : A('lesson/INTRO01', 'Start learning EAM', 'button primary');
-  const eyebrow = profile ? `Welcome back, ${E(profile.name)}` : 'Enterprise asset management';
-  return '<div class="front academy-hero"><div class="front-copy"><div class="eyebrow">' + eyebrow + '</div><h1>Learn EAM in practice.</h1><p>Swap the pump in the north pump room. Then open its history to see which unit owns the seal repair.</p><div class="hero-links">' + primary + A('pump','Explore the pump case study') + '</div></div>' + pumpScene('home') + '</div>'
-    + ((lastExercise||dbLast)?'<div class="resume-band">'+(lastExercise?A('exercise/'+Number(lastExercise),'Continue exercise '+Number(lastExercise)):'')+(dbLast?'<a href="data/database-reference.html#'+encodeURIComponent(dbLast.key)+'">Last database entry · '+E(dbLast.name)+'</a>':'')+'</div>':'')
-    + '<h2>Choose your starting point</h2><div class="grid home-tiles">'
-    + entryTiles.map(([r, t, meta, icon, d]) => `<a class="tile entry-tile" href="#${r}"><div class="entry-head"><span class="entry-icon" aria-hidden="true">${icon}</span><span class="pill tabular">${E(meta)}</span></div><h3>${E(t)}</h3><p>${E(d)}</p></a>`).join('')
-    + '</div>'
-    + '<div class="section-head"><h2>Practice with a business problem</h2>' + A('workshops','All workshops') + '</div>' + workshopCards([workshops[2],workshops[4],workshops[3]])
+  const task = nextLearningTask();
+  return '<section class="section home-start"><h1>' + E(profile ? profile.name + '’s learning' : 'Your learning') +
+    '</h1>' + A(resumeLink(task), task.label, 'button primary') + '</section>' +
+    tiles([['learn','Curriculum','Browse lessons by module.'],
+      ['sql','SQL Lab','Run a read-only training query.'],
+      ['technical','Technical Library','Explore tables, fields, and relationships.']])
     + learningDashboard()
     + '<div class="row footer-links">' + A('coverage','Inspect curriculum coverage') + A('flows','Browse business process flows') + '</div>';
 }

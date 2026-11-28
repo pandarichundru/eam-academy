@@ -16,7 +16,8 @@
   const PROFILE_KEYS = [
     'done', 'marks', 'notes', 'quiz', 'sqlhist', 'activity',
     'lastLesson', 'recentLessons', 'activePath', 'practiceSolved',
-    'practiceDrafts', 'lastExercise', 'dbBookmarks', 'dbLast', 'missedOnly'
+    'practiceDrafts', 'lastExercise', 'dbBookmarks', 'dbLast', 'missedOnly',
+    'resumeTask', 'workspaceDrafts', 'readingPositions'
   ];
 
   function getSupabaseConfig() {

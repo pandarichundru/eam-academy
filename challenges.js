@@ -93,6 +93,12 @@ function wirePracticeTask(x) {
     const icon = state === 'ok' ? ICON_CHECK : (state === 'warn' || state === 'err') ? ICON_ALERT : '';
     feedback.innerHTML = icon ? icon + '<span>' + E(msg) + '</span>' : E(msg);
   };
+  function offerDifference(issue, secondDataset) {
+    setFeedback('warn', secondDataset ? 'The first dataset passed. Compare the second dataset.' : 'The output differs from the expected result.');
+    const details = document.createElement('details');
+    details.innerHTML = '<summary>Show one difference</summary><p>' + E(issue) + '</p><details><summary>Next hint</summary><p>' + E(x.reason) + '</p></details>';
+    feedback.append(details);
+  }
   editor.oninput = () => { const drafts=read('practiceDrafts',{}); drafts[x.id]=editor.value; write('practiceDrafts',drafts); setFeedback('', ''); output.textContent=''; };
   if ($('loadBroken')) $('loadBroken').onclick = () => {
     if (editor.value.trim() && !confirm('Replace the current draft with the debugging example?')) return;
@@ -118,10 +124,10 @@ function wirePracticeTask(x) {
       output.innerHTML='<div class="result-head"><h2>Your result</h2><small class="tabular">' + first.rows.length + (first.truncated ? '+ rows' : ' rows') + ' · ' + first.columns.length + ' cols</small></div>' + render(first);
       if (!check) { setFeedback('', ''); return; }
       let issue=comparePractice(first,x,0);
-      if (issue) { setFeedback('warn', issue); return; }
+      if (issue) { offerDifference(issue, false); return; }
       const second=await runTrainingQuery(sql,'practice-1');
       issue=comparePractice(second,x,1);
-      if (issue) { setFeedback('warn', 'The first dataset passed. On a second dataset with changed records: ' + issue); return; }
+      if (issue) { offerDifference(issue, true); return; }
       const solved=read('practiceSolved',[]);
       if (!solved.includes(x.id)) write('practiceSolved',[...solved,x.id]);
       logActivity();

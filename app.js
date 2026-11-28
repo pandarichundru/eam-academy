@@ -1131,8 +1131,12 @@ function renderTableDetail(t, td) {
     $('colDictTable').innerHTML = `<p class="muted">${rows.length} of ${td.cols.length} columns shown</p><div class="scroll"><table class="col-dict-table"><thead><tr><th>#</th><th>Column</th><th>Name Meaning / UI Label</th><th>Type</th><th>Null</th><th>Keys &amp; Default</th><th>Explanation</th></tr></thead><tbody>${rows.map(({ idx, c }) => {
       const badges = (c[5] ? c[5].split(',') : []).map(f => `<span class="pill ${f === 'PK' ? 'ok' : ''}">${E(f)}</span>`).join(' ');
       const def = c[3] ? `<code>${E(c[3])}</code>` : '';
-      return `<tr><td class="tabular muted">${idx}</td><td><code>${E(c[0])}</code></td><td><strong>${E(c[4])}</strong></td><td><code>${E(c[1])}</code></td><td>${c[2] ? '<span class="muted">NULL</span>' : '<strong>NOT NULL</strong>'}</td><td>${badges} ${def}</td><td class="col-explain">${E(c[6])}</td></tr>`;
+      return `<tr><td class="tabular muted">${idx}</td><td><button type="button" data-inspect-col="${idx - 1}"><code>${E(c[0])}</code></button></td><td><strong>${E(c[4])}</strong></td><td><code>${E(c[1])}</code></td><td>${c[2] ? '<span class="muted">NULL</span>' : '<strong>NOT NULL</strong>'}</td><td>${badges} ${def}</td><td class="col-explain">${E(c[6])}</td></tr>`;
     }).join('')}</tbody></table></div>`;
+  };
+  $('colDictTable').onclick = event => {
+    const button = event.target.closest('[data-inspect-col]');
+    if (button) inspectField(td, td.cols[Number(button.dataset.inspectCol)], button);
   };
   $('colFilter').oninput = e => drawCols(e.target.value);
   el.querySelectorAll('[data-col-flag]').forEach(btn => {
@@ -1400,18 +1404,16 @@ function progressPage() {
   const valid = lessons.filter(l => done.includes(l.id));
   const qTot = Object.keys(quizState).length;
   const qOk = Object.values(quizState).filter(Boolean).length;
-  const lastLesson = lessons.find(l => l.id === read('lastLesson', ''));
-  const lastEx = read('lastExercise', 0);
   const solved = read('practiceSolved', []);
   const drafts = read('practiceDrafts', {});
   const draftIds = Object.keys(drafts).filter(id => drafts[id]?.trim());
   const recentIds = read('recentLessons', []);
   const recentItems = (Array.isArray(recentIds) ? recentIds : []).map(id => lessons.find(l => l.id === id)).filter(Boolean).slice(0, 5);
-  const nextTitle = lastLesson ? `Continue: ${lastLesson.title}` : 'Start your first lesson: Asset vs. Position';
-  const nextHref = lastLesson ? `lesson/${lastLesson.id}` : 'lesson/INTRO01';
+  const task = nextLearningTask();
+  const nextTitle = task.label, nextHref = resumeLink(task);
 
   return H('Personal learning', profile ? `${profile.name}'s Learning` : 'Your learning progress', `${window.EAMProfiles ? window.EAMProfiles.getSyncStatus() : 'Local storage'} · Progress, bookmarks, notes, and saved SQL exercises.`)
-    + `<section class="panel mb-md"><div class="dashboard-head"><div><div class="eyebrow">Next step</div><h2>${E(nextTitle)}</h2><div class="row mt-sm">${A(nextHref, lastLesson ? 'Resume lesson' : 'Start learning', 'button primary')}${lastEx ? A('exercise/' + Number(lastEx), `Resume SQL Exercise #${Number(lastEx)}`, 'button') : A('practice', 'Open SQL Exercises', 'button')}</div></div>${progressRing(valid.length, lessons.length)}</div></section>`
+    + `<section class="panel mb-md"><div class="dashboard-head"><div><div class="eyebrow">Next step</div><h2>${E(nextTitle)}</h2><div class="row mt-sm">${A(nextHref, 'Open task', 'button primary')}</div></div>${progressRing(valid.length, lessons.length)}</div></section>`
     + `<div class="grid mb-md">`
     + `<section class="panel"><h3>Recently visited lessons</h3>${recentItems.length ? recentItems.map(l => `<div class="list-item">${lessonLink(l)}</div>`).join('') : '<p class="muted">No lessons visited yet.</p>'}</section>`
     + `<section class="panel"><h3>Saved SQL exercises (${solved.length} solved)</h3><p class="muted">${draftIds.length} in-progress draft(s)</p>${draftIds.length ? `<div class="row">${draftIds.slice(0, 8).map(id => A('exercise/' + id, 'Exercise #' + id, 'taglink')).join('')}</div>` : '<p class="muted">No saved drafts yet.</p>'}${A('practice', 'Browse 110 SQL exercises', 'button mt-sm')}</section>`
@@ -1445,6 +1447,7 @@ function renderAssess(m) {
 }
 
 async function route() {
+  stopTrackingTask();
   const current = ++generation;
   const hash = location.hash.slice(1) || document.body.dataset.initialRoute || 'home';
   const pos = hash.indexOf('/');
@@ -1457,6 +1460,9 @@ async function route() {
     renderNav('home', '');
     const main = $('main');
     main.innerHTML = profileWelcomeScreen();
+    const active = window.EAMProfiles.getActiveProfileId();
+    const selected = [...main.querySelectorAll('[data-select-profile]')].find(btn => btn.dataset.selectProfile === active);
+    (selected || main.querySelector('[data-select-profile]'))?.focus({preventScroll:true});
     main.querySelectorAll('[data-select-profile]').forEach(btn => {
       btn.onclick = async () => {
         const pid = btn.dataset.selectProfile;
@@ -1632,6 +1638,7 @@ async function route() {
       }
       case 'sql': {
         main.innerHTML = sqlPage(id);
+        wireTrace(id);
         wireSqlMobileTabs();
         const exercise = /^pump-([0-3])$/.exec(id);
         if (exercise) {
@@ -1640,14 +1647,8 @@ async function route() {
           $('sqlExpected').textContent = q.result;
           $('sqlResult').after(document.createRange().createContextualFragment(A('pump', 'Return to the pump case study')));
         }
-        const wireSql = () => {
-          const curLesson = sqlExampleById($('sqlExample').value);
-          if ($('checkSQL')) $('checkSQL').classList.toggle('is-hidden', !curLesson);
-        };
         $('sqlExample').onchange = e => {
-          const l = sqlExampleById(e.target.value);
-          if (l) { $('sqlText').value = l.sql; $('sqlExpected').textContent = l.verify; $('sqlCheckMsg').innerHTML = ''; }
-          wireSql();
+          location.hash = e.target.value ? 'sql/' + U(e.target.value) : 'sql';
         };
         $('queryHistory').onclick = e => {
           const button = e.target.closest('[data-load-sql]');
@@ -1817,7 +1818,7 @@ async function route() {
           if (selectedExId) {
             const ex = realExercises.find(x => x.id === selectedExId);
             if (ex) {
-              $('sqlText').value = ex.sql;
+              $('sqlText').value = read('workspaceDrafts', {})['sql-real/' + id] ?? ex.sql;
               $('sqlExpected').textContent = `${ex.prompt} — ${ex.verify}`;
               $('checkSQL').classList.remove('is-hidden');
             }
@@ -1830,15 +1831,7 @@ async function route() {
         $('realSchemaSearch').oninput = () => renderFamilyBrowser($('realSchemaSearch').value, $('realPopulatedOnly').checked);
         $('realPopulatedOnly').onchange = () => renderFamilyBrowser($('realSchemaSearch').value, $('realPopulatedOnly').checked);
         $('realSqlExample').onchange = e => {
-          const ex = realExercises.find(x => x.id === e.target.value);
-          if (ex) {
-            $('sqlText').value = ex.sql;
-            $('sqlExpected').textContent = `${ex.prompt} — ${ex.verify}`;
-            $('sqlCheckMsg').innerHTML = '';
-            $('checkSQL').classList.remove('is-hidden');
-          } else {
-            $('checkSQL').classList.add('is-hidden');
-          }
+          location.hash = e.target.value ? 'sql-real/ex/' + U(e.target.value) : 'sql-real';
         };
         $('queryHistory').onclick = e => {
           const button = e.target.closest('[data-load-sql]');
@@ -1892,7 +1885,7 @@ async function route() {
       case 'progress':
         main.innerHTML = progressPage();
         $('exportProgress').onclick = () => {
-          const a = document.createElement('a'), url = URL.createObjectURL(new Blob([JSON.stringify({ activity: read('activity', []), lastLesson: read('lastLesson', ''), activePath: read('activePath', ''), sqlHist, done, marks, notes, quiz: quizState, practiceSolved: read('practiceSolved', []), practiceDrafts: read('practiceDrafts', {}) }, null, 2)], { type: 'application/json' }));
+          const a = document.createElement('a'), url = URL.createObjectURL(new Blob([JSON.stringify({ resumeTask: read('resumeTask', null), workspaceDrafts: read('workspaceDrafts', {}), readingPositions: read('readingPositions', {}), activity: read('activity', []), lastLesson: read('lastLesson', ''), activePath: read('activePath', ''), sqlHist, done, marks, notes, quiz: quizState, practiceSolved: read('practiceSolved', []), practiceDrafts: read('practiceDrafts', {}) }, null, 2)], { type: 'application/json' }));
           a.href = url; a.download = 'eam-learning-progress.json'; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
         };
         $('importFile').onchange = async e => {
@@ -1900,6 +1893,12 @@ async function route() {
           if (!f) return;
           try {
             const d = JSON.parse(await f.text());
+            if (d.resumeTask && ['sql','sql-real','exercise','lesson'].includes(d.resumeTask.route) &&
+                typeof d.resumeTask.id === 'string' && typeof d.resumeTask.label === 'string') write('resumeTask', d.resumeTask);
+            if (d.workspaceDrafts && typeof d.workspaceDrafts === 'object') write('workspaceDrafts',
+              Object.fromEntries(Object.entries(d.workspaceDrafts).filter(([key, sql]) => /^sql(?:-real)?\//.test(key) && typeof sql === 'string' && sql.length <= 20000)));
+            if (d.readingPositions && typeof d.readingPositions === 'object') write('readingPositions',
+              Object.fromEntries(Object.entries(d.readingPositions).filter(([key, pos]) => key.startsWith('lesson/') && Number.isFinite(pos) && pos >= 0)));
             if (Array.isArray(d.activity)) write('activity', d.activity.filter(v => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v)));
             for (const key of ['lastLesson', 'activePath']) if (typeof d[key] === 'string') write(key, d[key]);
             if (Array.isArray(d.sqlHist)) { sqlHist = d.sqlHist.filter(v => typeof v === 'string').slice(0, 10); write('sqlhist', sqlHist); }
@@ -1916,7 +1915,7 @@ async function route() {
           if (!confirm('Clear all local completion, bookmarks, notes, quiz scores, and SQL practice history?')) return;
           done = []; marks = []; notes = {}; quizState = {}; sqlHist = [];
           write('sqlhist', []); write('activity', []);
-          write('practiceSolved', []); write('practiceDrafts', {}); write('lastExercise', 0); write('dbBookmarks', []); write('dbLast', null); write('activePath', ''); write('lastLesson', '');
+          write('practiceSolved', []); write('practiceDrafts', {}); write('lastExercise', 0); write('resumeTask', null); write('workspaceDrafts', {}); write('readingPositions', {}); write('dbBookmarks', []); write('dbLast', null); write('activePath', ''); write('lastLesson', '');
           write('done', done); write('marks', marks); write('notes', notes); write('quiz', quizState);
           route();
         };
@@ -1933,7 +1932,8 @@ async function route() {
       const ref = $('refSearch');
       if (ref) ref.onsubmit = e => { e.preventDefault(); location.hash = 'search/' + U($('refQ').value); };
       document.title = (main.querySelector('h1')?.textContent || 'Learning') + ' · EAM Academy';
-      window.scrollTo(0, 0);
+      window.scrollTo({top:0, behavior:'instant'});
+      trackTask(r, id);
       setDrawer(false);
       setMobileNav(false);
     }
@@ -1991,8 +1991,7 @@ $('main').addEventListener('change', e => {
 });
 $('quick').onsubmit = e => {
   e.preventDefault();
-  const q = $('quickInput').value;
-  if (location.hash === '#search/' + U(q)) doSearch(q); else location.hash = 'search/' + U(q);
+  openTaskSearch($('quickInput').value);
 };
 document.querySelector('.skip').addEventListener('click', e => { e.preventDefault(); $('main').focus(); });
 function setDrawer(open) {
@@ -2015,14 +2014,14 @@ function setMobileNav(open) {
 }
 document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
-    e.preventDefault(); $('quickInput').focus(); $('quickInput').select(); return;
+    e.preventDefault(); openTaskSearch(); return;
   }
   if (e.key === 'Escape') {
     if ($('topnav')?.classList.contains('is-open')) { setMobileNav(false); $('mobileNavBtn')?.focus(); return; }
     if ($('side').classList.contains('open')) { setDrawer(false); $('menu').focus(); return; }
   }
   if (e.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
-    e.preventDefault(); $('quickInput')?.focus();
+    e.preventDefault(); openTaskSearch();
   }
 });
 $('menu').onclick = () => setDrawer(!$('side').classList.contains('open'));
